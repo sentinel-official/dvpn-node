@@ -1,9 +1,12 @@
 package tx
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common"
 	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 	tmTypes "github.com/tendermint/tendermint/types"
@@ -55,4 +58,21 @@ func (t Tx) QuerySessionFromTxHash(txHash string) (*vpnTypes.SessionDetails, err
 	id := string(res.TxResult.Tags[2].Value)
 
 	return common.QuerySession(t.manager.CLIContext, t.manager.CLIContext.Codec, id)
+}
+
+func (t Tx) SignSessionBandwidth(id vpnTypes.SessionID, upload, download int64, client csdkTypes.AccAddress) (string, error) {
+	bandwidth := types.NewBandwidthFromInt64(upload, download)
+	bandwidthSign := vpnTypes.NewBandwidthSign(id, bandwidth, t.manager.CLIContext.FromAddress, client)
+
+	msg, err := json.Marshal(bandwidthSign)
+	if err != nil {
+		return "", err
+	}
+
+	sign, _, err := t.manager.CLIContext.Keybase.Sign(t.manager.CLIContext.FromName, t.manager.password, msg)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(sign), nil
 }

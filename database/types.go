@@ -8,20 +8,20 @@ import (
 )
 
 type Session struct {
-	ID bson.ObjectId `json:"_id"`
+	ID bson.ObjectId `json:"id" bson:"_id"`
 
-	SessionID      string          `json:"session_id"`
-	ClientAddress  string          `json:"client_address"`
-	UploadLimit    int64           `json:"upload_limit"`
-	DownloadLimit  int64           `json:"download_limit"`
-	PricePerGB     string          `json:"price_per_gb"`
-	BandwidthSigns []BandwidthSign `json:"bandwidth_signs"`
+	SessionID      string          `json:"session_id" bson:"sessionID"`
+	ClientAddress  string          `json:"client_address" bson:"clientAddress"`
+	UploadLimit    int64           `json:"upload_limit" bson:"uploadLimit"`
+	DownloadLimit  int64           `json:"download_limit" bson:"downloadLimit"`
+	PricePerGB     string          `json:"price_per_gb" bson:"pricePerGB"`
+	BandwidthSigns []BandwidthSign `json:"bandwidth_signs" bson:"bandwidthSigns"`
 
-	Status    string    `json:"status"`
-	AddedAt   time.Time `json:"added_at"`
-	StatusAt  time.Time `json:"status_at"`
-	StartedAt time.Time `json:"started_at"`
-	EndedAt   time.Time `json:"ended_at"`
+	Status    string    `json:"status" bson:"status"`
+	AddedAt   time.Time `json:"added_at" bson:"addedAt"`
+	StatusAt  time.Time `json:"status_at" bson:"statusAt"`
+	StartedAt time.Time `json:"started_at" bson:"startedAt,omitempty"`
+	EndedAt   time.Time `json:"ended_at" bson:"endedAt,omitempty"`
 }
 
 func NewSessionFromDetails(details *vpn.SessionDetails) Session {
@@ -42,11 +42,23 @@ func NewSessionFromDetails(details *vpn.SessionDetails) Session {
 }
 
 type BandwidthSign struct {
-	Index         int64     `json:"index"`
-	Upload        int64     `json:"upload"`
-	Download      int64     `json:"download"`
-	ClientSign    string    `json:"client_sign"`
-	NodeOwnerSign string    `json:"node_owner_sign"`
-	TxHash        string    `json:"tx_hash"`
-	AddedAt       time.Time `json:"added_at"`
+	Index         int64     `json:"index" bson:"index"`
+	Upload        int64     `json:"upload" bson:"upload"`
+	Download      int64     `json:"download" bson:"download"`
+	ClientSign    string    `json:"client_sign" bson:"clientSign,omitempty"`
+	NodeOwnerSign string    `json:"node_owner_sign" bson:"nodeOwnerSign"`
+	TxHash        string    `json:"tx_hash" bson:"txHash,omitempty"`
+	AddedAt       time.Time `json:"added_at" bson:"addedAt"`
+}
+
+func NewBandwidthSign(index, upload, download int64, sign string) BandwidthSign {
+	now := time.Now().UTC()
+
+	return BandwidthSign{
+		Index:         index,
+		Upload:        upload,
+		Download:      download,
+		NodeOwnerSign: sign,
+		AddedAt:       now,
+	}
 }

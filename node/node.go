@@ -12,6 +12,10 @@ type Node struct {
 	server *server.Server
 }
 
-func NewNode() *Node {
-	return &Node{}
+func NewNode(tx *tx.Tx, vpn *vpn.BaseVPN, server *server.Server) *Node {
+	return &Node{
+		tx:     tx,
+		vpn:    vpn,
+		server: server,
+	}
 }

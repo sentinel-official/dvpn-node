@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type mongo struct {
@@ -32,7 +31,7 @@ func (m *mongo) newSession() (*mgo.Session, error) {
 	return mgo.DialWithInfo(info)
 }
 
-func (m mongo) Insert(database, collection string, objects ...bson.M) error {
+func (m mongo) Insert(database, collection string, objects ...interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -44,7 +43,7 @@ func (m mongo) Insert(database, collection string, objects ...bson.M) error {
 	return c.Insert(objects)
 }
 
-func (m mongo) UpdateOne(database, collection string, selector, update bson.M) error {
+func (m mongo) UpdateOne(database, collection string, selector, update interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -56,7 +55,7 @@ func (m mongo) UpdateOne(database, collection string, selector, update bson.M) e
 	return c.Update(session, update)
 }
 
-func (m mongo) UpdateMany(database, collection string, selector, update bson.M) (*mgo.ChangeInfo, error) {
+func (m mongo) UpdateMany(database, collection string, selector, update interface{}) (*mgo.ChangeInfo, error) {
 	session, err := m.newSession()
 	if err != nil {
 		return nil, err
@@ -68,7 +67,7 @@ func (m mongo) UpdateMany(database, collection string, selector, update bson.M) 
 	return c.UpdateAll(session, update)
 }
 
-func (m mongo) GetOne(database, collection string, query, selectors bson.M, object interface{}) error {
+func (m mongo) GetOne(database, collection string, query, selectors, object interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -80,7 +79,7 @@ func (m mongo) GetOne(database, collection string, query, selectors bson.M, obje
 	return c.Find(query).Select(selectors).One(object)
 }
 
-func (m mongo) GetMany(database, collection string, query, selectors bson.M, object interface{}) error {
+func (m mongo) GetMany(database, collection string, query, selectors, object interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -92,7 +91,7 @@ func (m mongo) GetMany(database, collection string, query, selectors bson.M, obj
 	return c.Find(query).Select(selectors).All(object)
 }
 
-func (m mongo) Remove(database, collection string, selector bson.M) error {
+func (m mongo) Remove(database, collection string, selector interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -104,7 +103,7 @@ func (m mongo) Remove(database, collection string, selector bson.M) error {
 	return c.Remove(selector)
 }
 
-func (m mongo) RemoveAll(database, collection string, selector bson.M) (*mgo.ChangeInfo, error) {
+func (m mongo) RemoveAll(database, collection string, selector interface{}) (*mgo.ChangeInfo, error) {
 	session, err := m.newSession()
 	if err != nil {
 		return nil, err
