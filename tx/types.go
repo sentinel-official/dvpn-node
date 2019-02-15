@@ -6,7 +6,7 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-func SubscribeRPCRequest() types.RPCRequest {
+func SubscriberRPCRequest() types.RPCRequest {
 	req := types.NewRPCRequest().
 		WithJSONRPC("2.0").
 		WithID("0").
@@ -15,16 +15,16 @@ func SubscribeRPCRequest() types.RPCRequest {
 	return req
 }
 
-func SubscribeRPCRequestWithQuery(query string) types.RPCRequest {
-	req := SubscribeRPCRequest().
+func SubscriberRPCRequestWithQuery(query string) types.RPCRequest {
+	req := SubscriberRPCRequest().
 		WithQuery(query)
 
 	return req
 }
 
-func NewTxSubscribeRPCRequest(txHash string) types.RPCRequest {
+func NewTxSubscriberRPCRequest(txHash string) types.RPCRequest {
 	query := fmt.Sprintf("tm.event = 'Tx' AND tx.hash = '%s'", txHash)
-	req := SubscribeRPCRequestWithQuery(query)
+	req := SubscriberRPCRequestWithQuery(query)
 
 	return req
 }

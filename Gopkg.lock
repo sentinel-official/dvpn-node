@@ -40,13 +40,16 @@
   revision = "d4cc87b860166d00d6b5b9e0d3b3d71d6088d4d4"
 
 [[projects]]
-  digest = "1:0dd8fee8b55795a6787f305da3856d0e7b877bec73f781e4fb50efb61e14a951"
+  digest = "1:391cbc281024ef0486b55e201516dcae795217d98420d5318d6c57483507cc1e"
   name = "github.com/cosmos/cosmos-sdk"
   packages = [
     "baseapp",
     "client",
     "client/context",
     "client/keys",
+    "client/rest",
+    "client/tx",
+    "client/utils",
     "cmd/gaia/app",
     "codec",
     "crypto",
@@ -251,9 +254,16 @@
 
 [[projects]]
   branch = "development"
-  digest = "1:ef0553d30266451efbf6ba57fd7317c686e513320afbd8f8289ee0cab0db66a7"
+  digest = "1:a8b190bd1c642239c7978d41f896ce4cd7da45480f6e9cee2523bb5dc0dbbe4e"
   name = "github.com/ironman0x7b2/sentinel-sdk"
-  packages = ["types"]
+  packages = [
+    "types",
+    "x/vpn",
+    "x/vpn/client/common",
+    "x/vpn/keeper",
+    "x/vpn/querier",
+    "x/vpn/types",
+  ]
   pruneopts = "UT"
   revision = "af558f9f7fc5855b01f746d85600b232bb74f5e0"
 
@@ -703,6 +713,20 @@
   version = "v1.16.0"
 
 [[projects]]
+  branch = "v2"
+  digest = "1:988de7520a09024d5d94cd99bd545afbf194893994ec759b1cda0a0bbb6adb80"
+  name = "gopkg.in/mgo.v2"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram",
+  ]
+  pruneopts = "UT"
+  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
+
+[[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -715,17 +739,22 @@
   analyzer-version = 1
   input-imports = [
     "github.com/cosmos/cosmos-sdk/client/context",
+    "github.com/cosmos/cosmos-sdk/client/tx",
     "github.com/cosmos/cosmos-sdk/crypto/keys",
     "github.com/cosmos/cosmos-sdk/types",
     "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder",
     "github.com/cosmos/go-bip39",
     "github.com/gorilla/websocket",
     "github.com/ironman0x7b2/sentinel-sdk/types",
+    "github.com/ironman0x7b2/sentinel-sdk/x/vpn",
+    "github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common",
     "github.com/tendermint/go-amino",
     "github.com/tendermint/tendermint/libs/common",
     "github.com/tendermint/tendermint/rpc/core/types",
     "github.com/tendermint/tendermint/rpc/lib/types",
     "github.com/tendermint/tendermint/types",
+    "gopkg.in/mgo.v2",
+    "gopkg.in/mgo.v2/bson",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

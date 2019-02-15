@@ -9,25 +9,23 @@ import (
 	"github.com/tendermint/tendermint/rpc/core/types"
 	"github.com/tendermint/tendermint/rpc/lib/types"
 	"github.com/tendermint/tendermint/types"
-
-	"github.com/ironman0x7b2/vpn-node/config"
 )
 
 type Subscriber struct {
-	appCfg   *config.AppConfig
+	nodeURI  string
 	cdc      *amino.Codec
 	conn     *websocket.Conn
 	channels map[string]chan types.EventDataTx
 }
 
-func NewSubscriber(appCfg *config.AppConfig) (*Subscriber, error) {
+func NewSubscriber(nodeURI string, cdc *amino.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
-		appCfg:   appCfg,
-		cdc:      amino.NewCodec(),
+		nodeURI:  nodeURI,
+		cdc:      cdc,
 		channels: make(map[string]chan types.EventDataTx),
 	}
 
-	ok := make(chan bool, 1)
+	ok := make(chan bool)
 	defer close(ok)
 
 	go func() {
@@ -36,15 +34,12 @@ func NewSubscriber(appCfg *config.AppConfig) (*Subscriber, error) {
 		}
 	}()
 
-	select {
-	case <-ok:
-		return &subscriber, nil
-	}
+	<-ok
+	return &subscriber, nil
 }
 
 func (s *Subscriber) ReadTxQuery(ok chan bool) error {
-	url := s.appCfg.LiteClientURI
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(s.nodeURI, nil)
 	if err != nil {
 		return err
 	}
@@ -104,7 +99,7 @@ func (s *Subscriber) WriteTxQuery(txHash string, channel chan types.EventDataTx)
 
 	s.channels[txHash] = channel
 
-	body := NewTxSubscribeRPCRequest(txHash)
+	body := NewTxSubscriberRPCRequest(txHash)
 	if err := s.conn.WriteJSON(body); err != nil {
 		delete(s.channels, txHash)
 		return err
