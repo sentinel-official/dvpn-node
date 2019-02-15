@@ -8,9 +8,8 @@ import (
 
 type AppConfig struct {
 	OwnerAccount struct {
-		Name     string `json:"name"`
-		Address  string `json:"address"`
-		Password string `json:"password,omitempty"`
+		Name    string `json:"name"`
+		Address string `json:"address"`
 	} `json:"owner_account"`
 	Node struct {
 		ID           string `json:"id"`
@@ -74,15 +73,8 @@ func (c *AppConfig) LoadFromPath(path string) error {
 	return json.Unmarshal(data, c)
 }
 
-func (c AppConfig) Safe() AppConfig {
-	_c := c
-	_c.OwnerAccount.Password = ""
-
-	return _c
-}
-
-func (c AppConfig) SafeSaveToPath(path string) error {
-	data, err := json.MarshalIndent(c.Safe(), "", "  ")
+func (c AppConfig) SaveToPath(path string) error {
+	data, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
 	}
