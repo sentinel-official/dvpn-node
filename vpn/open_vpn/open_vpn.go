@@ -13,12 +13,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/vpn"
 )
 
 type OpenVPN struct {
-	ipAddress   string
+	ip          string
 	port        uint32
 	protocol    string
 	encryption  string
@@ -26,13 +25,13 @@ type OpenVPN struct {
 	processWait chan error
 }
 
-func NewOpenVPNFromAppConfig(appCfg *config.AppConfig) OpenVPN {
+func NewOpenVPN(ip string, port uint32, protocol, encryption string) OpenVPN {
 	return OpenVPN{
-		ipAddress:   appCfg.VPN.IPAddress,
-		port:        appCfg.VPN.Port,
-		protocol:    appCfg.VPN.Protocol,
-		encryption:  appCfg.VPN.EncryptionMethod,
-		processWait: make(chan error, 1),
+		ip:          ip,
+		port:        port,
+		protocol:    protocol,
+		encryption:  encryption,
+		processWait: make(chan error),
 	}
 }
 
@@ -65,7 +64,7 @@ func (o OpenVPN) WriteClientConfig() error {
 	}
 
 	var stdout bytes.Buffer
-	if err := t.Execute(&stdout, newClientConfigData(o.ipAddress, o.port, o.protocol, o.encryption)); err != nil {
+	if err := t.Execute(&stdout, newClientConfigData(o.ip, o.port, o.protocol, o.encryption)); err != nil {
 		return err
 	}
 
