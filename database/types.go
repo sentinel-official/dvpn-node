@@ -3,7 +3,7 @@ package database
 import (
 	"time"
 
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -24,7 +24,7 @@ type Session struct {
 	EndedAt   time.Time `json:"ended_at" bson:"endedAt,omitempty"`
 }
 
-func NewSessionFromDetails(details *vpn.SessionDetails) Session {
+func NewSessionFromDetails(details *vpnTypes.SessionDetails) Session {
 	now := time.Now().UTC()
 
 	return Session{
@@ -42,20 +42,21 @@ func NewSessionFromDetails(details *vpn.SessionDetails) Session {
 }
 
 type BandwidthSign struct {
-	Index         int64     `json:"index" bson:"index"`
-	Upload        int64     `json:"upload" bson:"upload"`
-	Download      int64     `json:"download" bson:"download"`
-	ClientSign    string    `json:"client_sign" bson:"clientSign,omitempty"`
-	NodeOwnerSign string    `json:"node_owner_sign" bson:"nodeOwnerSign"`
-	TxHash        string    `json:"tx_hash" bson:"txHash,omitempty"`
-	AddedAt       time.Time `json:"added_at" bson:"addedAt"`
+	ID            bson.ObjectId `json:"id" bson:"_id"`
+	Upload        int64         `json:"upload" bson:"upload"`
+	Download      int64         `json:"download" bson:"download"`
+	ClientSign    string        `json:"client_sign" bson:"clientSign,omitempty"`
+	NodeOwnerSign string        `json:"node_owner_sign" bson:"nodeOwnerSign"`
+	TxHash        string        `json:"tx_hash" bson:"txHash,omitempty"`
+	AddedAt       time.Time     `json:"added_at" bson:"addedAt"`
+	UpdatedAt     time.Time     `json:"updated_at" bson:"updatedAt"`
 }
 
-func NewBandwidthSign(index, upload, download int64, sign string) BandwidthSign {
+func NewBandwidthSign(upload, download int64, sign string) BandwidthSign {
 	now := time.Now().UTC()
 
 	return BandwidthSign{
-		Index:         index,
+		ID:            bson.NewObjectId(),
 		Upload:        upload,
 		Download:      download,
 		NodeOwnerSign: sign,

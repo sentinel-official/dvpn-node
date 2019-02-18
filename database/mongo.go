@@ -67,7 +67,7 @@ func (m mongo) UpdateMany(database, collection string, selector, update interfac
 	return c.UpdateAll(session, update)
 }
 
-func (m mongo) GetOne(database, collection string, query, selectors, object interface{}) error {
+func (m mongo) GetOne(database, collection string, query, selectors, result interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -76,10 +76,10 @@ func (m mongo) GetOne(database, collection string, query, selectors, object inte
 	defer session.Close()
 	c := session.DB(database).C(collection)
 
-	return c.Find(query).Select(selectors).One(object)
+	return c.Find(query).Select(selectors).One(result)
 }
 
-func (m mongo) GetMany(database, collection string, query, selectors, object interface{}) error {
+func (m mongo) GetMany(database, collection string, query, selectors, result interface{}) error {
 	session, err := m.newSession()
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (m mongo) GetMany(database, collection string, query, selectors, object int
 	defer session.Close()
 	c := session.DB(database).C(collection)
 
-	return c.Find(query).Select(selectors).All(object)
+	return c.Find(query).Select(selectors).All(result)
 }
 
 func (m mongo) Remove(database, collection string, selector interface{}) error {
@@ -113,4 +113,16 @@ func (m mongo) RemoveAll(database, collection string, selector interface{}) (*mg
 	c := session.DB(database).C(collection)
 
 	return c.RemoveAll(selector)
+}
+
+func (m mongo) PipeAll(database, collection string, pipeline, result interface{}) error {
+	session, err := m.newSession()
+	if err != nil {
+		return err
+	}
+
+	defer session.Close()
+	c := session.DB(database).C(collection)
+
+	return c.Pipe(pipeline).All(result)
 }

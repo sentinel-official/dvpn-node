@@ -60,7 +60,9 @@ func (t Tx) QuerySessionFromTxHash(txHash string) (*vpnTypes.SessionDetails, err
 	return common.QuerySession(t.manager.CLIContext, t.manager.CLIContext.Codec, id)
 }
 
-func (t Tx) SignSessionBandwidth(id vpnTypes.SessionID, upload, download int64, client csdkTypes.AccAddress) (string, error) {
+func (t Tx) SignSessionBandwidth(id vpnTypes.SessionID, upload, download int64,
+	client csdkTypes.AccAddress) (string, error) {
+
 	bandwidth := types.NewBandwidthFromInt64(upload, download)
 	bandwidthSign := vpnTypes.NewBandwidthSign(id, bandwidth, t.manager.CLIContext.FromAddress, client)
 

@@ -2,36 +2,35 @@ package open_vpn
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/ironman0x7b2/vpn-node/vpn"
 )
 
 type OpenVPN struct {
-	ip          string
-	port        uint32
-	protocol    string
-	encryption  string
-	process     *os.Process
-	processWait chan error
+	ip             string
+	port           uint32
+	protocol       string
+	encryption     string
+	managementPort uint32
+	process        *os.Process
+	processWait    chan error
 }
 
-func NewOpenVPN(ip string, port uint32, protocol, encryption string) OpenVPN {
+func NewOpenVPN(ip string, port uint32, protocol, encryption string, managementPort uint32) OpenVPN {
 	return OpenVPN{
-		ip:          ip,
-		port:        port,
-		protocol:    protocol,
-		encryption:  encryption,
-		processWait: make(chan error),
+		ip:             ip,
+		port:           port,
+		protocol:       protocol,
+		encryption:     encryption,
+		managementPort: managementPort,
+		processWait:    make(chan error),
 	}
 }
 
@@ -44,31 +43,15 @@ func (o OpenVPN) Encryption() string {
 }
 
 func (o OpenVPN) WriteServerConfig() error {
-	t, err := template.New("server_config").Parse(serverConfigTemplate)
-	if err != nil {
-		return err
-	}
+	data := fmt.Sprintf(serverConfigTemplate, o.port, o.encryption, o.managementPort)
 
-	var stdout bytes.Buffer
-	if err := t.Execute(&stdout, newServerConfigData(o.port, o.protocol, o.encryption)); err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(defaultServerConfigFilePath, stdout.Bytes(), os.ModePerm)
+	return ioutil.WriteFile("/etc/openvpn/server.conf", []byte(data), os.ModePerm)
 }
 
-func (o OpenVPN) WriteClientConfig() error {
-	t, err := template.New("client_config").Parse(clientConfigTemplate)
-	if err != nil {
-		return err
-	}
+func (o OpenVPN) GenerateServerKeys() error {
+	cmd := exec.Command("sh", "-c", cmdGenerateServerKeys)
 
-	var stdout bytes.Buffer
-	if err := t.Execute(&stdout, newClientConfigData(o.ip, o.port, o.protocol, o.encryption)); err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(defaultClientConfigFilePath, stdout.Bytes(), os.ModePerm)
+	return cmd.Run()
 }
 
 func (o OpenVPN) Wait(done chan error) {
@@ -77,15 +60,15 @@ func (o OpenVPN) Wait(done chan error) {
 }
 
 func (o OpenVPN) Init() error {
-	if err := o.WriteServerConfig(); err != nil {
+	if err := o.GenerateServerKeys(); err != nil {
 		return err
 	}
 
-	return o.WriteClientConfig()
+	return o.WriteServerConfig()
 }
 
 func (o OpenVPN) Start() error {
-	cmd := exec.Command("openvpn", "--config", defaultServerConfigFilePath)
+	cmd := exec.Command("openvpn", "--config", "/etc/openvpn/server.conf")
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -107,11 +90,12 @@ func (o OpenVPN) Stop() error {
 }
 
 func (o OpenVPN) ClientList() ([]vpn.Client, error) {
-	if _, err := os.Stat(defaultStatusLogFilePath); os.IsNotExist(err) {
+	filePath := "/etc/openvpn/openvpn-status.log"
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, nil
 	}
 
-	file, err := os.Open(defaultStatusLogFilePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +119,9 @@ func (o OpenVPN) ClientList() ([]vpn.Client, error) {
 		}
 
 		line := string(lineBytes)
-		if strings.Contains(line, cnamePrefix) {
+		if strings.Contains(line, "client_") {
 			lineSlice := strings.Split(line, ",")
-			cname := lineSlice[0][len(cnamePrefix):]
+			cname := lineSlice[0][len("client_"):]
 
 			upload, err := strconv.Atoi(lineSlice[2])
 			if err != nil {
@@ -149,7 +133,7 @@ func (o OpenVPN) ClientList() ([]vpn.Client, error) {
 				return nil, err
 			}
 
-			client := vpn.NewClient(cname, upload, download)
+			client := vpn.NewClient(cname, int64(upload), int64(download))
 			clients = append(clients, client)
 		} else if strings.Contains(line, "ROUTING TABLE") {
 			break
@@ -160,20 +144,14 @@ func (o OpenVPN) ClientList() ([]vpn.Client, error) {
 }
 
 func (o OpenVPN) RevokeClientCert(cname string) error {
-	cmdParams, err := cmdRevokeClientCert(cname)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command("sh", "-c", cmdParams)
+	cmd := exec.Command("sh", "-c", cmdRevokeClientCert(cname))
 
 	return cmd.Run()
 }
 
 func (o OpenVPN) DisconnectClient(id string) error {
-	cname := cnamePrefix + id
-	cmd := exec.Command("sh", "-c",
-		fmt.Sprintf("echo 'kill %s' | nc 127.0.0.1 1195", cname))
+	cname := "client_" + id
+	cmd := exec.Command("sh", "-c", cmdDisconnectClient(cname, o.managementPort))
 
 	if err := cmd.Run(); err != nil {
 		return err
@@ -182,38 +160,33 @@ func (o OpenVPN) DisconnectClient(id string) error {
 	return o.RevokeClientCert(cname)
 }
 
-func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
-	cname := cnamePrefix + id
-	ovpnFilePath := filepath.Join(defaultKeysDir, cname+ovpnFileExtension)
+func (o OpenVPN) GenerateClientKey(id string) (interface{}, error) {
+	cname := "client_" + id
 
-	cmdParams, err := cmdGenerateClientKey(cname)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := exec.Command("sh", "-c", cmdParams)
+	cmd := exec.Command("sh", "-c", cmdGenerateClientKeys(cname))
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
-	return o.ReadOVPNFile(ovpnFilePath)
-}
-
-func (o OpenVPN) ReadOVPNFile(filePath string) ([]byte, error) {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil, nil
-	}
-
-	file, err := os.Open(filePath)
+	ca, err := ioutil.ReadFile("/usr/share/easy-rsa/pki/ca.crt")
 	if err != nil {
 		return nil, err
 	}
 
-	defer func() {
-		if err := file.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	cert, err := ioutil.ReadFile(fmt.Sprintf("/usr/share/easy-rsa/pki/issued/%s.crt", cname))
+	if err != nil {
+		return nil, err
+	}
 
-	return ioutil.ReadAll(file)
+	key, err := ioutil.ReadFile(fmt.Sprintf("/usr/share/easy-rsa/pki/private/%s.key", cname))
+	if err != nil {
+		return nil, err
+	}
+
+	tlsAuth, err := ioutil.ReadFile("/usr/share/easy-rsa/pki/ta.key")
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf(clientConfigTemplate, o.ip, o.port, o.encryption, ca, cert, key, tlsAuth), nil
 }

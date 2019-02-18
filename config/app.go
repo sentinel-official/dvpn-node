@@ -17,19 +17,10 @@ type AppConfig struct {
 		PricesPerGB  string `json:"prices_per_gb"`
 		Description  string `json:"description"`
 		Status       string `json:"status"`
-		API          struct {
-			Address string `json:"address"`
-			Port    uint32 `json:"port"`
-		} `json:"api"`
+		APIAddress   string `json:"api_address"`
+		APIPort      uint32 `json:"api_port"`
 	} `json:"node"`
-	VPN struct {
-		Type             string `json:"type"`
-		IPAddress        string `json:"ip_address"`
-		Port             uint32 `json:"port"`
-		Protocol         string `json:"protocol"`
-		EncryptionMethod string `json:"encryption_method"`
-		ManagementPort   uint32 `json:"management_port"`
-	} `json:"vpn"`
+	VPNType       string `json:"vpn_type"`
 	LiteClientURI string `json:"lite_client_uri"`
 	ChainID       string `json:"chain_id"`
 }
@@ -43,22 +34,7 @@ func (c *AppConfig) LoadFromPath(path string) error {
 		path = DefaultAppConfigFilePath
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return err
-	}
-
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := file.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
-	data, err := ioutil.ReadAll(file)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}

@@ -2,8 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -13,7 +13,7 @@ import (
 )
 
 type Server struct {
-	db          *database.DB
+	DB          *database.DB
 	tx          *tx.Tx
 	upgrader    *websocket.Upgrader
 	Connections map[string]*Connection
@@ -21,7 +21,7 @@ type Server struct {
 
 func NewServer(db *database.DB, tx *tx.Tx, upgrader *websocket.Upgrader) *Server {
 	return &Server{
-		db:          db,
+		DB:          db,
 		tx:          tx,
 		upgrader:    upgrader,
 		Connections: make(map[string]*Connection),
@@ -36,79 +36,102 @@ func (s Server) Router() *mux.Router {
 }
 
 func (s Server) handleWebsocket(w http.ResponseWriter, r *http.Request) {
-	var body webSocketReqBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		panic(err)
-	}
-
-	details, err := s.tx.QuerySessionFromTxHash(body.TxHash)
+	txHash := r.URL.Query().Get("txHash")
+	details, err := s.tx.QuerySessionFromTxHash(txHash)
 	if err != nil {
-		panic(err)
+		sendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	session := database.NewSessionFromDetails(details)
-	if err := s.db.Sessions.AddSession(&session); err != nil {
-		panic(err)
+	if err := s.DB.Sessions.AddSession(&session); err != nil {
+		sendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		panic(err)
+		sendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
 	}
+	if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		sendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	conn.SetPongHandler(func(string) error {
+		return conn.SetReadDeadline(time.Now().Add(pongWait))
+	})
 
 	connection := NewConnection(conn, details)
 	s.Connections[session.SessionID] = connection
 
-	go func() {
-		if err := s.readMessages(connection); err != nil {
-			panic(err)
-		}
-	}()
-
-	go func() {
-		if err := s.writeMessages(connection); err != nil {
-			panic(err)
-		}
-	}()
+	go s.readMessages(session.SessionID)
+	go s.writeMessages(session.SessionID)
 }
 
-func (s Server) readMessages(connection *Connection) error {
+func (s Server) readMessages(id string) {
+	c := s.Connections[id]
+
+	defer func() {
+		if err := c.Conn.Close(); err != nil {
+			panic(err)
+		}
+
+		close(c.OutMessages)
+		delete(s.Connections, id)
+	}()
+
 	for {
-		_, p, err := connection.Conn.ReadMessage()
+		_, p, err := c.Conn.ReadMessage()
 		if err != nil {
-			return err
+			return
 		}
 
-		var msg bandwidthSignMsg
+		var msg interface{}
 		if err := json.Unmarshal(p, &msg); err != nil {
-			return err
-		}
-		if err := msg.Validate(); err != nil {
-			return err
+			c.OutMessages <- NewMsgError(1, err.Error())
+			break
 		}
 
-		bandwidthSign, err := s.db.Sessions.GetSessionBandwidthSign(msg.ID, msg.Index)
-		if err != nil {
-			return err
-		}
-		if bandwidthSign == nil {
-			return fmt.Errorf("no bandwidth sign found")
-		}
-		if msg.Upload != bandwidthSign.Upload || msg.Download != bandwidthSign.Download {
-			return fmt.Errorf("upload or download is invalid")
-		}
+		switch msg := msg.(type) {
+		case MsgBandwidthSign:
+			if err := msg.Validate(); err != nil {
+				c.OutMessages <- NewMsgError(2, err.Error())
+				break
+			}
 
-		if err := s.db.Sessions.AddSessionBandwidthClientSign(msg.ID, msg.Index, msg.Sign); err != nil {
-			return err
+			bandwidthSign, err := s.DB.Sessions.GetBandwidthSign(msg.SessionID, msg.ID)
+			if err != nil {
+				c.OutMessages <- NewMsgError(3, err.Error())
+				break
+			}
+			if bandwidthSign == nil {
+				c.OutMessages <- NewMsgError(4, err.Error())
+				break
+			}
+			if msg.Upload != bandwidthSign.Upload || msg.Download != bandwidthSign.Download {
+				c.OutMessages <- NewMsgError(5, err.Error())
+				break
+			}
+
+			if err := s.DB.Sessions.AddBandwidthClientSign(msg.SessionID, msg.ID, msg.Sign); err != nil {
+				c.OutMessages <- NewMsgError(6, err.Error())
+				break
+			}
+		default:
+			c.OutMessages <- NewMsgError(0, "invalid message")
 		}
 	}
 }
 
-func (s Server) writeMessages(connection *Connection) error {
+func (s Server) writeMessages(id string) {
+	c := s.Connections[id]
+
 	for {
-		msg := <-connection.OutMessages
-		if err := connection.Conn.WriteJSON(msg); err != nil {
-			return err
+		msg := <-c.OutMessages
+		if err := c.Conn.WriteJSON(msg); err != nil {
+			return
 		}
 	}
 }

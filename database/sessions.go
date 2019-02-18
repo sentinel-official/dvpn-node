@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -22,11 +24,10 @@ func (s sessionsCollection) AddSession(session *Session) error {
 	return s.mongo.Insert(s.database, s.name, session)
 }
 
-func (s sessionsCollection) AddSessionBandwidthSign(id string, bandwidthSign *BandwidthSign) error {
+func (s sessionsCollection) AddBandwidthSign(sessionID string, bandwidthSign *BandwidthSign) error {
 	selector := bson.M{
-		"sessionID": id,
+		"sessionID": sessionID,
 	}
-
 	update := bson.M{
 		"$push": bson.M{
 			"bandwidthSigns": bandwidthSign,
@@ -36,31 +37,40 @@ func (s sessionsCollection) AddSessionBandwidthSign(id string, bandwidthSign *Ba
 	return s.mongo.UpdateOne(s.database, s.name, selector, update)
 }
 
-func (s sessionsCollection) GetSessionBandwidthSign(id string, index int64) (*BandwidthSign, error) {
+func (s sessionsCollection) GetBandwidthSign(sessionID, id string) (*BandwidthSign, error) {
 	query := bson.M{
-		"sessionID":            id,
-		"bandwidthSigns.index": index,
+		"sessionID": sessionID,
+	}
+	selectors := bson.M{
+		"_id": false,
+		"bandwidthSigns": bson.M{
+			"$elemMatch": bson.M{
+				"_id": bson.ObjectIdHex(id),
+			},
+		},
 	}
 
-	selectors := bson.M{}
-
-	var bandwidthSign BandwidthSign
-	if err := s.mongo.GetOne(s.database, s.name, query, selectors, &bandwidthSign); err != nil {
+	var result []BandwidthSign
+	if err := s.mongo.GetOne(s.database, s.name, query, selectors, &result); err != nil {
 		return nil, err
 	}
 
-	return &bandwidthSign, nil
-}
-
-func (s sessionsCollection) AddSessionBandwidthClientSign(id string, index int64, sign string) error {
-	selector := bson.M{
-		"sessionID":            id,
-		"bandwidthSigns.index": index,
+	if len(result) == 0 {
+		return nil, nil
 	}
 
+	return &result[0], nil
+}
+
+func (s sessionsCollection) AddBandwidthClientSign(sessionID, id, sign string) error {
+	selector := bson.M{
+		"sessionID":          sessionID,
+		"bandwidthSigns._id": bson.ObjectIdHex(id),
+	}
 	update := bson.M{
 		"$set": bson.M{
 			"bandwidthSigns.$.clientSign": sign,
+			"bandwidthSigns.$.updatedAt":  time.Now().UTC(),
 		},
 	}
 

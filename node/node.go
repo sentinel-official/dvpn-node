@@ -8,11 +8,11 @@ import (
 
 type Node struct {
 	tx     *tx.Tx
-	vpn    *vpn.BaseVPN
+	vpn    vpn.BaseVPN
 	server *server.Server
 }
 
-func NewNode(tx *tx.Tx, vpn *vpn.BaseVPN, server *server.Server) *Node {
+func NewNode(tx *tx.Tx, vpn vpn.BaseVPN, server *server.Server) *Node {
 	return &Node{
 		tx:     tx,
 		vpn:    vpn,

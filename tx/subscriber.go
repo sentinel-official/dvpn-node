@@ -35,6 +35,7 @@ func NewSubscriber(nodeURI string, cdc *amino.Codec) (*Subscriber, error) {
 	}()
 
 	<-ok
+
 	return &subscriber, nil
 }
 
@@ -102,6 +103,7 @@ func (s *Subscriber) WriteTxQuery(txHash string, channel chan types.EventDataTx)
 	body := NewTxSubscriberRPCRequest(txHash)
 	if err := s.conn.WriteJSON(body); err != nil {
 		delete(s.channels, txHash)
+
 		return err
 	}
 

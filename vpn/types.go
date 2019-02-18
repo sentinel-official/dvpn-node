@@ -9,18 +9,18 @@ type BaseVPN interface {
 	Stop() error
 	Wait(chan error)
 
-	GenerateClientKey(string) ([]byte, error)
+	GenerateClientKey(string) (interface{}, error)
 	DisconnectClient(string) error
 	ClientList() ([]Client, error)
 }
 
 type Client struct {
 	ID       string `json:"id"`
-	Upload   int    `json:"upload"`
-	Download int    `json:"download"`
+	Upload   int64  `json:"upload"`
+	Download int64  `json:"download"`
 }
 
-func NewClient(id string, upload, download int) Client {
+func NewClient(id string, upload, download int64) Client {
 	return Client{
 		ID:       id,
 		Upload:   upload,
