@@ -27,11 +27,11 @@ func NewManager(cliContext context.CLIContext, txBuilder clientTxBuilder.TxBuild
 	}
 }
 
-func (m *Manager) CompleteAndBroadcastTxSync(msgs []csdkTypes.Msg) (*csdkTypes.TxResponse, error) {
+func (m *Manager) CompleteAndBroadcastTxSync(messages []csdkTypes.Msg) (*csdkTypes.TxResponse, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	txBytes, err := m.TxBuilder.BuildAndSign(m.CLIContext.GetFromName(), m.password, msgs)
+	txBytes, err := m.TxBuilder.BuildAndSign(m.CLIContext.GetFromName(), m.password, messages)
 	if err != nil {
 		return nil, err
 	}

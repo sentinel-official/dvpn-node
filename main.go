@@ -1,1 +1,5 @@
-package vpn_node
+package main
+
+func main() {
+
+}

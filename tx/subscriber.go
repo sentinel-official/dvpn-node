@@ -1,28 +1,29 @@
 package tx
 
 import (
-	"fmt"
-
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/rpc/core/types"
 	"github.com/tendermint/tendermint/rpc/lib/types"
-	"github.com/tendermint/tendermint/types"
+	tmTypes "github.com/tendermint/tendermint/types"
+
+	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type Subscriber struct {
 	nodeURI  string
 	cdc      *amino.Codec
 	conn     *websocket.Conn
-	channels map[string]chan types.EventDataTx
+	channels map[string]chan tmTypes.EventDataTx
 }
 
 func NewSubscriber(nodeURI string, cdc *amino.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
 		nodeURI:  nodeURI,
 		cdc:      cdc,
-		channels: make(map[string]chan types.EventDataTx),
+		channels: make(map[string]chan tmTypes.EventDataTx),
 	}
 
 	ok := make(chan bool)
@@ -68,7 +69,7 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 		}
 
 		if rpcResponse.Error != nil {
-			return fmt.Errorf(rpcResponse.Error.Error())
+			return rpcResponse.Error
 		}
 		if rpcResponse.Result == nil {
 			continue
@@ -80,27 +81,26 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 
 		if resultEvent.Data != nil {
 			switch data := resultEvent.Data.(type) {
-			case types.EventDataTx:
+			case tmTypes.EventDataTx:
 				txHash := common.HexBytes(data.Tx.Hash()).String()
 				s.channels[txHash] <- data
-				close(s.channels[txHash])
 				delete(s.channels, txHash)
 			}
 		}
 	}
 }
 
-func (s *Subscriber) WriteTxQuery(txHash string, channel chan types.EventDataTx) error {
+func (s *Subscriber) WriteTxQuery(txHash string, channel chan tmTypes.EventDataTx) error {
 	if s.conn == nil {
-		return fmt.Errorf("connection is nil")
+		return errors.New("Connection is nil")
 	}
 	if s.channels[txHash] != nil {
-		return fmt.Errorf("already subscribed")
+		return errors.New("Already subscribed")
 	}
 
 	s.channels[txHash] = channel
 
-	body := NewTxSubscriberRPCRequest(txHash)
+	body := types.NewTxSubscriberRPCRequest(txHash)
 	if err := s.conn.WriteJSON(body); err != nil {
 		delete(s.channels, txHash)
 

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+
+	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type AppConfig struct {
@@ -31,7 +33,7 @@ func NewAppConfig() *AppConfig {
 
 func (c *AppConfig) LoadFromPath(path string) error {
 	if len(path) == 0 {
-		path = DefaultAppConfigFilePath
+		path = types.DefaultAppConfigFilePath
 	}
 
 	data, err := ioutil.ReadFile(path)
@@ -56,7 +58,7 @@ func (c AppConfig) SaveToPath(path string) error {
 	}
 
 	if len(path) == 0 {
-		path = DefaultAppConfigFilePath
+		path = types.DefaultAppConfigFilePath
 	}
 
 	return ioutil.WriteFile(path, data, os.ModePerm)

@@ -10,7 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ironman0x7b2/vpn-node/vpn"
+	"github.com/pkg/errors"
+
+	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type OpenVPN struct {
@@ -83,13 +85,13 @@ func (o OpenVPN) Start() error {
 
 func (o OpenVPN) Stop() error {
 	if o.process == nil {
-		return fmt.Errorf("process is nil")
+		return errors.New("Process is nil")
 	}
 
 	return o.process.Kill()
 }
 
-func (o OpenVPN) ClientList() ([]vpn.Client, error) {
+func (o OpenVPN) ClientList() ([]types.VPNClient, error) {
 	filePath := "/etc/openvpn/openvpn-status.log"
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, nil
@@ -106,7 +108,7 @@ func (o OpenVPN) ClientList() ([]vpn.Client, error) {
 		}
 	}()
 
-	var clients []vpn.Client
+	var clients []types.VPNClient
 	reader := bufio.NewReader(file)
 
 	for {
@@ -133,7 +135,7 @@ func (o OpenVPN) ClientList() ([]vpn.Client, error) {
 				return nil, err
 			}
 
-			client := vpn.NewClient(cname, int64(upload), int64(download))
+			client := types.NewVPNClient(cname, int64(upload), int64(download))
 			clients = append(clients, client)
 		} else if strings.Contains(line, "ROUTING TABLE") {
 			break
@@ -160,7 +162,7 @@ func (o OpenVPN) DisconnectClient(id string) error {
 	return o.RevokeClientCert(cname)
 }
 
-func (o OpenVPN) GenerateClientKey(id string) (interface{}, error) {
+func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 	cname := "client_" + id
 
 	cmd := exec.Command("sh", "-c", cmdGenerateClientKeys(cname))
@@ -188,5 +190,7 @@ func (o OpenVPN) GenerateClientKey(id string) (interface{}, error) {
 		return nil, err
 	}
 
-	return fmt.Sprintf(clientConfigTemplate, o.ip, o.port, o.encryption, ca, cert, key, tlsAuth), nil
+	ovpn := fmt.Sprintf(clientConfigTemplate, o.ip, o.port, o.encryption, ca, cert, key, tlsAuth)
+
+	return []byte(ovpn), nil
 }

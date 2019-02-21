@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+
+	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type OpenVPNConfig struct {
@@ -20,7 +22,7 @@ func NewOpenVPNConfig() *OpenVPNConfig {
 
 func (o *OpenVPNConfig) LoadFromPath(path string) error {
 	if len(path) == 0 {
-		path = DefaultOpenVPNConfigFilePath
+		path = types.DefaultOpenVPNConfigFilePath
 	}
 
 	data, err := ioutil.ReadFile(path)
@@ -45,7 +47,7 @@ func (o OpenVPNConfig) SaveToPath(path string) error {
 	}
 
 	if len(path) == 0 {
-		path = DefaultOpenVPNConfigFilePath
+		path = types.DefaultOpenVPNConfigFilePath
 	}
 
 	return ioutil.WriteFile(path, data, os.ModePerm)
