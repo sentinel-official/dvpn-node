@@ -14,8 +14,7 @@ func SubscriberRPCRequest() RPCRequest {
 }
 
 func SubscriberRPCRequestWithQuery(query string) RPCRequest {
-	req := SubscriberRPCRequest().
-		WithQuery(query)
+	req := SubscriberRPCRequest().WithQuery(query)
 
 	return req
 }

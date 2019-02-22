@@ -91,7 +91,7 @@ func (o OpenVPN) Stop() error {
 	return o.process.Kill()
 }
 
-func (o OpenVPN) ClientList() ([]types.VPNClient, error) {
+func (o OpenVPN) ClientList() (types.VPNClients, error) {
 	filePath := "/etc/openvpn/openvpn-status.log"
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, nil
@@ -108,7 +108,7 @@ func (o OpenVPN) ClientList() ([]types.VPNClient, error) {
 		}
 	}()
 
-	var clients []types.VPNClient
+	var clients types.VPNClients
 	reader := bufio.NewReader(file)
 
 	for {
@@ -136,13 +136,13 @@ func (o OpenVPN) ClientList() ([]types.VPNClient, error) {
 			}
 
 			client := types.NewVPNClient(cname, int64(upload), int64(download))
-			clients = append(clients, client)
+			clients = clients.Append(client)
 		} else if strings.Contains(line, "ROUTING TABLE") {
 			break
 		}
 	}
 
-	return clients, nil
+	return clients.Sort(), nil
 }
 
 func (o OpenVPN) RevokeClientCert(cname string) error {

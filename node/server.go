@@ -35,13 +35,12 @@ func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := details.ID.String()
-	session := types.NewSession(details)
-	if n.clients[id] != nil {
+	if n.clients.Get(id) != nil {
 		return
 	}
-	if n.sessions[id] == nil {
-		n.sessions[id] = session
-		go n.sessionTimeout(id)
+	if n.sessions.Get(id) == nil {
+		n.sessions.Set(id, types.NewSession(details))
+		go n.startSessionTimeout(id)
 	}
 
 	key, err := n.vpn.GenerateClientKey(id)
@@ -52,13 +51,13 @@ func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(key)
 }
 
-func (n Node) sessionTimeout(id string) {
-	session := n.sessions[id]
+func (n Node) startSessionTimeout(id string) {
+	session := n.sessions.Get(id)
 
 	select {
-	case <-session.Timeout.C:
-		delete(n.clients, id)
-		delete(n.sessions, id)
+	case <-time.After(types.TimeoutSession):
+		n.clients.Delete(id)
+		n.sessions.Delete(id)
 	case <-session.StopTimeout:
 		return
 	}
@@ -66,39 +65,42 @@ func (n Node) sessionTimeout(id string) {
 
 func (n Node) handleFuncWebsocket(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	if n.sessions[id] == nil {
+
+	session := n.sessions.Get(id)
+	if session == nil {
 		return
 	}
-	if n.clients[id] != nil {
+	if n.clients.Get(id) != nil {
 		return
 	}
 
-	n.sessions[id].StopTimeout <- true
+	session.StopTimeout <- true
+
 	conn, err := types.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 
-	n.clients[id] = types.NewClient(conn)
+	n.clients.Set(id, types.NewClient(conn))
 
 	go n.readMessages(id)
 	go n.writeMessages(id)
 }
 
 func (n Node) readMessages(id string) {
-	client := n.clients[id]
-	session := n.sessions[id]
+	client := n.clients.Get(id)
+	session := n.sessions.Get(id)
 
 	defer func() {
 		if err := client.Conn.Close(); err != nil {
 			panic(err)
 		}
 
-		delete(n.clients, id)
-		delete(n.sessions, id)
+		n.clients.Delete(id)
+		n.sessions.Delete(id)
 	}()
 
-	_ = client.Conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	_ = client.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
 
 	for {
 		_, p, err := client.Conn.ReadMessage()
@@ -115,7 +117,7 @@ func (n Node) readMessages(id string) {
 			continue
 		}
 
-		_ = client.Conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+		_ = client.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
 	}
 }
 
@@ -130,8 +132,8 @@ func (n Node) handleIncomingMessage(session *types.Session, msg *types.Msg) erro
 			return err
 		}
 
-		if err := session.VerifyAndSetBandwidthSigns(data.Upload, data.Download,
-			data.NodeOwnerSign, data.ClientSign); err != nil {
+		if err := session.VerifyAndSetBandwidthInfo(data.Bandwidth, data.NodeOwnerSign,
+			data.ClientSign); err != nil {
 			return err
 		}
 	default:
@@ -142,7 +144,7 @@ func (n Node) handleIncomingMessage(session *types.Session, msg *types.Msg) erro
 }
 
 func (n Node) writeMessages(id string) {
-	client := n.clients[id]
+	client := n.clients.Get(id)
 
 	for {
 		msg := <-client.OutMessages

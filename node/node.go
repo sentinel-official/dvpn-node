@@ -1,11 +1,11 @@
 package node
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 
 	"github.com/ironman0x7b2/vpn-node/tx"
@@ -16,8 +16,8 @@ type Node struct {
 	*vpnTypes.NodeDetails
 	tx       *tx.Tx
 	vpn      types.BaseVPN
-	sessions map[string]*types.Session
-	clients  map[string]*types.Client
+	sessions types.Sessions
+	clients  types.Clients
 }
 
 func NewNode(details *vpnTypes.NodeDetails, tx *tx.Tx, vpn types.BaseVPN) *Node {
@@ -25,20 +25,16 @@ func NewNode(details *vpnTypes.NodeDetails, tx *tx.Tx, vpn types.BaseVPN) *Node 
 		NodeDetails: details,
 		tx:          tx,
 		vpn:         vpn,
-		sessions:    make(map[string]*types.Session),
-		clients:     make(map[string]*types.Client),
+		sessions:    types.NewSessions(),
+		clients:     types.NewClients(),
 	}
 }
 
 func (n Node) Start() {
-	errors := make(chan error)
-
-	go n.jobUpdateNodeStatus(errors)
-	go n.jobSendSessionBandwidthInfo(errors)
-	go n.jobUpdateSessionsBandwidth(errors)
-
 	go func() {
-		panic(<-errors)
+		if err := n.updateNodeStatus(); err != nil {
+			panic(err)
+		}
 	}()
 
 	if err := http.ListenAndServe(":8000", n.Router()); err != nil {
@@ -46,78 +42,87 @@ func (n Node) Start() {
 	}
 }
 
-func (n Node) jobUpdateNodeStatus(errors chan error) {
-	for ; ; time.Sleep(200 * time.Second) {
+func (n Node) updateNodeStatus() error {
+	for ; ; time.Sleep(types.IntervalUpdateNodeStatus) {
 		msg := vpnTypes.NewMsgUpdateNodeStatus(n.Owner, n.ID, vpnTypes.StatusActive)
 		_, err := n.tx.CompleteAndSubscribeTx([]csdkTypes.Msg{msg})
 		if err != nil {
-			errors <- err
-			return
+			return err
 		}
 	}
 }
 
-func (n Node) jobUpdateSessionsBandwidth(errors chan error) {
-	for ; ; time.Sleep(100 * time.Second) {
-		vpnClients, err := n.vpn.ClientList()
-		if err != nil {
-			errors <- err
-			return
-		}
+func (n Node) updateSessionsBandwidth(clients []types.VPNClient) error {
+	if len(clients) == 0 {
+		return nil
+	}
 
-		var msgs []csdkTypes.Msg
-
-		for _, vc := range vpnClients {
-			session := n.sessions[vc.ID]
-			if session == nil {
-				_ = n.vpn.DisconnectClient(vc.ID)
-				continue
-			}
-
-			bandwidth, nodeOwnerSign, clientSign := session.BandwidthSigns()
-
-			msg := vpnTypes.NewMsgUpdateSessionBandwidth(session.NodeOwner, session.ID,
-				bandwidth.Upload, bandwidth.Download, nodeOwnerSign, clientSign)
-			msgs = append(msgs, msg)
-		}
-
-		if len(msgs) == 0 {
+	var msgs []csdkTypes.Msg
+	for _, c := range clients {
+		session := n.sessions.Get(c.ID)
+		if session == nil {
 			continue
 		}
 
-		data, err := n.tx.CompleteAndSubscribeTx(msgs)
+		bandwidth, nodeOwnerSign, clientSign := session.BandwidthInfo()
+		msg := vpnTypes.NewMsgUpdateSessionBandwidth(session.NodeOwner, session.ID,
+			bandwidth.Upload, bandwidth.Download, nodeOwnerSign, clientSign)
+		msgs = append(msgs, msg)
+	}
+
+	_, err := n.tx.CompleteAndSubscribeTx(msgs)
+
+	return err
+}
+
+func (n Node) requestBandwidthSigns() error {
+	t1 := time.NewTicker(types.IntervalRequestBandwidthSigns)
+	t2 := time.NewTicker(types.IntervalUpdateSessionsBandwidth)
+
+	for {
+		clients, err := n.vpn.ClientList()
 		if err != nil {
-			errors <- err
-			return
+			return err
 		}
 
-		fmt.Println(data.Result.IsOK())
+		select {
+		case <-t1.C:
+			for _, c := range clients {
+				go func(client *types.VPNClient) {
+					if err := n.requestBandwidthSign(client); err != nil {
+						panic(err)
+					}
+				}(&c)
+			}
+		case <-t2.C:
+			go func() {
+				if err := n.updateSessionsBandwidth(clients); err != nil {
+					panic(err)
+				}
+			}()
+		}
 	}
 }
 
-func (n Node) jobSendSessionBandwidthInfo(errors chan error) {
-	for ; ; time.Sleep(5 * time.Second) {
-		vpnClients, err := n.vpn.ClientList()
-		if err != nil {
-			errors <- err
-			return
-		}
-
-		for _, vc := range vpnClients {
-			client := n.clients[vc.ID]
-			session := n.sessions[vc.ID]
-
-			if client == nil {
-				continue
-			}
-
-			sign, err := n.tx.SignSessionBandwidth(session.ID, vc.Upload, vc.Download, session.Client)
-			if err != nil {
-				errors <- err
-				return
-			}
-
-			client.OutMessages <- NewMsgBandwidthSign(vc.ID, vc.Upload, vc.Download, sign, "").Bytes()
-		}
+func (n Node) requestBandwidthSign(c *types.VPNClient) error {
+	session := n.sessions.Get(c.ID)
+	if session == nil {
+		_ = n.vpn.DisconnectClient(c.ID)
+		return nil
 	}
+
+	client := n.clients.Get(c.ID)
+	if client == nil {
+		return nil
+	}
+
+	sign, err := n.tx.SignSessionBandwidth(session.ID, c.Upload, c.Download, session.Client)
+	if err != nil {
+		return err
+	}
+
+	bandwidth := sdkTypes.NewBandwidthFromInt64(c.Upload, c.Download)
+	client.OutMessages <- NewMsgBandwidthSign(c.ID, bandwidth, sign, "").GetBytes()
+
+	return nil
 }
