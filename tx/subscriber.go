@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
-	"github.com/tendermint/tendermint/rpc/core/types"
-	"github.com/tendermint/tendermint/rpc/lib/types"
+	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
+	rpcTypes "github.com/tendermint/tendermint/rpc/lib/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
@@ -57,8 +57,8 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 	s.conn = conn
 	ok <- true
 
-	var rpcResponse rpctypes.RPCResponse
-	var resultEvent core_types.ResultEvent
+	var rpcResponse rpcTypes.RPCResponse
+	var resultEvent coreTypes.ResultEvent
 
 	for {
 		_, p, err := conn.ReadMessage()

@@ -58,8 +58,9 @@ func main() {
 	}
 
 	appCfg.Node.ID = details.ID.String()
-	appCfg.Node.Status = details.Status
 
 	_node := node.NewNode(details, _tx, vpn)
-	_node.Start()
+	if err := _node.Start(); err != nil {
+		panic(err)
+	}
 }

@@ -18,6 +18,7 @@ func cmdRevokeClientCert(cname string) string {
 
 var cmdGenerateServerKeys = `
 cd /usr/share/easy-rsa && \
+rm -rf pki && \
 ./easyrsa init-pki && \
 echo \r | ./easyrsa build-ca nopass && \
 ./easyrsa gen-dh && \

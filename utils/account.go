@@ -14,7 +14,7 @@ import (
 
 const mnemonicEntropySize = 256
 
-func CreateAccount(keybase keys.Keybase) (keys.Info, error) {
+func createAccount(keybase keys.Keybase) (keys.Info, error) {
 	var name string
 
 	fmt.Printf("Enter a new account name: ")
@@ -25,11 +25,11 @@ func CreateAccount(keybase keys.Keybase) (keys.Info, error) {
 
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
-		return nil, errors.New("Account name is empty")
+		return nil, errors.New("Entered account name is empty")
 	}
 
 	if _, err := keybase.Get(name); err == nil {
-		return nil, errors.New("Account already exists with given name")
+		return nil, errors.New(fmt.Sprintf("Account already exists with name `%s`", name))
 	}
 
 	password, err := client.GetCheckPassword(
@@ -62,11 +62,9 @@ func CreateAccount(keybase keys.Keybase) (keys.Info, error) {
 		return nil, err
 	}
 
-	_, _ = fmt.Fprintln(os.Stderr, "**Important** write this mnemonic phrase in a safe place.")
-	_, _ = fmt.Fprintln(os.Stderr, "It is the only way to recover your account if you ever forget your password.")
-	_, _ = fmt.Fprintln(os.Stderr, "")
-	_, _ = fmt.Fprintln(os.Stderr, mnemonic)
-	_, _ = fmt.Fprintln(os.Stderr, "")
+	_, _ = fmt.Fprintf(os.Stderr, "**Important** write this mnemonic phrase in a safe place.\n"+
+		"It is the only way to recover your account if you ever forget your password.\n\n"+
+		"%s\n\n", mnemonic)
 
 	return info, err
 }
@@ -81,7 +79,7 @@ func ProcessOwnerAccount(keybase keys.Keybase, name string) (keys.Info, error) {
 		return nil, err
 	}
 	if len(infos) == 0 {
-		return CreateAccount(keybase)
+		return createAccount(keybase)
 	}
 
 	accounts, err := clientKeys.Bech32KeysOutput(infos)
@@ -94,13 +92,13 @@ func ProcessOwnerAccount(keybase keys.Keybase, name string) (keys.Info, error) {
 		fmt.Printf("%s\t%s\t%s\t%s\n", account.Name, account.Type, account.Address, account.PubKey)
 	}
 
-	prompt := "Enter account name from above list, or hit enter to create one."
+	prompt := "Enter the account name from above list, or hit enter to create a new account."
 	name, err = client.GetString(prompt, client.BufferStdin())
 	if err != nil {
 		return nil, err
 	}
 	if len(name) == 0 {
-		return CreateAccount(keybase)
+		return createAccount(keybase)
 	}
 
 	return keybase.Get(name)

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/config"
@@ -8,16 +10,35 @@ import (
 	"github.com/ironman0x7b2/vpn-node/vpn/open_vpn"
 )
 
-func ProcessVPN(_type string) (types.BaseVPN, error) {
-	switch _type {
+func ProcessVPN(vpnType string) (types.BaseVPN, error) {
+	switch vpnType {
 	case "OpenVPN":
-		cfg := config.NewOpenVPNConfig()
-		if err := cfg.LoadFromPath(""); err != nil {
+		return processOpenVPN()
+	default:
+		return nil, errors.New(fmt.Sprintf("Invalid VPN type: %s", vpnType))
+	}
+}
+
+func processOpenVPN() (*open_vpn.OpenVPN, error) {
+	cfg := config.NewOpenVPNConfig()
+	if err := cfg.LoadFromPath(""); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := cfg.SaveToPath(""); err != nil {
+			panic(err)
+		}
+	}()
+
+	if len(cfg.PublicIP) == 0 {
+		ip, err := PublicIP()
+		if err != nil {
 			return nil, err
 		}
 
-		return open_vpn.NewOpenVPN(cfg.Port, cfg.ManagementPort, cfg.IPAddress, cfg.Protocol, cfg.EncryptionMethod), nil
-	default:
-		return nil, errors.New("Invalid config: vpn_type")
+		cfg.PublicIP = ip
 	}
+
+	return open_vpn.NewOpenVPN(cfg.Port, cfg.ManagementPort, cfg.PublicIP, cfg.Protocol, cfg.Encryption), nil
 }

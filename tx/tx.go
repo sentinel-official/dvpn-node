@@ -3,25 +3,17 @@ package tx
 import (
 	"encoding/base64"
 	"encoding/json"
-	"path/filepath"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	clientUtils "github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
-	clientTxBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/ironman0x7b2/sentinel-sdk/apps/vpn"
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common"
 	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 	"github.com/pkg/errors"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/lite/proxy"
-	"github.com/tendermint/tendermint/rpc/client"
 	tmTypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
-	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type Tx struct {
@@ -40,35 +32,11 @@ func NewTxFromConfig(appCfg *config.AppConfig, ownerInfo keys.Info, keybase keys
 	cdc := vpn.MakeCodec()
 	tmTypes.RegisterEventDatas(cdc)
 
-	verifier, err := proxy.NewVerifier(appCfg.ChainID, filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
-		client.NewHTTP(appCfg.LiteClientURI, "/websocket"), log.NewNopLogger(), 10)
+	manager, err := NewManagerFromConfig(appCfg, cdc, ownerInfo, keybase)
 	if err != nil {
 		return nil, err
 	}
 
-	cliContext := context.NewCLIContext().
-		WithCodec(cdc).
-		WithAccountDecoder(cdc).
-		WithNodeURI(appCfg.LiteClientURI).
-		WithVerifier(verifier).
-		WithFrom(ownerInfo.GetName()).
-		WithFromName(ownerInfo.GetName()).
-		WithFromAddress(ownerInfo.GetAddress())
-
-	account, err := cliContext.GetAccount(ownerInfo.GetAddress().Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	txBuilder := clientTxBuilder.NewTxBuilderFromCLI().
-		WithKeybase(keybase).
-		WithAccountNumber(account.GetAccountNumber()).
-		WithSequence(account.GetSequence()).
-		WithChainID(appCfg.ChainID).
-		WithGas(1000000000).
-		WithTxEncoder(clientUtils.GetTxEncoder(cdc))
-
-	manager := NewManager(cliContext, txBuilder, appCfg.Owner.Password)
 	subscriber, err := NewSubscriber(appCfg.LiteClientURI, cdc)
 	if err != nil {
 		return nil, err
@@ -133,9 +101,7 @@ func (t Tx) SignSessionBandwidth(id sdkTypes.ID, upload, download int64,
 }
 
 func (t Tx) QueryNodeDetails(id string) (*vpnTypes.NodeDetails, error) {
-	return common.QueryNode(t.Manager.CLIContext, t.Manager.CLIContext.Codec, sdkTypes.NewID(id))
-}
+	nodeID := sdkTypes.NewID(id)
 
-func (t Tx) OwnerAddress() csdkTypes.AccAddress {
-	return t.Manager.CLIContext.FromAddress
+	return common.QueryNode(t.Manager.CLIContext, t.Manager.CLIContext.Codec, nodeID)
 }

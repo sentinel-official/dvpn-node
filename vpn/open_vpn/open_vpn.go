@@ -22,17 +22,15 @@ type OpenVPN struct {
 	protocol       string
 	encryption     string
 	process        *os.Process
-	processWait    chan error
 }
 
-func NewOpenVPN(port, managementPort uint16, ip, protocol, encryption string) OpenVPN {
-	return OpenVPN{
+func NewOpenVPN(port, managementPort uint16, ip, protocol, encryption string) *OpenVPN {
+	return &OpenVPN{
 		port:           port,
 		managementPort: managementPort,
 		ip:             ip,
 		protocol:       protocol,
 		encryption:     encryption,
-		processWait:    make(chan error),
 	}
 }
 
@@ -56,11 +54,6 @@ func (o OpenVPN) GenerateServerKeys() error {
 	return cmd.Run()
 }
 
-func (o OpenVPN) Wait(done chan error) {
-	err := <-o.processWait
-	done <- err
-}
-
 func (o OpenVPN) Init() error {
 	if err := o.GenerateServerKeys(); err != nil {
 		return err
@@ -69,7 +62,7 @@ func (o OpenVPN) Init() error {
 	return o.WriteServerConfig()
 }
 
-func (o OpenVPN) Start() error {
+func (o OpenVPN) Start(done chan error) error {
 	cmd := exec.Command("openvpn", "--config", "/etc/openvpn/server.conf")
 	if err := cmd.Start(); err != nil {
 		return err
@@ -77,7 +70,7 @@ func (o OpenVPN) Start() error {
 
 	o.process = cmd.Process
 	go func() {
-		o.processWait <- cmd.Wait()
+		done <- cmd.Wait()
 	}()
 
 	return nil

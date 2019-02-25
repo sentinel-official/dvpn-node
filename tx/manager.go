@@ -3,13 +3,23 @@ package tx
 import (
 	"encoding/hex"
 	"errors"
+	"path/filepath"
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/tx"
+	clientUtils "github.com/cosmos/cosmos-sdk/client/utils"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
 	clientTxBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/lite/proxy"
+	"github.com/tendermint/tendermint/rpc/client"
+	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"github.com/ironman0x7b2/vpn-node/config"
+	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type Manager struct {
@@ -26,6 +36,40 @@ func NewManager(cliContext context.CLIContext, txBuilder clientTxBuilder.TxBuild
 		password:   password,
 		mutex:      sync.Mutex{},
 	}
+}
+
+func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
+	ownerInfo keys.Info, keybase keys.Keybase) (*Manager, error) {
+
+	verifier, err := proxy.NewVerifier(appCfg.ChainID, filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
+		client.NewHTTP(appCfg.LiteClientURI, "/websocket"), log.NewNopLogger(), 10)
+	if err != nil {
+		return nil, err
+	}
+
+	cliContext := context.NewCLIContext().
+		WithCodec(cdc).
+		WithAccountDecoder(cdc).
+		WithNodeURI(appCfg.LiteClientURI).
+		WithVerifier(verifier).
+		WithFrom(ownerInfo.GetName()).
+		WithFromName(ownerInfo.GetName()).
+		WithFromAddress(ownerInfo.GetAddress())
+
+	account, err := cliContext.GetAccount(ownerInfo.GetAddress().Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	txBuilder := clientTxBuilder.NewTxBuilderFromCLI().
+		WithKeybase(keybase).
+		WithAccountNumber(account.GetAccountNumber()).
+		WithSequence(account.GetSequence()).
+		WithChainID(appCfg.ChainID).
+		WithGas(1000000000).
+		WithTxEncoder(clientUtils.GetTxEncoder(cdc))
+
+	return NewManager(cliContext, txBuilder, appCfg.Owner.Password), nil
 }
 
 func (m *Manager) CompleteAndBroadcastTxSync(msgs []csdkTypes.Msg) (*csdkTypes.TxResponse, error) {
@@ -55,7 +99,7 @@ func (m *Manager) CompleteAndBroadcastTxSync(msgs []csdkTypes.Msg) (*csdkTypes.T
 	return &txRes, err
 }
 
-func (m *Manager) QueryTx(txHash string) (*core_types.ResultTx, error) {
+func (m *Manager) QueryTx(txHash string) (*coreTypes.ResultTx, error) {
 	txHashBytes, err := hex.DecodeString(txHash)
 	if err != nil {
 		return nil, err

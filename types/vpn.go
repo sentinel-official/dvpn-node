@@ -9,9 +9,8 @@ type BaseVPN interface {
 	Encryption() string
 
 	Init() error
-	Start() error
+	Start(done chan error) error
 	Stop() error
-	Wait(chan error)
 
 	GenerateClientKey(id string) ([]byte, error)
 	DisconnectClient(id string) error

@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -137,7 +138,7 @@ func (n Node) handleIncomingMessage(session *types.Session, msg *types.Msg) erro
 			return err
 		}
 	default:
-		return errors.New("Invalid message type")
+		return errors.New(fmt.Sprintf("Invalid message type: %s", msg.Type))
 	}
 
 	return nil

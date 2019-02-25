@@ -11,6 +11,7 @@ import (
 )
 
 func ProcessNodeDetails(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) (*vpnTypes.NodeDetails, error) {
+	from := tx.Manager.CLIContext.FromAddress
 	nodeID := appCfg.Node.ID
 
 	if len(nodeID) == 0 {
@@ -31,7 +32,7 @@ func ProcessNodeDetails(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) 
 
 		apiPort := vpnTypes.NewAPIPort(appCfg.Node.APIPort)
 
-		msg := vpnTypes.NewMsgRegisterNode(tx.OwnerAddress(), amountToLock, pricesPerGB,
+		msg := vpnTypes.NewMsgRegisterNode(from, amountToLock, pricesPerGB,
 			netSpeed.Upload, netSpeed.Download, apiPort, vpn.Encryption(), vpn.Type(), types.Version)
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
@@ -45,7 +46,7 @@ func ProcessNodeDetails(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) 
 	if err != nil {
 		return nil, err
 	}
-	if !details.Owner.Equals(tx.OwnerAddress()) {
+	if !details.Owner.Equals(from) {
 		return nil, errors.New("Node owner mismatch")
 	}
 

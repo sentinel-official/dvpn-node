@@ -32,7 +32,22 @@ func NewNode(details *vpnTypes.NodeDetails, tx *tx.Tx, vpn types.BaseVPN) *Node 
 	}
 }
 
-func (n Node) Start() {
+func (n Node) Start() error {
+	if err := n.vpn.Init(); err != nil {
+		return err
+	}
+
+	go func() {
+		done := make(chan error)
+		if err := n.vpn.Start(done); err != nil {
+			panic(err)
+		}
+
+		if err := <-done; err != nil {
+			panic(err)
+		}
+	}()
+
 	go func() {
 		if err := n.updateNodeStatus(); err != nil {
 			panic(err)
@@ -45,15 +60,18 @@ func (n Node) Start() {
 		}
 	}()
 
-	if err := http.ListenAndServe(":8000", n.Router()); err != nil {
+	addr := fmt.Sprintf(":%d", n.APIPort)
+	if err := http.ListenAndServe(addr, n.Router()); err != nil {
 		panic(err)
 	}
+
+	return nil
 }
 
 func (n Node) updateNodeStatus() error {
 	t := time.NewTicker(types.IntervalUpdateNodeStatus)
 
-	for range t.C {
+	for ; ; <-t.C {
 		msg := vpnTypes.NewMsgUpdateNodeStatus(n.Owner, n.ID, vpnTypes.StatusActive)
 		data, err := n.tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
@@ -62,8 +80,6 @@ func (n Node) updateNodeStatus() error {
 
 		fmt.Println(data.Height, common.HexBytes(data.Tx.Hash()).String())
 	}
-
-	return nil
 }
 
 func (n Node) updateSessionsBandwidth(clients []types.VPNClient) error {
