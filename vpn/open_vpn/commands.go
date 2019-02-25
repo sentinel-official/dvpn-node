@@ -8,7 +8,7 @@ func cmdGenerateClientKeys(cname string) string {
 	return fmt.Sprintf(generateClientKeysCommandTemplate, cname)
 }
 
-func cmdDisconnectClient(cname string, managementPort uint32) string {
+func cmdDisconnectClient(cname string, managementPort uint16) string {
 	return fmt.Sprintf("echo 'kill %s' | nc 127.0.0.1 %d", cname, managementPort)
 }
 

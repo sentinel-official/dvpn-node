@@ -1,6 +1,8 @@
 package tx
 
 import (
+	"fmt"
+
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	"github.com/tendermint/go-amino"
@@ -19,9 +21,9 @@ type Subscriber struct {
 	channels map[string]chan tmTypes.EventDataTx
 }
 
-func NewSubscriber(nodeURI string, cdc *amino.Codec) (*Subscriber, error) {
+func NewSubscriber(liteClientURI string, cdc *amino.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
-		nodeURI:  nodeURI,
+		nodeURI:  fmt.Sprintf("ws://%s/websocket", liteClientURI),
 		cdc:      cdc,
 		channels: make(map[string]chan tmTypes.EventDataTx),
 	}

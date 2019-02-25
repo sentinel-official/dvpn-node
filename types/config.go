@@ -11,7 +11,7 @@ var (
 	DefaultConfigDir             = filepath.Join(HomeDir, ".sentinel")
 	DefaultAppConfigFilePath     = filepath.Join(DefaultConfigDir, "app_config.json")
 	DefaultOpenVPNConfigFilePath = filepath.Join(DefaultConfigDir, "open_vpn_config.json")
-	Version                      = ""
+	Version                      = "0.2.0"
 
 	IntervalUpdateNodeStatus        = 200 * time.Second
 	IntervalUpdateSessionsBandwidth = 100 * time.Second

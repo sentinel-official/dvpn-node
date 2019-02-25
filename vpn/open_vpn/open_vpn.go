@@ -16,22 +16,22 @@ import (
 )
 
 type OpenVPN struct {
+	port           uint16
+	managementPort uint16
 	ip             string
-	port           uint32
 	protocol       string
 	encryption     string
-	managementPort uint32
 	process        *os.Process
 	processWait    chan error
 }
 
-func NewOpenVPN(ip string, port uint32, protocol, encryption string, managementPort uint32) OpenVPN {
+func NewOpenVPN(port, managementPort uint16, ip, protocol, encryption string) OpenVPN {
 	return OpenVPN{
-		ip:             ip,
 		port:           port,
+		managementPort: managementPort,
+		ip:             ip,
 		protocol:       protocol,
 		encryption:     encryption,
-		managementPort: managementPort,
 		processWait:    make(chan error),
 	}
 }

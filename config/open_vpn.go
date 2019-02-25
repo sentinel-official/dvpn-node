@@ -9,11 +9,11 @@ import (
 )
 
 type OpenVPNConfig struct {
+	Port             uint16 `json:"port"`
+	ManagementPort   uint16 `json:"management_port"`
 	IPAddress        string `json:"ip_address"`
-	Port             uint32 `json:"port"`
 	Protocol         string `json:"protocol"`
 	EncryptionMethod string `json:"encryption_method"`
-	ManagementPort   uint32 `json:"management_port"`
 }
 
 func NewOpenVPNConfig() *OpenVPNConfig {

@@ -40,7 +40,7 @@
   revision = "d4cc87b860166d00d6b5b9e0d3b3d71d6088d4d4"
 
 [[projects]]
-  digest = "1:302386091e346f8ca1fd4c2d03ecf81430a6a0d6781dc8df58e75eccc6cb95de"
+  digest = "1:5ecd104f83eff63696983eaf55e554f482d603c353f508582fbfcc2161719797"
   name = "github.com/cosmos/cosmos-sdk"
   packages = [
     "baseapp",
@@ -48,6 +48,7 @@
     "client/context",
     "client/keys",
     "client/tx",
+    "client/utils",
     "cmd/gaia/app",
     "codec",
     "crypto",
@@ -82,6 +83,7 @@
     "x/distribution/types",
     "x/gov",
     "x/gov/tags",
+    "x/ibc",
     "x/mint",
     "x/mock",
     "x/mock/simulation",
@@ -245,9 +247,10 @@
 
 [[projects]]
   branch = "development"
-  digest = "1:5eb1498d341caaab3e0886092cd99b6c35d3ae9268b469b9434374734a58ee16"
+  digest = "1:57827574e6260f03260d11878e8ba736e8f23c78a1861799debea4f7ec8fe350"
   name = "github.com/ironman0x7b2/sentinel-sdk"
   packages = [
+    "apps/vpn",
     "types",
     "x/vpn",
     "x/vpn/client/common",
@@ -283,12 +286,12 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:0981502f9816113c9c8c4ac301583841855c8cf4da8c72f696b3ebedf6d0e4e5"
+  digest = "1:b5cf82c3199c040b82e2bb3fbcbcf6771c2759f9c6b839621b0714c822167581"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "UT"
-  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
-  version = "v0.0.4"
+  revision = "a6dda38a851a575e6799957cdd53ffe0b3fdd90f"
+  version = "v0.0.5"
 
 [[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
@@ -454,8 +457,7 @@
   version = "v1.2.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:685fdfea42d825ebd39ee0994354b46c374cf2c2b2d97a41a8dee1807c6a9b62"
+  digest = "1:5b180f17d5bc50b765f4dcf0d126c72979531cbbd7f7929bf3edd87fb801ea2d"
   name = "github.com/syndtr/goleveldb"
   packages = [
     "leveldb",
@@ -472,7 +474,8 @@
     "leveldb/util",
   ]
   pruneopts = "UT"
-  revision = "2f17a3356c6616cbfc4ae4c38147dc062a68fb0e"
+  revision = "9d007e481048296f09f59bd19bb7ae584563cd95"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:83f5e189eea2baad419a6a410984514266ff690075759c87e9ede596809bd0b8"
@@ -632,14 +635,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4e919983a31395e4601c9c37eca86cb219fa1d9ac4b9528b36374300f514e2fd"
+  digest = "1:ad5e62a015226e008f9ca24cdf00d65c74f004f1b247cfa033ca9e3afcf41b29"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
     "unix",
   ]
   pruneopts = "UT"
-  revision = "b4e8571b14e03cc164df06f72b640ebce3899579"
+  revision = "cc5685c2db1239775905f3911f0067c0fa74762f"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -724,20 +727,27 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/cosmos/cosmos-sdk/client",
     "github.com/cosmos/cosmos-sdk/client/context",
+    "github.com/cosmos/cosmos-sdk/client/keys",
     "github.com/cosmos/cosmos-sdk/client/tx",
+    "github.com/cosmos/cosmos-sdk/client/utils",
     "github.com/cosmos/cosmos-sdk/crypto/keys",
     "github.com/cosmos/cosmos-sdk/types",
     "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder",
     "github.com/cosmos/go-bip39",
     "github.com/gorilla/mux",
     "github.com/gorilla/websocket",
+    "github.com/ironman0x7b2/sentinel-sdk/apps/vpn",
     "github.com/ironman0x7b2/sentinel-sdk/types",
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common",
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types",
     "github.com/pkg/errors",
     "github.com/tendermint/go-amino",
     "github.com/tendermint/tendermint/libs/common",
+    "github.com/tendermint/tendermint/libs/log",
+    "github.com/tendermint/tendermint/lite/proxy",
+    "github.com/tendermint/tendermint/rpc/client",
     "github.com/tendermint/tendermint/rpc/core/types",
     "github.com/tendermint/tendermint/rpc/lib/types",
     "github.com/tendermint/tendermint/types",
