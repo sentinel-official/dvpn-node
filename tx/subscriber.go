@@ -3,9 +3,9 @@ package tx
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
-	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
 	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
 	rpcTypes "github.com/tendermint/tendermint/rpc/lib/types"
@@ -16,12 +16,12 @@ import (
 
 type Subscriber struct {
 	nodeURI  string
-	cdc      *amino.Codec
+	cdc      *codec.Codec
 	conn     *websocket.Conn
 	channels map[string]chan tmTypes.EventDataTx
 }
 
-func NewSubscriber(liteClientURI string, cdc *amino.Codec) (*Subscriber, error) {
+func NewSubscriber(liteClientURI string, cdc *codec.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
 		nodeURI:  fmt.Sprintf("ws://%s/websocket", liteClientURI),
 		cdc:      cdc,

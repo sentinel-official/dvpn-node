@@ -30,10 +30,9 @@ func ProcessNodeDetails(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) 
 			return nil, err
 		}
 
-		apiPort := vpnTypes.NewAPIPort(appCfg.Node.APIPort)
-
 		msg := vpnTypes.NewMsgRegisterNode(from, amountToLock, pricesPerGB,
-			netSpeed.Upload, netSpeed.Download, apiPort, vpn.Encryption(), vpn.Type(), types.Version)
+			netSpeed.Upload, netSpeed.Download, appCfg.Node.APIPort,
+			vpn.Encryption(), vpn.Type(), types.Version)
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
 			return nil, err

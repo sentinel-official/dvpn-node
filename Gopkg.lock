@@ -247,7 +247,7 @@
 
 [[projects]]
   branch = "development"
-  digest = "1:57827574e6260f03260d11878e8ba736e8f23c78a1861799debea4f7ec8fe350"
+  digest = "1:da986453acb822eb27656b826acffc3d6583f4a5dc9e56c795c81cc2a8a14c2d"
   name = "github.com/ironman0x7b2/sentinel-sdk"
   packages = [
     "apps/vpn",
@@ -259,7 +259,7 @@
     "x/vpn/types",
   ]
   pruneopts = "UT"
-  revision = "d922f314a7d906be5b4ca298b4ed930514122cd9"
+  revision = "7421b0fbbbc2d881f53cee0dd89731439dbb6900"
 
 [[projects]]
   branch = "master"
@@ -286,12 +286,12 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:b5cf82c3199c040b82e2bb3fbcbcf6771c2759f9c6b839621b0714c822167581"
+  digest = "1:3bb9c8451d199650bfd303e0068d86f135952fead374ad87c09a9b8a2cc4bd7c"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a6dda38a851a575e6799957cdd53ffe0b3fdd90f"
-  version = "v0.0.5"
+  revision = "369ecd8cea9851e459abb67eb171853e3986591e"
+  version = "v0.0.6"
 
 [[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
@@ -377,7 +377,7 @@
     "xfs",
   ]
   pruneopts = "UT"
-  revision = "e4d4a2206da023361ed100d85c5f2cf9c8364e9f"
+  revision = "6ed1f7e1041181781dd2826d3001075d011a80cc"
 
 [[projects]]
   digest = "1:c4556a44e350b50a490544d9b06e9fba9c286c21d6c0e47f54f3a9214597298c"
@@ -732,6 +732,7 @@
     "github.com/cosmos/cosmos-sdk/client/keys",
     "github.com/cosmos/cosmos-sdk/client/tx",
     "github.com/cosmos/cosmos-sdk/client/utils",
+    "github.com/cosmos/cosmos-sdk/codec",
     "github.com/cosmos/cosmos-sdk/crypto/keys",
     "github.com/cosmos/cosmos-sdk/types",
     "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder",
@@ -743,7 +744,6 @@
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common",
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types",
     "github.com/pkg/errors",
-    "github.com/tendermint/go-amino",
     "github.com/tendermint/tendermint/libs/common",
     "github.com/tendermint/tendermint/libs/log",
     "github.com/tendermint/tendermint/lite/proxy",

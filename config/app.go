@@ -19,7 +19,7 @@ type AppConfig struct {
 		AmountToLock string `json:"amount_to_lock"`
 		PricesPerGB  string `json:"prices_per_gb"`
 		Description  string `json:"description"`
-		APIPort      uint32 `json:"api_port"`
+		APIPort      uint16 `json:"api_port"`
 	} `json:"node"`
 	VPNType       string `json:"vpn_type"`
 	LiteClientURI string `json:"lite_client_uri"`
