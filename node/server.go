@@ -35,7 +35,7 @@ func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := details.ID.String()
+	id := details.ID.HashTruncated()
 	if n.clients.Get(id) != nil {
 		return
 	}

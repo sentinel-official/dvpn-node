@@ -157,10 +157,16 @@ func (o OpenVPN) DisconnectClient(id string) error {
 
 func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 	cname := "client_" + id
+	certPath := fmt.Sprintf("/usr/share/easy-rsa/pki/issued/%s.crt", cname)
+	keyPath := fmt.Sprintf("/usr/share/easy-rsa/pki/private/%s.key", cname)
+	_, certPathErr := os.Stat(certPath)
+	_, keyPathErr := os.Stat(keyPath)
 
-	cmd := exec.Command("sh", "-c", cmdGenerateClientKeys(cname))
-	if err := cmd.Run(); err != nil {
-		return nil, err
+	if os.IsNotExist(certPathErr) || os.IsNotExist(keyPathErr) {
+		cmd := exec.Command("sh", "-c", cmdGenerateClientKeys(cname))
+		if err := cmd.Run(); err != nil {
+			return nil, err
+		}
 	}
 
 	ca, err := ioutil.ReadFile("/usr/share/easy-rsa/pki/ca.crt")
@@ -168,12 +174,12 @@ func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 		return nil, err
 	}
 
-	cert, err := ioutil.ReadFile(fmt.Sprintf("/usr/share/easy-rsa/pki/issued/%s.crt", cname))
+	cert, err := ioutil.ReadFile(certPath)
 	if err != nil {
 		return nil, err
 	}
 
-	key, err := ioutil.ReadFile(fmt.Sprintf("/usr/share/easy-rsa/pki/private/%s.key", cname))
+	key, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		return nil, err
 	}

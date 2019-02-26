@@ -16,12 +16,6 @@ func main() {
 		panic(err)
 	}
 
-	defer func() {
-		if err := appCfg.SaveToPath(""); err != nil {
-			panic(err)
-		}
-	}()
-
 	keybase, err := keys.NewKeyBaseFromDir(types.DefaultConfigDir)
 	if err != nil {
 		panic(err)
@@ -34,6 +28,9 @@ func main() {
 
 	appCfg.Owner.Name = ownerInfo.GetName()
 	appCfg.Owner.Address = ownerInfo.GetAddress().String()
+	if err := appCfg.SaveToPath(""); err != nil {
+		panic(err)
+	}
 
 	password, err := utils.ProcessAccountPassword(keybase, appCfg.Owner.Name)
 	if err != nil {
@@ -58,6 +55,9 @@ func main() {
 	}
 
 	appCfg.Node.ID = details.ID.String()
+	if err := appCfg.SaveToPath(""); err != nil {
+		panic(err)
+	}
 
 	_node := node.NewNode(details, _tx, vpn)
 	if err := _node.Start(); err != nil {

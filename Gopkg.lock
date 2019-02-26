@@ -247,7 +247,7 @@
 
 [[projects]]
   branch = "development"
-  digest = "1:da986453acb822eb27656b826acffc3d6583f4a5dc9e56c795c81cc2a8a14c2d"
+  digest = "1:79d71b4dec8df0a6e00b582721d4308dae834d84523037ebdc06dd93520bce48"
   name = "github.com/ironman0x7b2/sentinel-sdk"
   packages = [
     "apps/vpn",
@@ -259,7 +259,7 @@
     "x/vpn/types",
   ]
   pruneopts = "UT"
-  revision = "7421b0fbbbc2d881f53cee0dd89731439dbb6900"
+  revision = "c775918a266fb8a07de18a67c0d12cc493a134e5"
 
 [[projects]]
   branch = "master"
