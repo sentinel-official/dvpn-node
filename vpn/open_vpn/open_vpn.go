@@ -55,6 +55,11 @@ func (o OpenVPN) GenerateServerKeys() error {
 }
 
 func (o OpenVPN) Init() error {
+	cmd := exec.Command("sh", "-c", cmdIPTables)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
 	if err := o.GenerateServerKeys(); err != nil {
 		return err
 	}

@@ -27,3 +27,9 @@ echo \r | ./easyrsa build-ca nopass && \
 openvpn --genkey --secret pki/ta.key && \
 chmod 755 pki/crl.pem
 `
+
+var cmdIPTables = `
+iptables -t nat -C POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE || {
+	iptables -t nat -A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE
+}
+`
