@@ -17,15 +17,14 @@ func cmdRevokeClientCert(cname string) string {
 }
 
 var cmdGenerateServerKeys = `
-cd /usr/share/easy-rsa && \
-rm -rf pki && \
-./easyrsa init-pki && \
-echo \r | ./easyrsa build-ca nopass && \
-./easyrsa gen-dh && \
-./easyrsa gen-crl && \
-./easyrsa build-server-full server nopass && \
-openvpn --genkey --secret pki/ta.key && \
-chmod 755 pki/crl.pem
+cd /usr/share/easy-rsa &&
+rm -rf pki &&
+./easyrsa init-pki &&
+echo \r | ./easyrsa build-ca nopass &&
+./easyrsa gen-dh &&
+./easyrsa gen-crl &&
+./easyrsa build-server-full server nopass &&
+openvpn --genkey --secret pki/ta.key
 `
 
 var cmdIPTables = `

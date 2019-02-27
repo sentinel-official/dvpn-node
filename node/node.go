@@ -87,7 +87,7 @@ func (n Node) updateSessionsBandwidth(clients []types.VPNClient) error {
 		return nil
 	}
 
-	msgs := make([]csdkTypes.Msg, len(clients))
+	msgs := make([]csdkTypes.Msg, 0, len(clients))
 	for _, c := range clients {
 		session := n.sessions.Get(c.ID)
 		if session == nil {
@@ -98,6 +98,10 @@ func (n Node) updateSessionsBandwidth(clients []types.VPNClient) error {
 		msg := vpnTypes.NewMsgUpdateSessionBandwidth(session.NodeOwner, session.ID,
 			bandwidth.Upload, bandwidth.Download, nodeOwnerSign, clientSign)
 		msgs = append(msgs, msg)
+	}
+
+	if len(msgs) == 0 {
+		return nil
 	}
 
 	_, err := n.tx.CompleteAndSubscribeTx(msgs...)

@@ -1,16 +1,15 @@
 package open_vpn
 
 var generateClientKeysCommandTemplate = `
-cd /usr/share/easy-rsa/ && \
-cat /dev/null > /usr/share/easy-rsa/pki/index.txt && \
+cd /usr/share/easy-rsa/ &&
+cat /dev/null > /usr/share/easy-rsa/pki/index.txt &&
 ./easyrsa build-client-full %s nopass
 `
 
 var revokeClientCertCommandTemplate = `
-cd /usr/share/easy-rsa/ && \
-echo yes | ./easyrsa revoke %s && \
-./easyrsa gen-crl && \
-chmod 755 pki/crl.pem
+cd /usr/share/easy-rsa/ &&
+echo yes | ./easyrsa revoke %s &&
+./easyrsa gen-crl
 `
 
 var serverConfigTemplate = `
@@ -30,8 +29,6 @@ push "dhcp-option DNS 208.67.220.220"
 keepalive 10 120
 tls-auth /usr/share/easy-rsa/pki/ta.key 0
 cipher %s
-user nobody
-group nogroup
 persist-key
 persist-tun
 status /etc/openvpn/openvpn-status.log 2
