@@ -16,36 +16,34 @@ import (
 )
 
 type Node struct {
-	*vpnTypes.NodeDetails
+	id      sdkTypes.ID
+	owner   csdkTypes.AccAddress
+	apiPort uint16
+
 	tx       *tx.Tx
 	vpn      types.BaseVPN
 	sessions types.Sessions
-	clients  types.Clients
 }
 
 func NewNode(details *vpnTypes.NodeDetails, tx *tx.Tx, vpn types.BaseVPN) *Node {
 	return &Node{
-		NodeDetails: details,
-		tx:          tx,
-		vpn:         vpn,
-		sessions:    types.NewSessions(),
-		clients:     types.NewClients(),
+		id:      details.ID,
+		owner:   details.Owner,
+		apiPort: details.APIPort,
+
+		tx:       tx,
+		vpn:      vpn,
+		sessions: types.NewSessions(),
 	}
 }
 
-func (n Node) Start() error {
+func (n Node) Start() {
 	if err := n.vpn.Init(); err != nil {
-		return err
+		panic(err)
 	}
 
 	go func() {
-		done := make(chan error)
-
-		if err := n.vpn.Start(done); err != nil {
-			panic(err)
-		}
-
-		if err := <-done; err != nil {
+		if err := n.vpn.Start(); err != nil {
 			panic(err)
 		}
 	}()
@@ -57,19 +55,17 @@ func (n Node) Start() error {
 	}()
 
 	go func() {
-		if err := n.requestBandwidthSigns(); err != nil {
+		if err := n.updateSessionsBandwidth(); err != nil {
 			panic(err)
 		}
 	}()
 
-	addr := fmt.Sprintf("0.0.0.0:%d", n.APIPort)
+	addr := fmt.Sprintf("0.0.0.0:%d", n.apiPort)
 
 	log.Printf("Listening the API server on address `%s`", addr)
 	if err := http.ListenAndServe(addr, n.Router()); err != nil {
 		panic(err)
 	}
-
-	return nil
 }
 
 func (n Node) updateNodeStatus() error {
@@ -77,7 +73,7 @@ func (n Node) updateNodeStatus() error {
 	t := time.NewTicker(types.IntervalUpdateNodeStatus)
 
 	for ; ; <-t.C {
-		msg := vpnTypes.NewMsgUpdateNodeStatus(n.Owner, n.ID, vpnTypes.StatusActive)
+		msg := vpnTypes.NewMsgUpdateNodeStatus(n.owner, n.id, vpnTypes.StatusActive)
 		data, err := n.tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
 			return err
@@ -88,90 +84,76 @@ func (n Node) updateNodeStatus() error {
 	}
 }
 
-func (n Node) updateSessionsBandwidth(clients []types.VPNClient) error {
-	if len(clients) == 0 {
-		return nil
-	}
-
-	msgs := make([]csdkTypes.Msg, 0, len(clients))
-	for _, c := range clients {
-		session := n.sessions.Get(c.ID)
-		if session == nil {
-			continue
-		}
-
-		bandwidth, nodeOwnerSign, clientSign := session.BandwidthInfo()
-		msg := vpnTypes.NewMsgUpdateSessionBandwidth(session.NodeOwner, session.ID,
-			bandwidth.Upload, bandwidth.Download, nodeOwnerSign, clientSign)
-		msgs = append(msgs, msg)
-	}
-
-	if len(msgs) == 0 {
-		return nil
-	}
-
-	data, err := n.tx.CompleteAndSubscribeTx(msgs...)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Sessions bandwidth info updated at block height `%d`, tx hash `%s`",
-		data.Height, common.HexBytes(data.Tx.Hash()).String())
-
-	return nil
-}
-
-func (n Node) requestBandwidthSigns() error {
+func (n Node) updateSessionsBandwidth() error {
 	log.Printf("Starting update sessions bandwidth ticker with interval %s", types.IntervalUpdateSessionsBandwidth.String())
 	t1 := time.NewTicker(types.IntervalUpdateSessionsBandwidth)
 
 	log.Printf("Starting request bandwidth signs ticker with interval %s", types.IntervalRequestBandwidthSigns.String())
 	t2 := time.NewTicker(types.IntervalRequestBandwidthSigns)
 
+	var makeTx bool
 	for {
+		<-t2.C
+
 		clients, err := n.vpn.ClientList()
 		if err != nil {
 			return err
 		}
 
+		ids := n.sessions.IDs()
+		msgs := make([]csdkTypes.Msg, 0, len(ids))
+
 		select {
 		case <-t1.C:
-			go func() {
-				if err := n.updateSessionsBandwidth(clients); err != nil {
-					panic(err)
-				}
-			}()
-		case <-t2.C:
-			for index := range clients {
-				go func(client *types.VPNClient) {
-					if err := n.requestBandwidthSign(client); err != nil {
+			makeTx = true
+		default:
+			makeTx = false
+		}
+
+		for _, id := range ids {
+			session := n.sessions.Get(id)
+			if session == nil || session.Status == vpnTypes.StatusInactive {
+				n.sessions.Delete(id)
+			}
+			if session.Status == vpnTypes.StatusInit {
+				continue
+			}
+			if session.Status == vpnTypes.StatusActive {
+				go func() {
+					if err := n.requestBandwidthSign(session, clients[id]); err != nil {
 						panic(err)
 					}
-				}(&clients[index])
+				}()
 			}
+
+			if makeTx {
+				bandwidth, nodeOwnerSign, clientSign := session.BandwidthInfo()
+				msg := vpnTypes.NewMsgUpdateSessionBandwidth(session.NodeOwner, session.ID,
+					bandwidth.Upload, bandwidth.Download, nodeOwnerSign, clientSign)
+				msgs = append(msgs, msg)
+			}
+		}
+
+		if makeTx && len(msgs) > 0 {
+			go func() {
+				data, err := n.tx.CompleteAndSubscribeTx(msgs...)
+				if err != nil {
+					panic(err)
+				}
+
+				log.Printf("Sessions bandwidth info updated at block height `%d`, tx hash `%s`",
+					data.Height, common.HexBytes(data.Tx.Hash()).String())
+			}()
 		}
 	}
 }
 
-func (n Node) requestBandwidthSign(c *types.VPNClient) error {
-	session := n.sessions.Get(c.ID)
-	if session == nil {
-		_ = n.vpn.DisconnectClient(c.ID)
-		return nil
-	}
-
-	client := n.clients.Get(c.ID)
-	if client == nil {
-		return nil
-	}
-
-	sign, err := n.tx.SignSessionBandwidth(session.ID, c.Upload, c.Download, session.Client)
+func (n Node) requestBandwidthSign(session *types.Session, bandwidth sdkTypes.Bandwidth) error {
+	sign, err := n.tx.SignSessionBandwidth(session.ID, bandwidth, session.Client)
 	if err != nil {
 		return err
 	}
 
-	bandwidth := sdkTypes.NewBandwidthFromInt64(c.Upload, c.Download)
-	client.OutMessages <- NewMsgBandwidthSign(c.ID, bandwidth, sign, "").GetBytes()
-
+	session.OutMessages <- NewMsgBandwidthSign(session.ID.String(), bandwidth, sign, "").GetBytes()
 	return nil
 }

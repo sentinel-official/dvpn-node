@@ -64,10 +64,6 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Initializing the node")
-	_node := node.NewNode(details, _tx, vpn)
-
-	if err := _node.Start(); err != nil {
-		panic(err)
-	}
+	log.Printf("Initializing and starting node")
+	node.NewNode(details, _tx, vpn).Start()
 }

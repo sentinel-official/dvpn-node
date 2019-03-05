@@ -3,24 +3,55 @@ package types
 import (
 	"encoding/base64"
 	"sync"
+	"time"
 
+	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gorilla/websocket"
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 	"github.com/pkg/errors"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 type Session struct {
-	*vpnTypes.SessionDetails
-	StopTimeout chan bool
-	mutex       *sync.Mutex
+	ID              sdkTypes.ID
+	Client          csdkTypes.AccAddress
+	NodeOwner       csdkTypes.AccAddress
+	ClientPubKey    crypto.PubKey
+	NodeOwnerPubKey crypto.PubKey
+
+	bandwidth     sdkTypes.Bandwidth
+	nodeOwnerSign []byte
+	clientSign    []byte
+
+	Conn            *websocket.Conn
+	OutMessages     chan []byte
+	StopTimeoutChan chan bool
+	Status          string
+	mutex           *sync.Mutex
 }
 
 func NewSession(details *vpnTypes.SessionDetails) *Session {
 	return &Session{
-		SessionDetails: details,
-		StopTimeout:    make(chan bool),
-		mutex:          &sync.Mutex{},
+		ID:              details.ID,
+		Client:          details.Client,
+		NodeOwner:       details.NodeOwner,
+		ClientPubKey:    details.ClientPubKey,
+		NodeOwnerPubKey: details.NodeOwnerPubKey,
+
+		OutMessages:     make(chan []byte),
+		StopTimeoutChan: make(chan bool),
+		Status:          vpnTypes.StatusInit,
+		mutex:           &sync.Mutex{},
 	}
+}
+
+func (s *Session) Timeout() <-chan time.Time {
+	return time.After(TimeoutSession)
+}
+
+func (s *Session) StopTimeout() <-chan bool {
+	return s.StopTimeoutChan
 }
 
 func (s *Session) VerifyAndSetBandwidthInfo(bandwidth sdkTypes.Bandwidth, _nodeOwnerSign, _clientSign string) error {
@@ -37,7 +68,7 @@ func (s *Session) VerifyAndSetBandwidthInfo(bandwidth sdkTypes.Bandwidth, _nodeO
 		return err
 	}
 
-	if bandwidth.LTE(s.Bandwidth.Consumed) {
+	if bandwidth.LTE(s.bandwidth) {
 		return errors.New("Invalid bandwidth")
 	}
 
@@ -47,9 +78,9 @@ func (s *Session) VerifyAndSetBandwidthInfo(bandwidth sdkTypes.Bandwidth, _nodeO
 		return errors.New("Invalid client sign or node owner sign")
 	}
 
-	s.Bandwidth.Consumed = bandwidth
-	s.Bandwidth.NodeOwnerSign = nodeOwnerSign
-	s.Bandwidth.ClientSign = clientSign
+	s.bandwidth = bandwidth
+	s.nodeOwnerSign = nodeOwnerSign
+	s.clientSign = clientSign
 
 	return nil
 }
@@ -58,9 +89,7 @@ func (s *Session) BandwidthInfo() (sdkTypes.Bandwidth, []byte, []byte) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	b := s.Bandwidth
-
-	return b.Consumed, b.NodeOwnerSign, b.ClientSign
+	return s.bandwidth, s.nodeOwnerSign, s.clientSign
 }
 
 type Sessions struct {
@@ -94,4 +123,16 @@ func (s *Sessions) Delete(id string) {
 	defer s.mutex.Unlock()
 
 	delete(s.s, id)
+}
+
+func (s *Sessions) IDs() []string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	keys := make([]string, 0, len(s.s))
+	for key := range s.s {
+		keys = append(keys, key)
+	}
+
+	return keys
 }

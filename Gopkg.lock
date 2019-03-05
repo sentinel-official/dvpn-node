@@ -744,6 +744,7 @@
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common",
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types",
     "github.com/pkg/errors",
+    "github.com/tendermint/tendermint/crypto",
     "github.com/tendermint/tendermint/libs/common",
     "github.com/tendermint/tendermint/libs/log",
     "github.com/tendermint/tendermint/lite/proxy",

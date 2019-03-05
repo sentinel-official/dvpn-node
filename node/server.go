@@ -24,11 +24,12 @@ func (n Node) Router() *mux.Router {
 
 func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
 	txHash := mux.Vars(r)["txHash"]
+
 	details, err := n.tx.QuerySessionDetailsFromTxHash(txHash)
 	if err != nil {
 		return
 	}
-	if details.NodeID.String() != n.ID.String() {
+	if details.NodeID.String() != n.id.String() {
 		return
 	}
 	if details.Status != vpnTypes.StatusInit {
@@ -36,12 +37,13 @@ func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := details.ID.HashTruncated()
-	if n.clients.Get(id) != nil {
-		return
-	}
-	if n.sessions.Get(id) == nil {
+
+	session := n.sessions.Get(id)
+	if session == nil {
 		n.sessions.Set(id, types.NewSession(details))
 		go n.startSessionTimeout(id)
+	} else if session.Conn != nil {
+		return
 	}
 
 	key, err := n.vpn.GenerateClientKey(id)
@@ -56,10 +58,9 @@ func (n Node) startSessionTimeout(id string) {
 	session := n.sessions.Get(id)
 
 	select {
-	case <-time.After(types.TimeoutSession):
-		n.clients.Delete(id)
+	case <-session.Timeout():
 		n.sessions.Delete(id)
-	case <-session.StopTimeout:
+	case <-session.StopTimeout():
 		return
 	}
 }
@@ -70,41 +71,43 @@ func (n Node) handleFuncWebsocket(w http.ResponseWriter, r *http.Request) {
 	session := n.sessions.Get(id)
 	if session == nil {
 		return
-	}
-	if n.clients.Get(id) != nil {
+	} else if session.Conn != nil {
 		return
 	}
 
-	session.StopTimeout <- true
+	session.StopTimeoutChan <- true
 
 	conn, err := types.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 
-	n.clients.Set(id, types.NewClient(conn))
+	session.Conn = conn
+	session.Status = vpnTypes.StatusActive
 
 	go n.readMessages(id)
 	go n.writeMessages(id)
 }
 
 func (n Node) readMessages(id string) {
-	client := n.clients.Get(id)
 	session := n.sessions.Get(id)
 
 	defer func() {
-		if err := client.Conn.Close(); err != nil {
+		session.Status = vpnTypes.StatusInactive
+
+		if err := n.vpn.DisconnectClient(id); err != nil {
 			panic(err)
 		}
 
-		n.clients.Delete(id)
-		n.sessions.Delete(id)
+		if err := session.Conn.Close(); err != nil {
+			panic(err)
+		}
 	}()
 
-	_ = client.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
+	_ = session.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
 
 	for {
-		_, p, err := client.Conn.ReadMessage()
+		_, p, err := session.Conn.ReadMessage()
 		if err != nil {
 			return
 		}
@@ -118,7 +121,7 @@ func (n Node) readMessages(id string) {
 			continue
 		}
 
-		_ = client.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
+		_ = session.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
 	}
 }
 
@@ -145,11 +148,11 @@ func (n Node) handleIncomingMessage(session *types.Session, msg *types.Msg) erro
 }
 
 func (n Node) writeMessages(id string) {
-	client := n.clients.Get(id)
+	session := n.sessions.Get(id)
 
 	for {
-		msg := <-client.OutMessages
-		if err := client.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+		msg := <-session.OutMessages
+		if err := session.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 			return
 		}
 	}

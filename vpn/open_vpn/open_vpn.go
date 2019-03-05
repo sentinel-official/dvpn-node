@@ -11,9 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/pkg/errors"
-
-	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type OpenVPN struct {
@@ -77,7 +76,7 @@ func (o OpenVPN) Init() error {
 	return o.writeServerConfig()
 }
 
-func (o OpenVPN) Start(done chan error) error {
+func (o OpenVPN) Start() error {
 	cmd := exec.Command("openvpn", "--config", "/etc/openvpn/server.conf")
 
 	log.Printf("Starting OpenVPN server with the config file /etc/openvpn/server.conf")
@@ -87,7 +86,9 @@ func (o OpenVPN) Start(done chan error) error {
 
 	o.process = cmd.Process
 	go func() {
-		done <- cmd.Wait()
+		if err := cmd.Wait(); err != nil {
+			panic(err)
+		}
 	}()
 
 	return nil
@@ -101,7 +102,7 @@ func (o OpenVPN) Stop() error {
 	return o.process.Kill()
 }
 
-func (o OpenVPN) ClientList() (types.VPNClients, error) {
+func (o OpenVPN) ClientList() (map[string]sdkTypes.Bandwidth, error) {
 	filePath := "/etc/openvpn/openvpn-status.log"
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		log.Println("OpenVPN status log file not exist")
@@ -119,7 +120,7 @@ func (o OpenVPN) ClientList() (types.VPNClients, error) {
 		}
 	}()
 
-	var clients types.VPNClients
+	clients := make(map[string]sdkTypes.Bandwidth)
 	reader := bufio.NewReader(file)
 
 	for {
@@ -134,7 +135,7 @@ func (o OpenVPN) ClientList() (types.VPNClients, error) {
 		line := string(lineBytes)
 		if strings.Contains(line, "client_") {
 			lineSlice := strings.Split(line, ",")
-			cname := lineSlice[0][len("client_"):]
+			id := lineSlice[0][len("client_"):]
 
 			upload, err := strconv.Atoi(lineSlice[2])
 			if err != nil {
@@ -146,14 +147,13 @@ func (o OpenVPN) ClientList() (types.VPNClients, error) {
 				return nil, err
 			}
 
-			client := types.NewVPNClient(cname, int64(upload), int64(download))
-			clients = clients.Append(client)
+			clients[id] = sdkTypes.NewBandwidthFromInt64(int64(upload), int64(download))
 		} else if strings.Contains(line, "ROUTING TABLE") {
 			break
 		}
 	}
 
-	return clients.Sort(), nil
+	return clients, nil
 }
 
 func (o OpenVPN) RevokeClientCert(cname string) error {

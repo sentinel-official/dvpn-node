@@ -2,7 +2,6 @@ package tx
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
@@ -85,16 +84,10 @@ func (t Tx) QuerySessionDetailsFromTxHash(txHash string) (*vpnTypes.SessionDetai
 	return common.QuerySession(t.Manager.CLIContext, t.Manager.CLIContext.Codec, id)
 }
 
-func (t Tx) SignSessionBandwidth(id sdkTypes.ID, upload, download int64,
+func (t Tx) SignSessionBandwidth(id sdkTypes.ID, bandwidth sdkTypes.Bandwidth,
 	client csdkTypes.AccAddress) (string, error) {
 
-	bandwidth := sdkTypes.NewBandwidthFromInt64(upload, download)
-	bandwidthSignData := sdkTypes.NewBandwidthSignData(id, bandwidth, t.Manager.CLIContext.FromAddress, client)
-
-	msg, err := json.Marshal(bandwidthSignData)
-	if err != nil {
-		return "", err
-	}
+	msg := sdkTypes.NewBandwidthSignData(id, bandwidth, t.Manager.CLIContext.FromAddress, client).GetBytes()
 
 	log.Printf("Signing the bandwidth details of session with ID `%s`", id.String())
 	sign, _, err := t.Manager.CLIContext.Keybase.Sign(t.Manager.CLIContext.FromName, t.Manager.password, msg)
