@@ -1,1 +1,1 @@
-# vpn-node
+# VPN-node

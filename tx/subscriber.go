@@ -2,6 +2,7 @@ package tx
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/gorilla/websocket"
@@ -43,6 +44,7 @@ func NewSubscriber(liteClientURI string, cdc *codec.Codec) (*Subscriber, error) 
 }
 
 func (s *Subscriber) ReadTxQuery(ok chan bool) error {
+	log.Printf("Dialing the node with URI `%s`", s.nodeURI)
 	conn, _, err := websocket.DefaultDialer.Dial(s.nodeURI, nil)
 	if err != nil {
 		return err

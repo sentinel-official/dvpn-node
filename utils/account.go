@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -71,14 +72,18 @@ func createAccount(keybase keys.Keybase) (keys.Info, error) {
 
 func ProcessOwnerAccount(keybase keys.Keybase, name string) (keys.Info, error) {
 	if len(name) > 0 {
+		log.Printf("Got the owner account name `%s`", name)
 		return keybase.Get(name)
 	}
 
+	log.Println("Got an empty owner account name, listing all available accounts")
 	infos, err := keybase.List()
 	if err != nil {
 		return nil, err
 	}
+
 	if len(infos) == 0 {
+		log.Println("Found zero accounts in keybase, so creating a new account")
 		return createAccount(keybase)
 	}
 
@@ -113,6 +118,7 @@ func ProcessAccountPassword(keybase keys.Keybase, name string) (string, error) {
 
 	password = strings.TrimSpace(password)
 
+	log.Println("Verifying the account password")
 	_, _, err = keybase.Sign(name, password, []byte(""))
 	if err != nil {
 		return "", err

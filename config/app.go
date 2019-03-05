@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/ironman0x7b2/vpn-node/types"
@@ -32,15 +33,18 @@ func NewAppConfig() *AppConfig {
 
 func (c *AppConfig) LoadFromPath(path string) error {
 	if len(path) == 0 {
+		log.Printf("Got an empty app config path")
 		path = types.DefaultAppConfigFilePath
 	}
 
+	log.Printf("Loading the app config from path `%s`", path)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
 	if len(data) == 0 {
+		log.Println("Found empty app config, so setting a new config with default values")
 		data, err = json.Marshal(AppConfig{})
 		if err != nil {
 			return err
@@ -60,8 +64,10 @@ func (c AppConfig) SaveToPath(path string) error {
 	}
 
 	if len(path) == 0 {
+		log.Printf("Got an empty app config path")
 		path = types.DefaultAppConfigFilePath
 	}
 
+	log.Printf("Saving the app config to path `%s`", path)
 	return ioutil.WriteFile(path, data, os.ModePerm)
 }

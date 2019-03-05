@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -39,6 +40,7 @@ func (n Node) Start() error {
 
 	go func() {
 		done := make(chan error)
+
 		if err := n.vpn.Start(done); err != nil {
 			panic(err)
 		}
@@ -60,7 +62,9 @@ func (n Node) Start() error {
 		}
 	}()
 
-	addr := fmt.Sprintf(":%d", n.APIPort)
+	addr := fmt.Sprintf("0.0.0.0:%d", n.APIPort)
+
+	log.Printf("Listening the API server on address `%s`", addr)
 	if err := http.ListenAndServe(addr, n.Router()); err != nil {
 		panic(err)
 	}
@@ -69,6 +73,7 @@ func (n Node) Start() error {
 }
 
 func (n Node) updateNodeStatus() error {
+	log.Printf("Starting update node status ticker with interval %s", types.IntervalUpdateNodeStatus.String())
 	t := time.NewTicker(types.IntervalUpdateNodeStatus)
 
 	for ; ; <-t.C {
@@ -78,7 +83,8 @@ func (n Node) updateNodeStatus() error {
 			return err
 		}
 
-		fmt.Println(data.Height, common.HexBytes(data.Tx.Hash()).String())
+		log.Printf("Node status info updated at block height `%d`, tx hash `%s`",
+			data.Height, common.HexBytes(data.Tx.Hash()).String())
 	}
 }
 
@@ -104,14 +110,23 @@ func (n Node) updateSessionsBandwidth(clients []types.VPNClient) error {
 		return nil
 	}
 
-	_, err := n.tx.CompleteAndSubscribeTx(msgs...)
+	data, err := n.tx.CompleteAndSubscribeTx(msgs...)
+	if err != nil {
+		return err
+	}
 
-	return err
+	log.Printf("Sessions bandwidth info updated at block height `%d`, tx hash `%s`",
+		data.Height, common.HexBytes(data.Tx.Hash()).String())
+
+	return nil
 }
 
 func (n Node) requestBandwidthSigns() error {
-	t1 := time.NewTicker(types.IntervalRequestBandwidthSigns)
-	t2 := time.NewTicker(types.IntervalUpdateSessionsBandwidth)
+	log.Printf("Starting update sessions bandwidth ticker with interval %s", types.IntervalUpdateSessionsBandwidth.String())
+	t1 := time.NewTicker(types.IntervalUpdateSessionsBandwidth)
+
+	log.Printf("Starting request bandwidth signs ticker with interval %s", types.IntervalRequestBandwidthSigns.String())
+	t2 := time.NewTicker(types.IntervalRequestBandwidthSigns)
 
 	for {
 		clients, err := n.vpn.ClientList()
@@ -121,6 +136,12 @@ func (n Node) requestBandwidthSigns() error {
 
 		select {
 		case <-t1.C:
+			go func() {
+				if err := n.updateSessionsBandwidth(clients); err != nil {
+					panic(err)
+				}
+			}()
+		case <-t2.C:
 			for index := range clients {
 				go func(client *types.VPNClient) {
 					if err := n.requestBandwidthSign(client); err != nil {
@@ -128,12 +149,6 @@ func (n Node) requestBandwidthSigns() error {
 					}
 				}(&clients[index])
 			}
-		case <-t2.C:
-			go func() {
-				if err := n.updateSessionsBandwidth(clients); err != nil {
-					panic(err)
-				}
-			}()
 		}
 	}
 }

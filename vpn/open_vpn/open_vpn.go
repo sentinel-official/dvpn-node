@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -42,33 +43,44 @@ func (o OpenVPN) Encryption() string {
 	return o.encryption
 }
 
-func (o OpenVPN) WriteServerConfig() error {
+func (o OpenVPN) writeServerConfig() error {
 	data := fmt.Sprintf(serverConfigTemplate, o.port, o.encryption, o.managementPort)
 
+	log.Println("Writing OpenVPN server config to path /etc/openvpn/server.conf")
 	return ioutil.WriteFile("/etc/openvpn/server.conf", []byte(data), os.ModePerm)
 }
 
-func (o OpenVPN) GenerateServerKeys() error {
+func (o OpenVPN) generateServerKeys() error {
 	cmd := exec.Command("sh", "-c", cmdGenerateServerKeys)
 
+	log.Println("Generating OpenVPN server keys, it will take some time")
+	return cmd.Run()
+}
+
+func (o OpenVPN) setIPTablesRules() error {
+	cmd := exec.Command("sh", "-c", cmdIPTables)
+
+	log.Println("Setting up OpenVPN IPTables rules")
 	return cmd.Run()
 }
 
 func (o OpenVPN) Init() error {
-	cmd := exec.Command("sh", "-c", cmdIPTables)
-	if err := cmd.Run(); err != nil {
+	log.Println("Initializing the OpenVPN")
+	if err := o.setIPTablesRules(); err != nil {
 		return err
 	}
 
-	if err := o.GenerateServerKeys(); err != nil {
+	if err := o.generateServerKeys(); err != nil {
 		return err
 	}
 
-	return o.WriteServerConfig()
+	return o.writeServerConfig()
 }
 
 func (o OpenVPN) Start(done chan error) error {
 	cmd := exec.Command("openvpn", "--config", "/etc/openvpn/server.conf")
+
+	log.Printf("Starting OpenVPN server with the config file /etc/openvpn/server.conf")
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -92,6 +104,7 @@ func (o OpenVPN) Stop() error {
 func (o OpenVPN) ClientList() (types.VPNClients, error) {
 	filePath := "/etc/openvpn/openvpn-status.log"
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		log.Println("OpenVPN status log file not exist")
 		return nil, nil
 	}
 
@@ -146,6 +159,7 @@ func (o OpenVPN) ClientList() (types.VPNClients, error) {
 func (o OpenVPN) RevokeClientCert(cname string) error {
 	cmd := exec.Command("sh", "-c", cmdRevokeClientCert(cname))
 
+	log.Printf("Revoking client certificate with common name `%s`", cname)
 	return cmd.Run()
 }
 
@@ -153,6 +167,7 @@ func (o OpenVPN) DisconnectClient(id string) error {
 	cname := "client_" + id
 	cmd := exec.Command("sh", "-c", cmdDisconnectClient(cname, o.managementPort))
 
+	log.Printf("Disconnecting client with common name `%s`", cname)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -169,6 +184,8 @@ func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 
 	if os.IsNotExist(certPathErr) || os.IsNotExist(keyPathErr) {
 		cmd := exec.Command("sh", "-c", cmdGenerateClientKeys(cname))
+
+		log.Printf("Generating client key with common name `%s`", cname)
 		if err := cmd.Run(); err != nil {
 			return nil, err
 		}

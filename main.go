@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/cosmos/cosmos-sdk/client/keys"
 
 	"github.com/ironman0x7b2/vpn-node/config"
@@ -12,10 +14,11 @@ import (
 
 func main() {
 	appCfg := config.NewAppConfig()
-	if err := appCfg.LoadFromPath(""); err != nil {
+	if err := appCfg.LoadFromPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
+	log.Printf("Initializing the keybase from directory `%s`", types.DefaultConfigDir)
 	keybase, err := keys.NewKeyBaseFromDir(types.DefaultConfigDir)
 	if err != nil {
 		panic(err)
@@ -28,7 +31,8 @@ func main() {
 
 	appCfg.Owner.Name = ownerInfo.GetName()
 	appCfg.Owner.Address = ownerInfo.GetAddress().String()
-	if err := appCfg.SaveToPath(""); err != nil {
+
+	if err := appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
@@ -39,12 +43,12 @@ func main() {
 
 	appCfg.Owner.Password = password
 
-	_tx, err := tx.NewTxFromConfig(appCfg, ownerInfo, keybase)
+	vpn, err := utils.ProcessVPN(appCfg.VPNType)
 	if err != nil {
 		panic(err)
 	}
 
-	vpn, err := utils.ProcessVPN(appCfg.VPNType)
+	_tx, err := tx.NewTxFromConfig(appCfg, ownerInfo, keybase)
 	if err != nil {
 		panic(err)
 	}
@@ -55,11 +59,14 @@ func main() {
 	}
 
 	appCfg.Node.ID = details.ID.String()
-	if err := appCfg.SaveToPath(""); err != nil {
+
+	if err := appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
+	log.Printf("Initializing the node")
 	_node := node.NewNode(details, _tx, vpn)
+
 	if err := _node.Start(); err != nil {
 		panic(err)
 	}

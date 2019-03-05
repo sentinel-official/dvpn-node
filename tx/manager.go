@@ -3,6 +3,7 @@ package tx
 import (
 	"encoding/hex"
 	"errors"
+	"log"
 	"path/filepath"
 	"sync"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
 	clientTxBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/tendermint/tendermint/libs/log"
+	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
 	"github.com/tendermint/tendermint/rpc/client"
 	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -41,12 +42,14 @@ func NewManager(cliContext context.CLIContext, txBuilder clientTxBuilder.TxBuild
 func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
 	ownerInfo keys.Info, keybase keys.Keybase) (*Manager, error) {
 
+	log.Println("Initializing the chain verifier")
 	verifier, err := proxy.NewVerifier(appCfg.ChainID, filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
-		client.NewHTTP(appCfg.LiteClientURI, "/websocket"), log.NewNopLogger(), 10)
+		client.NewHTTP(appCfg.LiteClientURI, "/websocket"), tmLog.NewNopLogger(), 10)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Println("Initializing the CLI context")
 	cliContext := context.NewCLIContext().
 		WithCodec(cdc).
 		WithAccountDecoder(cdc).
@@ -56,11 +59,13 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
 		WithFromName(ownerInfo.GetName()).
 		WithFromAddress(ownerInfo.GetAddress())
 
+	log.Println("Fetching the owner account info")
 	account, err := cliContext.GetAccount(ownerInfo.GetAddress().Bytes())
 	if err != nil {
 		return nil, err
 	}
 
+	log.Println("Initializing the transaction builder")
 	txBuilder := clientTxBuilder.NewTxBuilderFromCLI().
 		WithKeybase(keybase).
 		WithAccountNumber(account.GetAccountNumber()).
@@ -110,12 +115,14 @@ func (m *Manager) QueryTx(txHash string) (*coreTypes.ResultTx, error) {
 		return nil, err
 	}
 
+	log.Printf("Querying the transaction with hash `%s`", txHash)
 	res, err := node.Tx(txHashBytes, !m.CLIContext.TrustNode)
 	if err != nil {
 		return nil, err
 	}
 
 	if !m.CLIContext.TrustNode {
+		log.Println("Validating the query transaction response")
 		if err := tx.ValidateTxResult(m.CLIContext, res); err != nil {
 			return nil, err
 		}

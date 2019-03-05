@@ -3,6 +3,7 @@ package tx
 import (
 	"encoding/base64"
 	"encoding/json"
+	"log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
@@ -32,11 +33,13 @@ func NewTxFromConfig(appCfg *config.AppConfig, ownerInfo keys.Info, keybase keys
 	cdc := vpn.MakeCodec()
 	tmTypes.RegisterEventDatas(cdc)
 
+	log.Println("Initializing the transaction manager")
 	manager, err := NewManagerFromConfig(appCfg, cdc, ownerInfo, keybase)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Println("Initializing the transaction subscriber")
 	subscriber, err := NewSubscriber(appCfg.LiteClientURI, cdc)
 	if err != nil {
 		return nil, err
@@ -78,6 +81,7 @@ func (t Tx) QuerySessionDetailsFromTxHash(txHash string) (*vpnTypes.SessionDetai
 
 	id := string(res.TxResult.Tags[2].Value)
 
+	log.Printf("Querying the session details with session ID `%s`", id)
 	return common.QuerySession(t.Manager.CLIContext, t.Manager.CLIContext.Codec, id)
 }
 
@@ -92,6 +96,7 @@ func (t Tx) SignSessionBandwidth(id sdkTypes.ID, upload, download int64,
 		return "", err
 	}
 
+	log.Printf("Signing the bandwidth details of session with ID `%s`", id.String())
 	sign, _, err := t.Manager.CLIContext.Keybase.Sign(t.Manager.CLIContext.FromName, t.Manager.password, msg)
 	if err != nil {
 		return "", err
@@ -103,5 +108,6 @@ func (t Tx) SignSessionBandwidth(id sdkTypes.ID, upload, download int64,
 func (t Tx) QueryNodeDetails(id string) (*vpnTypes.NodeDetails, error) {
 	nodeID := sdkTypes.NewID(id)
 
+	log.Printf("Querying the node details with node ID `%s`", id)
 	return common.QueryNode(t.Manager.CLIContext, t.Manager.CLIContext.Codec, nodeID)
 }

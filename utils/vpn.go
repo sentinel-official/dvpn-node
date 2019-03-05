@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/pkg/errors"
 
@@ -11,6 +12,8 @@ import (
 )
 
 func ProcessVPN(vpnType string) (types.BaseVPN, error) {
+	log.Printf("Got vpn type `%s`", vpnType)
+
 	switch vpnType {
 	case "OpenVPN":
 		return processOpenVPN()
@@ -21,17 +24,19 @@ func ProcessVPN(vpnType string) (types.BaseVPN, error) {
 
 func processOpenVPN() (*open_vpn.OpenVPN, error) {
 	cfg := config.NewOpenVPNConfig()
-	if err := cfg.LoadFromPath(""); err != nil {
+
+	if err := cfg.LoadFromPath(types.DefaultOpenVPNConfigFilePath); err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		if err := cfg.SaveToPath(""); err != nil {
+		if err := cfg.SaveToPath(types.DefaultOpenVPNConfigFilePath); err != nil {
 			panic(err)
 		}
 	}()
 
 	if len(cfg.PublicIP) == 0 {
+		log.Println("Got an empty public IP address in the config")
 		ip, err := PublicIP()
 		if err != nil {
 			return nil, err
