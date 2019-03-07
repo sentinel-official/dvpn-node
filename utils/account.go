@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	clientKeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
@@ -87,7 +86,7 @@ func ProcessOwnerAccount(keybase keys.Keybase, name string) (keys.Info, error) {
 		return createAccount(keybase)
 	}
 
-	accounts, err := clientKeys.Bech32KeysOutput(infos)
+	accounts, err := keys.Bech32KeysOutput(infos)
 	if err != nil {
 		return nil, err
 	}

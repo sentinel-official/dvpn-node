@@ -27,15 +27,11 @@
 
 [[constraint]]
   name = "github.com/cosmos/cosmos-sdk"
-  version = "=0.32.0"
+  version = "=0.33.0"
 
 [[constraint]]
   name = "github.com/cosmos/go-bip39"
   revision = "52158e4697b87de16ed390e1bdaf813e581008fa"
-
-[[constraint]]
-  name = "github.com/tendermint/tendermint"
-  version = "=0.30.0"
 
 [[override]]
   name = "github.com/gogo/protobuf"
@@ -60,6 +56,10 @@
 [[override]]
   name = "github.com/stretchr/testify"
   version = "=1.2.1"
+
+[[override]]
+  name = "github.com/tendermint/tendermint"
+  revision = "v0.31.0-dev0"
 
 [[override]]
   name = "golang.org/x/crypto"
