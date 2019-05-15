@@ -90,10 +90,12 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 		return nil, err
 	}
 
+	fmt.Printf("\n")
 	fmt.Printf("NAME:\tTYPE:\tADDRESS:\t\t\t\t\t\tPUBKEY:\n")
 	for _, account := range accounts {
 		fmt.Printf("%s\t%s\t%s\t%s\n", account.Name, account.Type, account.Address, account.PubKey)
 	}
+	fmt.Printf("\n")
 
 	prompt := "Enter a account name from above list, or hit enter to create a new account."
 	name, err = client.GetString(prompt, client.BufferStdin())
@@ -108,7 +110,7 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 }
 
 func ProcessAccountPassword(kb keys.Keybase, name string) (string, error) {
-	prompt := fmt.Sprintf("Enter the password for the account with name `%s`: ", name)
+	prompt := fmt.Sprintf("Enter the password of the account with name `%s`: ", name)
 	password, err := client.GetPassword(prompt, client.BufferStdin())
 	if err != nil {
 		return "", err

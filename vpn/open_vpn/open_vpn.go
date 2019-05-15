@@ -49,7 +49,6 @@ func (o OpenVPN) EncryptionMethod() string {
 func (o OpenVPN) writeServerConfig() error {
 	data := fmt.Sprintf(serverConfigTemplate, o.port, o.encryptionMethod, statusLogFilePath, managementPort)
 
-	log.Printf("Writing the OpenVPN server config to path `%s`", serverConfigFilePath)
 	return ioutil.WriteFile(serverConfigFilePath, []byte(data), os.ModePerm)
 }
 
@@ -63,7 +62,6 @@ func (o OpenVPN) generateServerKeys() error {
 func (o OpenVPN) setNATRouting() error {
 	cmd := exec.Command("sh", "-c", commandNATRouting)
 
-	log.Printf("Setting up NAT rules")
 	return cmd.Run()
 }
 
@@ -83,7 +81,6 @@ func (o OpenVPN) Init() error {
 func (o OpenVPN) Start() error {
 	cmd := exec.Command("openvpn", "--config", serverConfigFilePath)
 
-	log.Printf("Starting the OpenVPN server with config file `%s`", serverConfigFilePath)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -108,7 +105,7 @@ func (o OpenVPN) Stop() error {
 
 func (o OpenVPN) ClientList() (map[string]sdkTypes.Bandwidth, error) {
 	if _, err := os.Stat(statusLogFilePath); os.IsNotExist(err) {
-		log.Println("OpenVPN status log file does not exist")
+		log.Printf("OpenVPN status log file does not exist")
 		return nil, nil
 	}
 

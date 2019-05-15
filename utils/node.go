@@ -40,7 +40,7 @@ func ProcessNode(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) (*vpn.N
 			return nil, err
 		}
 
-		nodeID = string(data.Result.Tags[2].Value)
+		nodeID = string(data.Result.Tags[1].Value)
 
 		log.Printf("Node registered at height `%d`, tx hash `%s`, node ID `%s`",
 			data.Height, common.HexBytes(data.Tx.Hash()).String(), nodeID)
@@ -51,7 +51,7 @@ func ProcessNode(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) (*vpn.N
 		return nil, err
 	}
 	if !node.Owner.Equals(fromAddress) {
-		return nil, errors.Errorf("Node owner address and account address in app configuration does not match")
+		return nil, errors.Errorf("Registered node owner address does not match with current account address")
 	}
 
 	return node, nil

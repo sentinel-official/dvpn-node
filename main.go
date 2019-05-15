@@ -61,6 +61,5 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Initializing and starting the node")
 	_node.NewNode(node, _tx, vpn).Start(appCfg.APIPort)
 }

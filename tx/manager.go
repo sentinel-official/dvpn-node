@@ -39,10 +39,9 @@ func NewManager(cliContext context.CLIContext, txBuilder clientTxBuilder.TxBuild
 	}
 }
 
-func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec, ownerInfo keys.Info,
-	kb keys.Keybase) (*Manager, error) {
+func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
+	ownerInfo keys.Info, kb keys.Keybase) (*Manager, error) {
 
-	log.Println("Initializing the chain verifier")
 	verifier, err := proxy.NewVerifier(appCfg.ChainID,
 		filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
 		client.NewHTTP(appCfg.RPCServerAddress, "/websocket"),
@@ -51,7 +50,6 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec, ownerInfo 
 		return nil, err
 	}
 
-	log.Println("Initializing the CLI context")
 	cliContext := context.NewCLIContext().
 		WithCodec(cdc).
 		WithAccountDecoder(cdc).
@@ -61,20 +59,15 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec, ownerInfo 
 		WithFromName(ownerInfo.GetName()).
 		WithFromAddress(ownerInfo.GetAddress())
 
-	log.Println("Fetching the owner account info")
 	account, err := cliContext.GetAccount(ownerInfo.GetAddress().Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Initializing the transaction builder")
-	txBuilder := clientTxBuilder.NewTxBuilderFromCLI().
-		WithKeybase(kb).
-		WithAccountNumber(account.GetAccountNumber()).
-		WithSequence(account.GetSequence()).
-		WithChainID(appCfg.ChainID).
-		WithGas(1000000000).
-		WithTxEncoder(clientUtils.GetTxEncoder(cdc))
+	txBuilder := clientTxBuilder.NewTxBuilder(clientUtils.GetTxEncoder(cdc),
+		account.GetAccountNumber(), account.GetSequence(), 1000000000,
+		1.0, false, appCfg.ChainID,
+		"", csdkTypes.Coins{}, csdkTypes.DecCoins{}).WithKeybase(kb)
 
 	return NewManager(cliContext, txBuilder, appCfg.Account.Password), nil
 }
