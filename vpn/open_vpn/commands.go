@@ -5,8 +5,9 @@ import (
 )
 
 func commandGenerateClientKeys(cname string) string {
-	return fmt.Sprintf("cat /dev/null > /usr/share/easy-rsa/pki/index.txt && "+
-		"/usr/share/easy-rsa/easyrsa build-client-full %s nopass", cname)
+	return fmt.Sprintf("cd /usr/share/easy-rsa/ && "+
+		"cat /dev/null > pki/index.txt && "+
+		"./easyrsa build-client-full %s nopass", cname)
 }
 
 func commandDisconnectClient(cname string, managementPort uint16) string {
@@ -14,18 +15,20 @@ func commandDisconnectClient(cname string, managementPort uint16) string {
 }
 
 func commandRevokeClientCertificate(cname string) string {
-	return fmt.Sprintf("echo yes | /usr/share/easy-rsa/easyrsa revoke %s && "+
-		"/usr/share/easy-rsa/easyrsa gen-crl", cname)
+	return fmt.Sprintf("cd /usr/share/easy-rsa/ && "+
+		"echo yes | ./easyrsa revoke %s && "+
+		"./easyrsa gen-crl", cname)
 }
 
 var commandGenerateServerKeys = `
-rm -rf /usr/share/easy-rsa/pki &&
-/usr/share/easy-rsa/easyrsa init-pki &&
-echo \r | /usr/share/easy-rsa/easyrsa build-ca nopass &&
-/usr/share/easy-rsa/easyrsa gen-dh &&
-/usr/share/easy-rsa/easyrsa gen-crl &&
-/usr/share/easy-rsa/easyrsa build-server-full server nopass &&
-openvpn --genkey --secret /usr/share/easy-rsa/pki/ta.key
+cd /usr/share/easy-rsa/ &&
+rm -rf pki/ &&
+./easyrsa init-pki &&
+echo \r | ./easyrsa build-ca nopass &&
+./easyrsa gen-dh &&
+./easyrsa gen-crl &&
+./easyrsa build-server-full server nopass &&
+openvpn --genkey --secret pki/ta.key
 `
 
 var commandNATRouting = `
