@@ -19,8 +19,8 @@ func SubscriberRPCRequestWithQuery(query string) RPCRequest {
 	return req
 }
 
-func NewTxSubscriberRPCRequest(txHash string) RPCRequest {
-	query := fmt.Sprintf("tm.event = 'Tx' AND tx.hash = '%s'", txHash)
+func NewTxSubscriberRPCRequest(hash string) RPCRequest {
+	query := fmt.Sprintf("tm.event = 'Tx' AND tx.hash = '%s'", hash)
 	req := SubscriberRPCRequestWithQuery(query)
 
 	return req

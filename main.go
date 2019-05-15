@@ -6,7 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 
 	"github.com/ironman0x7b2/vpn-node/config"
-	"github.com/ironman0x7b2/vpn-node/node"
+	_node "github.com/ironman0x7b2/vpn-node/node"
 	"github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 	"github.com/ironman0x7b2/vpn-node/utils"
@@ -19,51 +19,48 @@ func main() {
 	}
 
 	log.Printf("Initializing the keybase from directory `%s`", types.DefaultConfigDir)
-	keybase, err := keys.NewKeyBaseFromDir(types.DefaultConfigDir)
+	kb, err := keys.NewKeyBaseFromDir(types.DefaultConfigDir)
 	if err != nil {
 		panic(err)
 	}
 
-	ownerInfo, err := utils.ProcessOwnerAccount(keybase, appCfg.Owner.Name)
+	info, err := utils.ProcessAccount(kb, appCfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Owner.Name = ownerInfo.GetName()
-	appCfg.Owner.Address = ownerInfo.GetAddress().String()
-
+	appCfg.Account.Name = info.GetName()
 	if err := appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
-	password, err := utils.ProcessAccountPassword(keybase, appCfg.Owner.Name)
+	password, err := utils.ProcessAccountPassword(kb, appCfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Owner.Password = password
+	appCfg.Account.Password = password
 
 	vpn, err := utils.ProcessVPN(appCfg.VPNType)
 	if err != nil {
 		panic(err)
 	}
 
-	_tx, err := tx.NewTxFromConfig(appCfg, ownerInfo, keybase)
+	_tx, err := tx.NewTxFromConfig(appCfg, info, kb)
 	if err != nil {
 		panic(err)
 	}
 
-	details, err := utils.ProcessNodeDetails(appCfg, _tx, vpn)
+	node, err := utils.ProcessNode(appCfg, _tx, vpn)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Node.ID = details.ID.String()
-
+	appCfg.Node.ID = node.ID.String()
 	if err := appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
-	log.Printf("Initializing and starting node")
-	node.NewNode(details, _tx, vpn).Start()
+	log.Printf("Initializing and starting the node")
+	_node.NewNode(node, _tx, vpn).Start(appCfg.APIPort)
 }

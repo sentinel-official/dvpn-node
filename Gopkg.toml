@@ -27,23 +27,15 @@
 
 [[constraint]]
   name = "github.com/cosmos/cosmos-sdk"
-  version = "=0.33.0"
-
-[[constraint]]
-  name = "github.com/cosmos/go-bip39"
-  revision = "52158e4697b87de16ed390e1bdaf813e581008fa"
+  version = "=0.34.4"
 
 [[override]]
   name = "github.com/gogo/protobuf"
-  version = "~1.1.1"
-
-[[override]]
-  name = "github.com/go-kit/kit"
-  version = "^0.6.0"
+  version = "=1.1.1"
 
 [[override]]
   name = "github.com/golang/protobuf"
-  version = "=1.1.0"
+  version = "=1.2.0"
 
 [[override]]
   name = "github.com/pkg/errors"
@@ -55,11 +47,11 @@
 
 [[override]]
   name = "github.com/stretchr/testify"
-  version = "=1.2.1"
+  version = "=1.2.2"
 
 [[override]]
   name = "github.com/tendermint/tendermint"
-  revision = "v0.31.0-dev0"
+  version = "=0.31.4"
 
 [[override]]
   name = "golang.org/x/crypto"
@@ -67,9 +59,8 @@
   revision = "3764759f34a542a3aef74d6b02e35be7ab893bba"
 
 [[override]]
-  name = "golang.org/x/net"
-  revision = "292b43bbf7cb8d35ddf40f8d5100ef3837cced3f"
-
+  name = "google.golang.org/genproto"
+  revision = "b515fa19cec88c32f305a962f34ae60068947aea"
 
 [prune]
   go-tests = true

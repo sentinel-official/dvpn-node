@@ -1,17 +1,5 @@
 package open_vpn
 
-var generateClientKeysCommandTemplate = `
-cd /usr/share/easy-rsa/ &&
-cat /dev/null > /usr/share/easy-rsa/pki/index.txt &&
-./easyrsa build-client-full %s nopass
-`
-
-var revokeClientCertCommandTemplate = `
-cd /usr/share/easy-rsa/ &&
-echo yes | ./easyrsa revoke %s &&
-./easyrsa gen-crl
-`
-
 var serverConfigTemplate = `
 dev tun
 port %d
@@ -31,7 +19,7 @@ tls-auth /usr/share/easy-rsa/pki/ta.key 0
 cipher %s
 persist-key
 persist-tun
-status /etc/openvpn/openvpn-status.log 2
+status %s 2
 verb 3
 
 auth SHA256
@@ -48,8 +36,6 @@ proto udp
 remote %s %d
 resolv-retry infinite
 nobind
-user nobody
-group nogroup
 persist-key
 persist-tun
 remote-cert-tls server

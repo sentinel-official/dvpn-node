@@ -14,7 +14,7 @@ import (
 
 const mnemonicEntropySize = 256
 
-func createAccount(keybase keys.Keybase) (keys.Info, error) {
+func createAccount(kb keys.Keybase) (keys.Info, error) {
 	var name string
 
 	fmt.Printf("Enter a new account name: ")
@@ -25,11 +25,11 @@ func createAccount(keybase keys.Keybase) (keys.Info, error) {
 
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
-		return nil, errors.New("Entered account name is empty")
+		return nil, errors.Errorf("Entered account name is empty")
 	}
 
-	if _, err := keybase.Get(name); err == nil {
-		return nil, errors.New(fmt.Sprintf("Account already exists with name `%s`", name))
+	if _, err := kb.Get(name); err == nil {
+		return nil, errors.Errorf("Account already exists with name `%s`", name)
 	}
 
 	password, err := client.GetCheckPassword(
@@ -57,7 +57,7 @@ func createAccount(keybase keys.Keybase) (keys.Info, error) {
 		}
 	}
 
-	info, err := keybase.CreateAccount(name, mnemonic, keys.DefaultBIP39Passphrase, password, uint32(0), uint32(0))
+	info, err := kb.CreateAccount(name, mnemonic, keys.DefaultBIP39Passphrase, password, uint32(0), uint32(0))
 	if err != nil {
 		return nil, err
 	}
@@ -69,24 +69,23 @@ func createAccount(keybase keys.Keybase) (keys.Info, error) {
 	return info, err
 }
 
-func ProcessOwnerAccount(keybase keys.Keybase, name string) (keys.Info, error) {
+func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 	if len(name) > 0 {
-		log.Printf("Got the owner account name `%s`", name)
-		return keybase.Get(name)
+		log.Printf("Got the account name `%s`", name)
+		return kb.Get(name)
 	}
 
-	log.Println("Got an empty owner account name, listing all available accounts")
-	infos, err := keybase.List()
+	log.Println("Got an empty account name, so listing all the available accounts")
+	info, err := kb.List()
 	if err != nil {
 		return nil, err
 	}
-
-	if len(infos) == 0 {
-		log.Println("Found zero accounts in keybase, so creating a new account")
-		return createAccount(keybase)
+	if len(info) == 0 {
+		log.Println("No accounts found in the keybase, so creating a new account")
+		return createAccount(kb)
 	}
 
-	accounts, err := keys.Bech32KeysOutput(infos)
+	accounts, err := keys.Bech32KeysOutput(info)
 	if err != nil {
 		return nil, err
 	}
@@ -96,21 +95,21 @@ func ProcessOwnerAccount(keybase keys.Keybase, name string) (keys.Info, error) {
 		fmt.Printf("%s\t%s\t%s\t%s\n", account.Name, account.Type, account.Address, account.PubKey)
 	}
 
-	prompt := "Enter the account name from above list, or hit enter to create a new account."
+	prompt := "Enter a account name from above list, or hit enter to create a new account."
 	name, err = client.GetString(prompt, client.BufferStdin())
 	if err != nil {
 		return nil, err
 	}
 	if len(name) == 0 {
-		return createAccount(keybase)
+		return createAccount(kb)
 	}
 
-	return keybase.Get(name)
+	return kb.Get(name)
 }
 
-func ProcessAccountPassword(keybase keys.Keybase, name string) (string, error) {
-	promt := fmt.Sprintf("Enter the password of the account `%s`: ", name)
-	password, err := client.GetPassword(promt, client.BufferStdin())
+func ProcessAccountPassword(kb keys.Keybase, name string) (string, error) {
+	prompt := fmt.Sprintf("Enter the password for the account with name `%s`: ", name)
+	password, err := client.GetPassword(prompt, client.BufferStdin())
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +117,7 @@ func ProcessAccountPassword(keybase keys.Keybase, name string) (string, error) {
 	password = strings.TrimSpace(password)
 
 	log.Println("Verifying the account password")
-	_, _, err = keybase.Sign(name, password, []byte(""))
+	_, _, err = kb.Sign(name, password, []byte(""))
 	if err != nil {
 		return "", err
 	}

@@ -8,53 +8,54 @@ import (
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/websocket"
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
-	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto"
 )
 
 type Session struct {
 	ID              sdkTypes.ID
-	Client          csdkTypes.AccAddress
 	NodeOwner       csdkTypes.AccAddress
-	ClientPubKey    crypto.PubKey
 	NodeOwnerPubKey crypto.PubKey
+	Client          csdkTypes.AccAddress
+	ClientPubKey    crypto.PubKey
+	Status          string
 
-	bandwidth     sdkTypes.Bandwidth
+	toProvide     sdkTypes.Bandwidth
+	consumed      sdkTypes.Bandwidth
 	nodeOwnerSign []byte
 	clientSign    []byte
 
-	Conn            *websocket.Conn
-	OutMessages     chan []byte
-	StopTimeoutChan chan bool
-	Status          string
-	mutex           *sync.Mutex
+	StopTimeout chan bool
+	Conn        *websocket.Conn
+	OutMessages chan Msg
+	mutex       *sync.Mutex
 }
 
-func NewSession(details *vpnTypes.SessionDetails) *Session {
+func NewSession(session *vpn.Session) *Session {
 	return &Session{
-		ID:              details.ID,
-		Client:          details.Client,
-		NodeOwner:       details.NodeOwner,
-		ClientPubKey:    details.ClientPubKey,
-		NodeOwnerPubKey: details.NodeOwnerPubKey,
-
-		OutMessages:     make(chan []byte),
-		StopTimeoutChan: make(chan bool),
-		Status:          vpnTypes.StatusInit,
+		ID:              session.ID,
+		NodeOwner:       session.NodeOwner,
+		NodeOwnerPubKey: session.NodeOwnerPubKey,
+		Client:          session.Client,
+		ClientPubKey:    session.ClientPubKey,
+		Status:          session.Status,
+		toProvide:       session.BandwidthInfo.ToProvide,
+		StopTimeout:     make(chan bool),
+		OutMessages:     make(chan Msg, 2),
 		mutex:           &sync.Mutex{},
 	}
 }
 
-func (s *Session) Timeout() <-chan time.Time {
-	return time.After(TimeoutSession)
+func (s Session) Timeout() <-chan time.Time {
+	return time.After(SessionTimeout)
 }
 
-func (s *Session) StopTimeout() <-chan bool {
-	return s.StopTimeoutChan
+func (s *Session) StopTimeoutListener() <-chan bool {
+	return s.StopTimeout
 }
 
-func (s *Session) VerifyAndSetBandwidthInfo(bandwidth sdkTypes.Bandwidth, _nodeOwnerSign, _clientSign string) error {
+func (s *Session) VerifyAndSetConsumedBandwidth(consumed sdkTypes.Bandwidth, _nodeOwnerSign, _clientSign string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -68,28 +69,28 @@ func (s *Session) VerifyAndSetBandwidthInfo(bandwidth sdkTypes.Bandwidth, _nodeO
 		return err
 	}
 
-	if bandwidth.LTE(s.bandwidth) {
-		return errors.New("Invalid bandwidth")
+	if consumed.LTE(s.consumed) {
+		return errors.Errorf("Invalid consumed bandwidth")
 	}
 
-	bandwidthSignDataBytes := sdkTypes.NewBandwidthSignData(s.ID, bandwidth, s.NodeOwner, s.Client).GetBytes()
-	if !s.ClientPubKey.VerifyBytes(bandwidthSignDataBytes, clientSign) ||
-		!s.NodeOwnerPubKey.VerifyBytes(bandwidthSignDataBytes, nodeOwnerSign) {
-		return errors.New("Invalid client sign or node owner sign")
+	bandwidthSign := sdkTypes.NewBandwidthSign(s.ID, consumed, s.NodeOwner, s.Client).GetBytes()
+	if !s.NodeOwnerPubKey.VerifyBytes(bandwidthSign, nodeOwnerSign) ||
+		!s.ClientPubKey.VerifyBytes(bandwidthSign, clientSign) {
+		return errors.Errorf("Invalid client sign or node owner sign")
 	}
 
-	s.bandwidth = bandwidth
+	s.consumed = consumed
 	s.nodeOwnerSign = nodeOwnerSign
 	s.clientSign = clientSign
 
 	return nil
 }
 
-func (s *Session) BandwidthInfo() (sdkTypes.Bandwidth, []byte, []byte) {
+func (s *Session) ConsumedBandwidthInfo() (sdkTypes.Bandwidth, []byte, []byte) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.bandwidth, s.nodeOwnerSign, s.clientSign
+	return s.consumed, s.nodeOwnerSign, s.clientSign
 }
 
 type Sessions struct {

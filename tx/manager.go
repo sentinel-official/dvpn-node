@@ -2,7 +2,6 @@ package tx
 
 import (
 	"encoding/hex"
-	"errors"
 	"log"
 	"path/filepath"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
 	clientTxBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/pkg/errors"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -39,12 +39,14 @@ func NewManager(cliContext context.CLIContext, txBuilder clientTxBuilder.TxBuild
 	}
 }
 
-func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
-	ownerInfo keys.Info, keybase keys.Keybase) (*Manager, error) {
+func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec, ownerInfo keys.Info,
+	kb keys.Keybase) (*Manager, error) {
 
 	log.Println("Initializing the chain verifier")
-	verifier, err := proxy.NewVerifier(appCfg.ChainID, filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
-		client.NewHTTP(appCfg.LiteClientURI, "/websocket"), tmLog.NewNopLogger(), 10)
+	verifier, err := proxy.NewVerifier(appCfg.ChainID,
+		filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
+		client.NewHTTP(appCfg.RPCServerAddress, "/websocket"),
+		tmLog.NewNopLogger(), 10)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +55,7 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
 	cliContext := context.NewCLIContext().
 		WithCodec(cdc).
 		WithAccountDecoder(cdc).
-		WithNodeURI(appCfg.LiteClientURI).
+		WithNodeURI(appCfg.RPCServerAddress).
 		WithVerifier(verifier).
 		WithFrom(ownerInfo.GetName()).
 		WithFromName(ownerInfo.GetName()).
@@ -67,21 +69,21 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
 
 	log.Println("Initializing the transaction builder")
 	txBuilder := clientTxBuilder.NewTxBuilderFromCLI().
-		WithKeybase(keybase).
+		WithKeybase(kb).
 		WithAccountNumber(account.GetAccountNumber()).
 		WithSequence(account.GetSequence()).
 		WithChainID(appCfg.ChainID).
 		WithGas(1000000000).
 		WithTxEncoder(clientUtils.GetTxEncoder(cdc))
 
-	return NewManager(cliContext, txBuilder, appCfg.Owner.Password), nil
+	return NewManager(cliContext, txBuilder, appCfg.Account.Password), nil
 }
 
-func (m *Manager) CompleteAndBroadcastTxSync(msgs []csdkTypes.Msg) (*csdkTypes.TxResponse, error) {
+func (m *Manager) CompleteAndBroadcastTxSync(messages []csdkTypes.Msg) (*csdkTypes.TxResponse, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	txBytes, err := m.TxBuilder.BuildAndSign(m.CLIContext.GetFromName(), m.password, msgs)
+	txBytes, err := m.TxBuilder.BuildAndSign(m.CLIContext.GetFromName(), m.password, messages)
 	if err != nil {
 		return nil, err
 	}
@@ -98,14 +100,14 @@ func (m *Manager) CompleteAndBroadcastTxSync(msgs []csdkTypes.Msg) (*csdkTypes.T
 
 	txRes := csdkTypes.NewResponseFormatBroadcastTx(res)
 	if txRes.Code != 0 {
-		return &txRes, errors.New(txRes.String())
+		return &txRes, errors.Errorf(txRes.String())
 	}
 
 	return &txRes, err
 }
 
-func (m *Manager) QueryTx(txHash string) (*coreTypes.ResultTx, error) {
-	txHashBytes, err := hex.DecodeString(txHash)
+func (m *Manager) QueryTx(hash string) (*coreTypes.ResultTx, error) {
+	hashBytes, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -115,14 +117,14 @@ func (m *Manager) QueryTx(txHash string) (*coreTypes.ResultTx, error) {
 		return nil, err
 	}
 
-	log.Printf("Querying the transaction with hash `%s`", txHash)
-	res, err := node.Tx(txHashBytes, !m.CLIContext.TrustNode)
+	log.Printf("Querying the transaction details with hash `%s`", hash)
+	res, err := node.Tx(hashBytes, !m.CLIContext.TrustNode)
 	if err != nil {
 		return nil, err
 	}
 
 	if !m.CLIContext.TrustNode {
-		log.Println("Validating the query transaction response")
+		log.Println("Validating the queried transaction details")
 		if err := tx.ValidateTxResult(m.CLIContext, res); err != nil {
 			return nil, err
 		}
