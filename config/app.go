@@ -10,21 +10,21 @@ import (
 )
 
 type AppConfig struct {
-	Owner struct {
+	ChainID          string `json:"chain_id"`
+	RPCServerAddress string `json:"rpc_server_address"`
+	Resolver         string `json:"resolver"`
+	Account          struct {
 		Name     string `json:"name"`
-		Address  string `json:"address"`
 		Password string `json:"password,omitempty"`
-	} `json:"owner"`
-	Node struct {
-		ID           string `json:"id"`
-		AmountToLock string `json:"amount_to_lock"`
-		PricesPerGB  string `json:"prices_per_gb"`
-		Description  string `json:"description"`
-		APIPort      uint16 `json:"api_port"`
+	} `json:"account"`
+	APIPort uint16 `json:"api_port"`
+	VPNType string `json:"vpn_type"`
+	Node    struct {
+		ID          string `json:"id"`
+		Moniker     string `json:"moniker"`
+		Description string `json:"description"`
+		PricesPerGB string `json:"prices_per_gb"`
 	} `json:"node"`
-	VPNType       string `json:"vpn_type"`
-	LiteClientURI string `json:"lite_client_uri"`
-	ChainID       string `json:"chain_id"`
 }
 
 func NewAppConfig() *AppConfig {
@@ -33,18 +33,17 @@ func NewAppConfig() *AppConfig {
 
 func (c *AppConfig) LoadFromPath(path string) error {
 	if len(path) == 0 {
-		log.Printf("Got an empty app config path")
 		path = types.DefaultAppConfigFilePath
 	}
 
-	log.Printf("Loading the app config from path `%s`", path)
+	log.Printf("Loading the app configuration from path `%s`", path)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
 	if len(data) == 0 {
-		log.Println("Found empty app config, so setting a new config with default values")
+		log.Println("Found an empty app configuration")
 		data, err = json.Marshal(AppConfig{})
 		if err != nil {
 			return err
@@ -55,19 +54,17 @@ func (c *AppConfig) LoadFromPath(path string) error {
 }
 
 func (c AppConfig) SaveToPath(path string) error {
-	_c := c
-	_c.Owner.Password = ""
+	c.Account.Password = ""
 
-	data, err := json.MarshalIndent(_c, "", "  ")
+	data, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
 	}
 
 	if len(path) == 0 {
-		log.Printf("Got an empty app config path")
 		path = types.DefaultAppConfigFilePath
 	}
 
-	log.Printf("Saving the app config to path `%s`", path)
+	log.Printf("Saving the app configuration to path `%s`", path)
 	return ioutil.WriteFile(path, data, os.ModePerm)
 }

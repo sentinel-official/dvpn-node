@@ -6,7 +6,7 @@ import (
 
 type BaseVPN interface {
 	Type() string
-	Encryption() string
+	EncryptionMethod() string
 
 	Init() error
 	Start() error

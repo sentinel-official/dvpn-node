@@ -4,30 +4,31 @@ import (
 	"fmt"
 )
 
-func cmdGenerateClientKeys(cname string) string {
-	return fmt.Sprintf(generateClientKeysCommandTemplate, cname)
+func commandGenerateClientKeys(cname string) string {
+	return fmt.Sprintf("cat /dev/null > /usr/share/easy-rsa/pki/index.txt && "+
+		"/usr/share/easy-rsa/easyrsa build-client-full %s nopass", cname)
 }
 
-func cmdDisconnectClient(cname string, managementPort uint16) string {
+func commandDisconnectClient(cname string, managementPort uint16) string {
 	return fmt.Sprintf("echo 'kill %s' | nc 127.0.0.1 %d", cname, managementPort)
 }
 
-func cmdRevokeClientCert(cname string) string {
-	return fmt.Sprintf(revokeClientCertCommandTemplate, cname)
+func commandRevokeClientCertificate(cname string) string {
+	return fmt.Sprintf("echo yes | /usr/share/easy-rsa/easyrsa revoke %s && "+
+		"/usr/share/easy-rsa/easyrsa gen-crl", cname)
 }
 
-var cmdGenerateServerKeys = `
-cd /usr/share/easy-rsa &&
-rm -rf pki &&
-./easyrsa init-pki &&
-echo \r | ./easyrsa build-ca nopass &&
-./easyrsa gen-dh &&
-./easyrsa gen-crl &&
-./easyrsa build-server-full server nopass &&
-openvpn --genkey --secret pki/ta.key
+var commandGenerateServerKeys = `
+rm -rf /usr/share/easy-rsa/pki &&
+/usr/share/easy-rsa/easyrsa init-pki &&
+echo \r | /usr/share/easy-rsa/easyrsa build-ca nopass &&
+/usr/share/easy-rsa/easyrsa gen-dh &&
+/usr/share/easy-rsa/easyrsa gen-crl &&
+/usr/share/easy-rsa/easyrsa build-server-full server nopass &&
+openvpn --genkey --secret /usr/share/easy-rsa/pki/ta.key
 `
 
-var cmdIPTables = `
+var commandNATRouting = `
 iptables -t nat -C POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE || {
 	iptables -t nat -A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE
 }

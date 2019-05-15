@@ -2,13 +2,12 @@ package node
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/types"
@@ -16,33 +15,40 @@ import (
 
 func (n Node) Router() *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/keys/{txHash}", n.handleFuncKeys)
+	router.HandleFunc("/keys/{hash}", n.handleFuncKeys)
 	router.HandleFunc("/websocket/{id}", n.handleFuncWebsocket)
 
 	return router
 }
 
 func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
-	txHash := mux.Vars(r)["txHash"]
+	hash := mux.Vars(r)["hash"]
 
-	details, err := n.tx.QuerySessionDetailsFromTxHash(txHash)
+	_session, err := n.tx.QuerySessionFromTxHash(hash)
 	if err != nil {
 		return
 	}
-	if details.NodeID.String() != n.id.String() {
+	if _session.NodeID.String() != n.id.String() {
 		return
 	}
-	if details.Status != vpnTypes.StatusInit {
+	if !_session.NodeOwner.Equals(n.owner) {
+		return
+	}
+	if _session.Status != vpn.StatusInit {
 		return
 	}
 
-	id := details.ID.HashTruncated()
-
+	id := _session.ID.HashTruncated()
 	session := n.sessions.Get(id)
+
 	if session == nil {
-		n.sessions.Set(id, types.NewSession(details))
-		go n.startSessionTimeout(id)
-	} else if session.Conn != nil {
+		session = types.NewSession(_session)
+		n.sessions.Set(id, session)
+
+		go n.listenTimeout(id)
+	}
+
+	if session.Status != vpn.StatusInit {
 		return
 	}
 
@@ -54,13 +60,17 @@ func (n Node) handleFuncKeys(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(key)
 }
 
-func (n Node) startSessionTimeout(id string) {
+func (n Node) listenTimeout(id string) {
 	session := n.sessions.Get(id)
 
 	select {
 	case <-session.Timeout():
-		n.sessions.Delete(id)
-	case <-session.StopTimeout():
+		session.Status = vpn.StatusInactive
+
+		if err := n.vpn.DisconnectClient(id); err != nil {
+			panic(err)
+		}
+	case <-session.StopTimeoutListener():
 		return
 	}
 }
@@ -71,11 +81,12 @@ func (n Node) handleFuncWebsocket(w http.ResponseWriter, r *http.Request) {
 	session := n.sessions.Get(id)
 	if session == nil {
 		return
-	} else if session.Conn != nil {
+	}
+	if session.Status != vpn.StatusInit {
 		return
 	}
 
-	session.StopTimeoutChan <- true
+	session.StopTimeout <- true
 
 	conn, err := types.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -83,7 +94,7 @@ func (n Node) handleFuncWebsocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.Conn = conn
-	session.Status = vpnTypes.StatusActive
+	session.Status = vpn.StatusActive
 
 	go n.readMessages(id)
 	go n.writeMessages(id)
@@ -93,18 +104,18 @@ func (n Node) readMessages(id string) {
 	session := n.sessions.Get(id)
 
 	defer func() {
-		session.Status = vpnTypes.StatusInactive
-
-		if err := n.vpn.DisconnectClient(id); err != nil {
-			panic(err)
-		}
+		session.Status = vpn.StatusInactive
 
 		if err := session.Conn.Close(); err != nil {
 			panic(err)
 		}
+
+		if err := n.vpn.DisconnectClient(id); err != nil {
+			panic(err)
+		}
 	}()
 
-	_ = session.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
+	_ = session.Conn.SetReadDeadline(time.Now().Add(types.ConnectionReadTimeout))
 
 	for {
 		_, p, err := session.Conn.ReadMessage()
@@ -121,7 +132,7 @@ func (n Node) readMessages(id string) {
 			continue
 		}
 
-		_ = session.Conn.SetReadDeadline(time.Now().Add(types.TimeoutConnectionRead))
+		_ = session.Conn.SetReadDeadline(time.Now().Add(types.ConnectionReadTimeout))
 	}
 }
 
@@ -136,12 +147,13 @@ func (n Node) handleIncomingMessage(session *types.Session, msg *types.Msg) erro
 			return err
 		}
 
-		if err := session.VerifyAndSetBandwidthInfo(data.Bandwidth, data.NodeOwnerSign,
-			data.ClientSign); err != nil {
+		if err := session.VerifyAndSetConsumedBandwidth(data.Bandwidth,
+			data.NodeOwnerSign, data.ClientSign); err != nil {
+
 			return err
 		}
 	default:
-		return errors.New(fmt.Sprintf("Invalid message type: %s", msg.Type))
+		return errors.Errorf("Invalid message type: %s", msg.Type)
 	}
 
 	return nil
@@ -149,10 +161,11 @@ func (n Node) handleIncomingMessage(session *types.Session, msg *types.Msg) erro
 
 func (n Node) writeMessages(id string) {
 	session := n.sessions.Get(id)
+	for message := range session.OutMessages {
+		data := message.GetBytes()
 
-	for {
-		msg := <-session.OutMessages
-		if err := session.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+		err := session.Conn.WriteMessage(websocket.TextMessage, data)
+		if err != nil {
 			return
 		}
 	}

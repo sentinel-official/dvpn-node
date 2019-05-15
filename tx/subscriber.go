@@ -16,22 +16,20 @@ import (
 )
 
 type Subscriber struct {
-	nodeURI  string
-	cdc      *codec.Codec
-	conn     *websocket.Conn
-	channels map[string]chan tmTypes.EventDataTx
+	rpcURI string
+	cdc    *codec.Codec
+	conn   *websocket.Conn
+	events map[string]chan tmTypes.EventDataTx
 }
 
-func NewSubscriber(liteClientURI string, cdc *codec.Codec) (*Subscriber, error) {
+func NewSubscriber(rpcServerAddress string, cdc *codec.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
-		nodeURI:  fmt.Sprintf("ws://%s/websocket", liteClientURI),
-		cdc:      cdc,
-		channels: make(map[string]chan tmTypes.EventDataTx),
+		rpcURI: fmt.Sprintf("ws://%s/websocket", rpcServerAddress),
+		cdc:    cdc,
+		events: make(map[string]chan tmTypes.EventDataTx),
 	}
 
 	ok := make(chan bool)
-	defer close(ok)
-
 	go func() {
 		if err := subscriber.ReadTxQuery(ok); err != nil {
 			panic(err)
@@ -39,13 +37,12 @@ func NewSubscriber(liteClientURI string, cdc *codec.Codec) (*Subscriber, error) 
 	}()
 
 	<-ok
-
 	return &subscriber, nil
 }
 
 func (s *Subscriber) ReadTxQuery(ok chan bool) error {
-	log.Printf("Dialing the node with URI `%s`", s.nodeURI)
-	conn, _, err := websocket.DefaultDialer.Dial(s.nodeURI, nil)
+	log.Printf("Dialing the rpc server `%s`", s.rpcURI)
+	conn, _, err := websocket.DefaultDialer.Dial(s.rpcURI, nil)
 	if err != nil {
 		return err
 	}
@@ -86,28 +83,27 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 		if resultEvent.Data != nil {
 			switch data := resultEvent.Data.(type) {
 			case tmTypes.EventDataTx:
-				txHash := common.HexBytes(data.Tx.Hash()).String()
-				s.channels[txHash] <- data
-				delete(s.channels, txHash)
+				hash := common.HexBytes(data.Tx.Hash()).String()
+				s.events[hash] <- data
+				delete(s.events, hash)
 			}
 		}
 	}
 }
 
-func (s *Subscriber) WriteTxQuery(txHash string, channel chan tmTypes.EventDataTx) error {
+func (s *Subscriber) WriteTxQuery(hash string, event chan tmTypes.EventDataTx) error {
 	if s.conn == nil {
-		return errors.New("Connection is nil")
+		return errors.Errorf("RPC connection is nil")
 	}
-	if s.channels[txHash] != nil {
-		return errors.New("Already subscribed")
+	if s.events[hash] != nil {
+		return errors.Errorf("Already subscribed to this transaction hash `$s`", hash)
 	}
 
-	s.channels[txHash] = channel
+	s.events[hash] = event
 
-	body := types.NewTxSubscriberRPCRequest(txHash)
+	body := types.NewTxSubscriberRPCRequest(hash)
 	if err := s.conn.WriteJSON(body); err != nil {
-		delete(s.channels, txHash)
-
+		delete(s.events, hash)
 		return err
 	}
 

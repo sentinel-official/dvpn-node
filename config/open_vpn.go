@@ -10,11 +10,9 @@ import (
 )
 
 type OpenVPNConfig struct {
-	Port           uint16 `json:"port"`
-	ManagementPort uint16 `json:"management_port"`
-	PublicIP       string `json:"public_ip"`
-	Protocol       string `json:"protocol"`
-	Encryption     string `json:"encryption"`
+	Port             uint16 `json:"port"`
+	Protocol         string `json:"protocol"`
+	EncryptionMethod string `json:"encryption_method"`
 }
 
 func NewOpenVPNConfig() *OpenVPNConfig {
@@ -23,18 +21,17 @@ func NewOpenVPNConfig() *OpenVPNConfig {
 
 func (o *OpenVPNConfig) LoadFromPath(path string) error {
 	if len(path) == 0 {
-		log.Printf("Got an empty OpenVPN config path")
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 
-	log.Printf("Loading the OpenVPN config from path `%s`", path)
+	log.Printf("Loading the OpenVPN configuration from path `%s`", path)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
 	if len(data) == 0 {
-		log.Println("Found empty OpenVPN config, so setting a new config with default values")
+		log.Println("Found an empty OpenVPN configuration")
 		data, err = json.Marshal(OpenVPNConfig{})
 		if err != nil {
 			return err
@@ -51,10 +48,9 @@ func (o OpenVPNConfig) SaveToPath(path string) error {
 	}
 
 	if len(path) == 0 {
-		log.Printf("Got an empty OpenVPN config path")
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 
-	log.Printf("Saving the OpenVPN config to path `%s`", path)
+	log.Printf("Saving the OpenVPN configuration to path `%s`", path)
 	return ioutil.WriteFile(path, data, os.ModePerm)
 }

@@ -16,7 +16,7 @@ type MsgBandwidthSign struct {
 	ClientSign    string             `json:"client_sign"`
 }
 
-func NewMsgBandwidthSign(sessionID string, bandwidth sdkTypes.Bandwidth, nodeOwnerSign, clientSign string) *types.Msg {
+func NewMsgBandwidthSign(sessionID string, bandwidth sdkTypes.Bandwidth, nodeOwnerSign, clientSign string) types.Msg {
 	msg := MsgBandwidthSign{
 		SessionID:     sessionID,
 		Bandwidth:     bandwidth,
@@ -25,7 +25,7 @@ func NewMsgBandwidthSign(sessionID string, bandwidth sdkTypes.Bandwidth, nodeOwn
 	}
 	data, _ := json.Marshal(msg)
 
-	return &types.Msg{
+	return types.Msg{
 		Type: msg.Type(),
 		Data: data,
 	}
@@ -37,16 +37,16 @@ func (msg MsgBandwidthSign) Type() string {
 
 func (msg MsgBandwidthSign) Validate() error {
 	if len(msg.SessionID) == 0 {
-		return errors.New("session_id is empty")
+		return errors.Errorf("session_id is empty")
 	}
 	if !msg.Bandwidth.IsPositive() {
-		return errors.New("bandwidth is not positive")
+		return errors.Errorf("bandwidth is not positive")
 	}
 	if len(msg.NodeOwnerSign) == 0 {
-		return errors.New("node_owner_sign is empty")
+		return errors.Errorf("node_owner_sign is empty")
 	}
 	if len(msg.ClientSign) == 0 {
-		return errors.New("client_sign is empty")
+		return errors.Errorf("client_sign is empty")
 	}
 
 	return nil
@@ -57,14 +57,14 @@ type MsgError struct {
 	Message string `json:"message"`
 }
 
-func NewMsgError(code int8, message string) *types.Msg {
+func NewMsgError(code int8, message string) types.Msg {
 	msg := MsgError{
 		Code:    code,
 		Message: message,
 	}
 	data, _ := json.Marshal(msg)
 
-	return &types.Msg{
+	return types.Msg{
 		Type: msg.Type(),
 		Data: data,
 	}

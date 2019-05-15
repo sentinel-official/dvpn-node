@@ -12,4 +12,4 @@ COPY --from=build /go/bin/vpn-node /usr/local/bin/
 RUN apk add --no-cache easy-rsa iptables openvpn && \
     rm -rf /tmp/* /var/tmp/*
 
-ENTRYPOINT ["vpn-node"]
+CMD ["vpn-node"]
