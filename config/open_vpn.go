@@ -31,7 +31,6 @@ func (o *OpenVPNConfig) LoadFromPath(path string) error {
 	}
 
 	if len(data) == 0 {
-		log.Println("Found an empty OpenVPN configuration")
 		data, err = json.Marshal(OpenVPNConfig{})
 		if err != nil {
 			return err
@@ -51,6 +50,5 @@ func (o OpenVPNConfig) SaveToPath(path string) error {
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 
-	log.Printf("Saving the OpenVPN configuration to path `%s`", path)
 	return ioutil.WriteFile(path, data, os.ModePerm)
 }

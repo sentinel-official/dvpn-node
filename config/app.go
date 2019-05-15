@@ -43,7 +43,6 @@ func (c *AppConfig) LoadFromPath(path string) error {
 	}
 
 	if len(data) == 0 {
-		log.Println("Found an empty app configuration")
 		data, err = json.Marshal(AppConfig{})
 		if err != nil {
 			return err
@@ -65,6 +64,5 @@ func (c AppConfig) SaveToPath(path string) error {
 		path = types.DefaultAppConfigFilePath
 	}
 
-	log.Printf("Saving the app configuration to path `%s`", path)
 	return ioutil.WriteFile(path, data, os.ModePerm)
 }
