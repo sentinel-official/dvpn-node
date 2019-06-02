@@ -31,7 +31,7 @@
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   pruneopts = "UT"
-  revision = "96897255fd17525dd12426345d279533780bc4e1"
+  revision = "16327141da8ce4b46b5bac57ba01352943465d9e"
 
 [[projects]]
   branch = "master"
@@ -42,7 +42,7 @@
   revision = "9e5f4b9a998d263e3ce9c56664a7816001ac8000"
 
 [[projects]]
-  digest = "1:e314c16051c0bb8f67851005eafa6d1e45b4ee5ffbe44e86a9aa8c8e43b18b0b"
+  digest = "1:352caacac8651d1c2128be5e2d948c465d569a71baac3c222cabac1ac3c06ea5"
   name = "github.com/cosmos/cosmos-sdk"
   packages = [
     "baseapp",
@@ -97,8 +97,8 @@
     "x/staking/types",
   ]
   pruneopts = "UT"
-  revision = "62fa99e715308dcf53de3bec8bee79e2a6a394bc"
-  version = "v0.34.4"
+  revision = "e1a33e6635703a2a8c37419043e5368489510a6e"
+  version = "v0.34.5"
 
 [[projects]]
   branch = "master"
@@ -109,20 +109,20 @@
   revision = "555e2067c45d9fcd7292bf3b8e732bc10ac8c58e"
 
 [[projects]]
-  digest = "1:76bb5730c20e906fb1b8776224668d39d33cdcab55deeff68be638ad5c952e25"
+  digest = "1:b4af4b28b7adce7bb6263f5f249acad6c1e4b346e043fc5b1d0feb3799aded17"
   name = "github.com/cosmos/ledger-cosmos-go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "bd59f451e3ed31167e90c928430bf3699e026669"
-  version = "v0.10.2"
+  revision = "836324878776cb6f1a6b4ddcd81a67ead217358c"
+  version = "v0.10.3"
 
 [[projects]]
-  digest = "1:c450d0b3b9217e3926714751c2034a9171e2d769c254ef3c74e5795ad74e1b04"
+  digest = "1:34efba6719d5a29ddc868bf772b864980654dc1a1c18e06659e4246ea1665fb8"
   name = "github.com/cosmos/ledger-go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "1e64b5144a7300e8b763ce55040b908a6ed652b0"
-  version = "v0.9.1"
+  revision = "1c99b41f1877b58e3517ef93012cc76fe5cd335b"
+  version = "v0.9.2"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -210,12 +210,12 @@
   version = "v0.0.1"
 
 [[projects]]
-  digest = "1:d5f97fc268267ec1b61c3453058c738246fc3e746f14b1ae25161513b7367b0c"
+  digest = "1:3af6be4fee7c08f81f13d36f04ffb63ad4b6b5aaba12cce96095c7c2863d4912"
   name = "github.com/gorilla/mux"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c5c6c98bc25355028a63748a498942a6398ccd22"
-  version = "v1.7.1"
+  revision = "ed099d42384823742bba0bf9a72b53b55c9e2e38"
+  version = "v1.7.2"
 
 [[projects]]
   digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
@@ -253,14 +253,14 @@
   version = "v1.0"
 
 [[projects]]
-  branch = "development"
-  digest = "1:41cdf457f7d1503ef80b1b6e08a5aa08fa16cdd5bd91942d2fc5abdfba5295d7"
+  digest = "1:d4beae1d6b94e44878b4c2ef83f87de064bc5685d1a341214d49e8274cbc09bd"
   name = "github.com/ironman0x7b2/sentinel-sdk"
   packages = [
     "app/hub",
     "types",
     "x/deposit",
     "x/deposit/keeper",
+    "x/deposit/querier",
     "x/deposit/types",
     "x/staking",
     "x/staking/keeper",
@@ -271,7 +271,26 @@
     "x/vpn/types",
   ]
   pruneopts = "UT"
-  revision = "61fb2aa5e97f861e92beb0f538fd00fe8ca59270"
+  revision = "6d38d66e1a7c46c04ec5016c6456402826c338e9"
+
+[[projects]]
+  digest = "1:a998bed77ab5498070be27c2fc9ee332f6391dc6b538d0ea1e7f837934458a85"
+  name = "github.com/jinzhu/gorm"
+  packages = [
+    ".",
+    "dialects/sqlite",
+  ]
+  pruneopts = "UT"
+  revision = "b7156195f7f3415f97c20abbd6aff894b847fee8"
+  version = "v1.9.8"
+
+[[projects]]
+  branch = "master"
+  digest = "1:fd97437fbb6b7dce04132cf06775bd258cce305c44add58eb55ca86c6c325160"
+  name = "github.com/jinzhu/inflection"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
   digest = "1:a74b5a8e34ee5843cd6e65f698f3e75614f812ff170c2243425d75bc091e9af2"
@@ -298,12 +317,20 @@
   version = "v1.8.1"
 
 [[projects]]
-  digest = "1:e150b5fafbd7607e2d638e4e5cf43aa4100124e5593385147b0a74e2733d8b0d"
+  digest = "1:9b90c7639a41697f3d4ad12d7d67dfacc9a7a4a6e0bbfae4fc72d0da57c28871"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c2a7a6ca930a4cd0bc33a3f298eb71960732a3a7"
-  version = "v0.0.7"
+  revision = "1311e847b0cb909da63b5fecfb5370aa66236465"
+  version = "v0.0.8"
+
+[[projects]]
+  digest = "1:4a49346ca45376a2bba679ca0e83bec949d780d4e927931317904bad482943ec"
+  name = "github.com/mattn/go-sqlite3"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75"
+  version = "v1.10.0"
 
 [[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
@@ -330,12 +357,12 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -346,7 +373,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:93a746f1060a8acbcf69344862b2ceced80f854170e1caae089b2834c5fbf7f4"
+  digest = "1:0de31727c88e9f4a4ae70c28b6caa27f39b25788daf2dc4f7406013421228144"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
@@ -354,8 +381,8 @@
     "prometheus/promhttp",
   ]
   pruneopts = "UT"
-  revision = "505eaef017263e299324067d40ca2c48f6a2cf50"
-  version = "v0.9.2"
+  revision = "50c4339db732beb2165735d2cde0bff78eb3c5a5"
+  version = "v0.9.3"
 
 [[projects]]
   branch = "master"
@@ -366,7 +393,7 @@
   revision = "fd36f4220a901265f90734c3183c5f0c91daa0b8"
 
 [[projects]]
-  digest = "1:35cf6bdf68db765988baa9c4f10cc5d7dda1126a54bd62e252dbcd0b1fc8da90"
+  digest = "1:8dcedf2e8f06c7f94e48267dea0bc0be261fa97b377f3ae3e87843a92a549481"
   name = "github.com/prometheus/common"
   packages = [
     "expfmt",
@@ -374,19 +401,19 @@
     "model",
   ]
   pruneopts = "UT"
-  revision = "1ba88736f028e37bc17328369e94a537ae9e0234"
-  version = "v0.4.0"
+  revision = "17f5ca1748182ddf24fc33a5a7caaaf790a52fcc"
+  version = "v0.4.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:9d62e12429921bbbdc2d1e3c81c6a2c128cc07046633ff92fb6d17376f74261d"
+  digest = "1:f8fac244ec2cb7daef48b0148dcf5a330ac7697fa83c2e1e78e65b21f7f43500"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
     "internal/fs",
   ]
   pruneopts = "UT"
-  revision = "5867b95ac084bbfee6ea16595c4e05ab009021da"
+  revision = "65bdadfa96aecebf4dcf888da995a29eab4fc964"
 
 [[projects]]
   branch = "master"
@@ -424,12 +451,12 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
+  digest = "1:22799aea8fe96dd5693abdd1eaa14b1b29e3eafbdc7733fa155b3cb556c8a7ae"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
-  version = "v0.0.3"
+  revision = "67fc4837d267bc9bfd6e47f77783fcc3dffc68de"
+  version = "v0.0.4"
 
 [[projects]]
   digest = "1:1b753ec16506f5864d26a28b43703c58831255059644351bbcb019b843950900"
@@ -448,23 +475,23 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:1b773526998f3dbde3a51a4a5881680c4d237d3600f570d900f97ac93c7ba0a8"
+  digest = "1:11118bd196646c6515fea3d6c43f66162833c6ae4939bfb229b9956d91c6cf17"
   name = "github.com/spf13/viper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9e56dacc08fbbf8c9ee2dbc717553c758ce42bc9"
-  version = "v1.3.2"
+  revision = "b5bf975e5823809fb22c7644d008757f78a4259e"
+  version = "v1.4.0"
 
 [[projects]]
-  digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
+  digest = "1:5da8ce674952566deae4dbc23d07c85caafc6cfa815b0b3e03e41979cedb8750"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
     "require",
   ]
   pruneopts = "UT"
-  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
-  version = "v1.2.2"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:5b180f17d5bc50b765f4dcf0d126c72979531cbbd7f7929bf3edd87fb801ea2d"
@@ -512,7 +539,7 @@
   version = "v0.12.2"
 
 [[projects]]
-  digest = "1:bc5a45213bc1d74e04decfc3c784daa1c3d0bb39cdb74d5c5ab85f3919a1d978"
+  digest = "1:af766ef7e6f4a664dcc1ef225bb456286765425520d1d7db8e5fb85b36c206d7"
   name = "github.com/tendermint/tendermint"
   packages = [
     "abci/client",
@@ -575,8 +602,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "4695414393a3e0bc3836fb1cece7f1f3768d3311"
-  version = "v0.31.4"
+  revision = "d2eab536ac1071b1b5f64283572397606326eb73"
+  version = "v0.31.5"
 
 [[projects]]
   digest = "1:5a736f4722932d9a45d28852e85b83f68292d9af2ef0be29d4e5fe6fd89d5d96"
@@ -627,18 +654,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "3ec19112720433827bbce8be9342797f5a6aaaf9"
+  revision = "f3200d17e092c607f615320ecaad13d87ad9a2b3"
 
 [[projects]]
   branch = "master"
-  digest = "1:00a3a12527dd7a3af0d24260fd14887ebd69aaf924303b6a4a67f35eb9b6c012"
+  digest = "1:1d27bef7a5faf2c7103b1c477c4b070a90c4b76efd504056ea3e729321da37d7"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
     "unix",
   ]
   pruneopts = "UT"
-  revision = "06a5c494443846f634903706cba8f993687d3ff5"
+  revision = "6a60838ec2595395fabc7b2e6c2ae9fb5a87722d"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -673,7 +700,7 @@
   revision = "b515fa19cec88c32f305a962f34ae60068947aea"
 
 [[projects]]
-  digest = "1:707c3a5d10ed430ea767d73df122d9eb3dfb6312bbacc9f2e39204390686d1d0"
+  digest = "1:c69a4c19c4f241e6b75ad65c5e7a1c4eec5705ae504624df4eb6fb659c2df46c"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -710,8 +737,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "25c4f928eaa6d96443009bd842389fb4fa48664e"
-  version = "v1.20.1"
+  revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
+  version = "v1.21.0"
 
 [[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
@@ -733,6 +760,7 @@
     "github.com/cosmos/cosmos-sdk/codec",
     "github.com/cosmos/cosmos-sdk/crypto/keys",
     "github.com/cosmos/cosmos-sdk/types",
+    "github.com/cosmos/cosmos-sdk/x/auth",
     "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder",
     "github.com/cosmos/go-bip39",
     "github.com/gorilla/mux",
@@ -742,6 +770,8 @@
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn",
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common",
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types",
+    "github.com/jinzhu/gorm",
+    "github.com/jinzhu/gorm/dialects/sqlite",
     "github.com/pkg/errors",
     "github.com/tendermint/tendermint/crypto",
     "github.com/tendermint/tendermint/libs/common",

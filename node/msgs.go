@@ -3,25 +3,30 @@ package node
 import (
 	"encoding/json"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/pkg/errors"
+
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-type MsgBandwidthSign struct {
-	SessionID     string             `json:"session_id"`
-	Bandwidth     sdkTypes.Bandwidth `json:"bandwidth"`
-	NodeOwnerSign string             `json:"node_owner_sign"`
-	ClientSign    string             `json:"client_sign"`
+type MsgBandwidthSignature struct {
+	ID                 sdkTypes.ID        `json:"id"`
+	Index              uint64             `json:"index"`
+	Bandwidth          sdkTypes.Bandwidth `json:"bandwidth"`
+	NodeOwnerSignature []byte             `json:"node_owner_signature"`
+	ClientSignature    []byte             `json:"client_signature"`
 }
 
-func NewMsgBandwidthSign(sessionID string, bandwidth sdkTypes.Bandwidth, nodeOwnerSign, clientSign string) types.Msg {
-	msg := MsgBandwidthSign{
-		SessionID:     sessionID,
-		Bandwidth:     bandwidth,
-		NodeOwnerSign: nodeOwnerSign,
-		ClientSign:    clientSign,
+func NewMsgBandwidthSignature(id sdkTypes.ID, index uint64, bandwidth sdkTypes.Bandwidth,
+	nodeOwnerSignature, clientSignature []byte) types.Msg {
+
+	msg := MsgBandwidthSignature{
+		ID:                 id,
+		Index:              index,
+		Bandwidth:          bandwidth,
+		NodeOwnerSignature: nodeOwnerSignature,
+		ClientSignature:    clientSignature,
 	}
 	data, _ := json.Marshal(msg)
 
@@ -31,22 +36,22 @@ func NewMsgBandwidthSign(sessionID string, bandwidth sdkTypes.Bandwidth, nodeOwn
 	}
 }
 
-func (msg MsgBandwidthSign) Type() string {
-	return "msg_bandwidth_sign"
+func (msg MsgBandwidthSignature) Type() string {
+	return "MsgBandwidthSignature"
 }
 
-func (msg MsgBandwidthSign) Validate() error {
-	if len(msg.SessionID) == 0 {
-		return errors.Errorf("session_id is empty")
+func (msg MsgBandwidthSignature) Validate() error {
+	if msg.ID.String() == "" {
+		return errors.Errorf("id is empty")
 	}
-	if !msg.Bandwidth.IsPositive() {
+	if !msg.Bandwidth.AllPositive() {
 		return errors.Errorf("bandwidth is not positive")
 	}
-	if len(msg.NodeOwnerSign) == 0 {
-		return errors.Errorf("node_owner_sign is empty")
+	if msg.NodeOwnerSignature == nil {
+		return errors.Errorf("node_owner_signature is empty")
 	}
-	if len(msg.ClientSign) == 0 {
-		return errors.Errorf("client_sign is empty")
+	if msg.ClientSignature == nil {
+		return errors.Errorf("client_signature is empty")
 	}
 
 	return nil
@@ -70,10 +75,10 @@ func NewMsgError(code int8, message string) types.Msg {
 	}
 }
 
-func (msg MsgError) Validate() error {
-	return nil
+func (msg MsgError) Type() string {
+	return "MsgError"
 }
 
-func (msg MsgError) Type() string {
-	return "msg_error"
+func (msg MsgError) Validate() error {
+	return nil
 }
