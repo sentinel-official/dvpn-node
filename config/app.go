@@ -10,10 +10,10 @@ import (
 )
 
 type AppConfig struct {
-	ChainID          string `json:"chain_id"`
-	RPCServerAddress string `json:"rpc_server_address"`
-	Resolver         string `json:"resolver"`
-	Account          struct {
+	ChainID         string `json:"chain_id"`
+	RPCAddress      string `json:"rpc_address"`
+	ResolverAddress string `json:"resolver_address"`
+	Account         struct {
 		Name     string `json:"name"`
 		Password string `json:"password,omitempty"`
 	} `json:"account"`

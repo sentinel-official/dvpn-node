@@ -4,10 +4,11 @@ import (
 	"log"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
-	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/common"
+
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/tx"
@@ -31,9 +32,8 @@ func ProcessNode(appCfg *config.AppConfig, tx *tx.Tx, vpn types.BaseVPN) (*vpn.N
 			return nil, err
 		}
 
-		msg := vpnTypes.NewMsgRegisterNode(fromAddress,
-			appCfg.Node.Moniker, pricesPerGB, internetSpeed,
-			vpn.EncryptionMethod(), vpn.Type(), types.Version)
+		msg := vpnTypes.NewMsgRegisterNode(fromAddress, vpn.Type(), types.Version,
+			appCfg.Node.Moniker, pricesPerGB, internetSpeed, vpn.EncryptionMethod())
 
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {

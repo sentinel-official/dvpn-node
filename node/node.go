@@ -7,29 +7,47 @@ import (
 	"time"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	"github.com/gorilla/websocket"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+
+	"github.com/ironman0x7b2/vpn-node/database"
 	"github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-type Node struct {
-	id       sdkTypes.ID
-	owner    csdkTypes.AccAddress
-	tx       *tx.Tx
-	vpn      types.BaseVPN
-	sessions types.Sessions
+type client struct {
+	pubKey      crypto.PubKey
+	conn        *websocket.Conn
+	outMessages chan types.Msg
 }
 
-func NewNode(node *vpn.Node, tx *tx.Tx, vpn types.BaseVPN) *Node {
+type Node struct {
+	id      sdkTypes.ID
+	address csdkTypes.AccAddress
+	pubKey  crypto.PubKey
+
+	tx      *tx.Tx
+	db      *database.DB
+	clients map[string]*client
+	vpn     types.BaseVPN
+}
+
+func NewNode(id sdkTypes.ID, address csdkTypes.AccAddress, pubKey crypto.PubKey,
+	tx *tx.Tx, db *database.DB, vpn types.BaseVPN) *Node {
+
 	return &Node{
-		id:       node.ID,
-		owner:    node.Owner,
-		tx:       tx,
-		vpn:      vpn,
-		sessions: types.NewSessions(),
+		id:      id,
+		address: address,
+		pubKey:  pubKey,
+
+		tx:      tx,
+		db:      db,
+		clients: make(map[string]*client),
+		vpn:     vpn,
 	}
 }
 
@@ -70,7 +88,7 @@ func (n Node) updateNodeStatus() error {
 
 	t := time.NewTicker(types.UpdateNodeStatusInterval)
 	for ; ; <-t.C {
-		msg := vpn.NewMsgUpdateNodeStatus(n.owner, n.id, vpn.StatusActive)
+		msg := vpn.NewMsgUpdateNodeStatus(n.address, n.id, vpn.StatusActive)
 
 		data, err := n.tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
@@ -83,75 +101,9 @@ func (n Node) updateNodeStatus() error {
 }
 
 func (n Node) updateAllSessionBandwidthsInfo() error {
-	log.Printf("Starting update all session bandwidths info ticker with interval `%s`",
-		types.UpdateSessionBandwidthInfoInterval.String())
-	t1 := time.NewTicker(types.UpdateSessionBandwidthInfoInterval)
-
-	log.Printf("Starting request bandwidth sign ticker with interval `%s`",
-		types.RequestBandwidthSignInterval.String())
-	t2 := time.NewTicker(types.RequestBandwidthSignInterval)
-
-	var makeTx bool
-	for ; ; <-t2.C {
-		select {
-		case <-t1.C:
-			makeTx = true
-		default:
-			makeTx = false
-		}
-
-		clients, err := n.vpn.ClientList()
-		if err != nil {
-			return err
-		}
-
-		ids := n.sessions.IDs()
-		messages := make([]csdkTypes.Msg, 0, len(ids))
-
-		for _, id := range ids {
-			session := n.sessions.Get(id)
-			if session == nil || session.Status == vpn.StatusInactive {
-				n.sessions.Delete(id)
-			}
-
-			if session.Status == vpn.StatusInit {
-				continue
-			}
-			if session.Status == vpn.StatusActive {
-				go func() {
-					if err := n.requestBandwidthSign(session, clients[id]); err != nil {
-						panic(err)
-					}
-				}()
-			}
-
-			if makeTx {
-				consumed, nodeOwnerSign, clientSign := session.ConsumedBandwidthInfo()
-				message := vpn.NewMsgUpdateSessionBandwidthInfo(n.owner, session.ID, consumed, nodeOwnerSign, clientSign)
-				messages = append(messages, message)
-			}
-		}
-
-		if makeTx && len(messages) > 0 {
-			go func() {
-				data, err := n.tx.CompleteAndSubscribeTx(messages...)
-				if err != nil {
-					panic(err)
-				}
-
-				log.Printf("All Session bandwidths info updated at block height `%d`, tx hash `%s`",
-					data.Height, common.HexBytes(data.Tx.Hash()).String())
-			}()
-		}
-	}
+	return nil
 }
 
 func (n Node) requestBandwidthSign(session *types.Session, bandwidth sdkTypes.Bandwidth) error {
-	sign, err := n.tx.SignSessionBandwidth(session.ID, bandwidth, session.Client)
-	if err != nil {
-		return err
-	}
-
-	session.OutMessages <- NewMsgBandwidthSign(session.ID.String(), bandwidth, sign, "")
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 
 	"github.com/ironman0x7b2/vpn-node/config"
+	"github.com/ironman0x7b2/vpn-node/database"
 	_node "github.com/ironman0x7b2/vpn-node/node"
 	"github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
@@ -61,5 +62,11 @@ func main() {
 		panic(err)
 	}
 
-	_node.NewNode(node, _tx, vpn).Start(appCfg.APIPort)
+	db, err := database.NewDatabase("database.db")
+	if err != nil {
+		panic(err)
+	}
+
+	_node.NewNode(node.ID, info.GetAddress(), info.GetPubKey(),
+		_tx, db, vpn).Start(appCfg.APIPort)
 }

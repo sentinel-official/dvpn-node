@@ -1,0 +1,55 @@
+run:
+  deadline: 5m
+  issues-exit-code: 1
+  tests: true
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  govet:
+    check-shadowing: true
+  golint:
+    min-confidence: 0.8
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/ironman0x7b2/sentinel-sdk
+  gocyclo:
+    min-complexity: 10
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 5
+    min-occurrences: 5
+  misspell:
+    locale: US
+  lll:
+    line-length: 120
+    tab-width: 1
+  unused:
+    check-exported: false
+  unparam:
+    check-exported: false
+  nakedret:
+    max-func-lines: 30
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - performance
+      - style
+
+linters:
+  enable-all: true

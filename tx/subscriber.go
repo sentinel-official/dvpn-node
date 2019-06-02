@@ -16,15 +16,15 @@ import (
 )
 
 type Subscriber struct {
-	rpcURI string
+	uri    string
 	cdc    *codec.Codec
 	conn   *websocket.Conn
 	events map[string]chan tmTypes.EventDataTx
 }
 
-func NewSubscriber(rpcServerAddress string, cdc *codec.Codec) (*Subscriber, error) {
+func NewSubscriber(address string, cdc *codec.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
-		rpcURI: fmt.Sprintf("ws://%s/websocket", rpcServerAddress),
+		uri:    fmt.Sprintf("ws://%s/websocket", address),
 		cdc:    cdc,
 		events: make(map[string]chan tmTypes.EventDataTx),
 	}
@@ -41,8 +41,8 @@ func NewSubscriber(rpcServerAddress string, cdc *codec.Codec) (*Subscriber, erro
 }
 
 func (s *Subscriber) ReadTxQuery(ok chan bool) error {
-	log.Printf("Dialing the rpc server `%s`", s.rpcURI)
-	conn, _, err := websocket.DefaultDialer.Dial(s.rpcURI, nil)
+	log.Printf("Dialing the rpc server `%s`", s.uri)
+	conn, _, err := websocket.DefaultDialer.Dial(s.uri, nil)
 	if err != nil {
 		return err
 	}
@@ -56,8 +56,8 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 	s.conn = conn
 	ok <- true
 
-	var rpcResponse rpcTypes.RPCResponse
-	var resultEvent coreTypes.ResultEvent
+	var response rpcTypes.RPCResponse
+	var result coreTypes.ResultEvent
 
 	for {
 		_, p, err := conn.ReadMessage()
@@ -65,23 +65,23 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 			return err
 		}
 
-		if err := s.cdc.UnmarshalJSON(p, &rpcResponse); err != nil {
+		if err := s.cdc.UnmarshalJSON(p, &response); err != nil {
 			return err
 		}
 
-		if rpcResponse.Error != nil {
-			return rpcResponse.Error
+		if response.Error != nil {
+			return response.Error
 		}
-		if rpcResponse.Result == nil {
+		if response.Result == nil {
 			continue
 		}
 
-		if err := s.cdc.UnmarshalJSON(rpcResponse.Result, &resultEvent); err != nil {
+		if err := s.cdc.UnmarshalJSON(response.Result, &result); err != nil {
 			return err
 		}
 
-		if resultEvent.Data != nil {
-			switch data := resultEvent.Data.(type) {
+		if result.Data != nil {
+			switch data := result.Data.(type) {
 			case tmTypes.EventDataTx:
 				hash := common.HexBytes(data.Tx.Hash()).String()
 				s.events[hash] <- data
@@ -96,14 +96,15 @@ func (s *Subscriber) WriteTxQuery(hash string, event chan tmTypes.EventDataTx) e
 		return errors.Errorf("RPC connection is nil")
 	}
 	if s.events[hash] != nil {
-		return errors.Errorf("Already subscribed to this transaction hash `$s`", hash)
+		return errors.Errorf("Already subscribed to this transaction hash `%s`", hash)
 	}
 
 	s.events[hash] = event
 
-	body := types.NewTxSubscriberRPCRequest(hash)
-	if err := s.conn.WriteJSON(body); err != nil {
+	request := types.NewTxRequest(hash)
+	if err := s.conn.WriteJSON(request); err != nil {
 		delete(s.events, hash)
+
 		return err
 	}
 

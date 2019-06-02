@@ -11,8 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/pkg/errors"
+
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 )
 
 const (
