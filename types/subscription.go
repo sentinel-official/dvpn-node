@@ -10,11 +10,11 @@ import (
 )
 
 type Subscription struct {
-	ID                 sdkTypes.ID          `json:"id"`
-	TxHash             string               `json:"tx_hash"`
-	ClientAddress      csdkTypes.AccAddress `json:"client_address"`
-	ClientPubKey       crypto.PubKey        `json:"client_pub_key"`
-	RemainingBandwidth sdkTypes.Bandwidth   `json:"remaining_bandwidth"`
-	Status             string               `json:"status"`
-	CreatedAt          time.Time            `json:"created_at"`
+	ID        sdkTypes.ID          `json:"id"`
+	TxHash    string               `json:"tx_hash"`
+	Address   csdkTypes.AccAddress `json:"address"`
+	PubKey    crypto.PubKey        `json:"pub_key"`
+	Bandwidth sdkTypes.Bandwidth   `json:"bandwidth"`
+	Status    string               `json:"status"`
+	CreatedAt time.Time            `json:"created_at"`
 }

@@ -11,14 +11,14 @@ import (
 )
 
 type subscriptionModel struct {
-	ID                string    `json:"id"`
-	TxHash            string    `json:"tx_hash"`
-	ClientAddress     string    `json:"client_address"`
-	ClientPubKey      string    `json:"client_pub_key"`
-	RemainingUpload   int64     `json:"remaining_upload"`
-	RemainingDownload int64     `json:"remaining_download"`
-	Status            string    `json:"status"`
-	CreatedAt         time.Time `json:"created_at"`
+	ID        string    `json:"id"`
+	TxHash    string    `json:"tx_hash"`
+	Address   string    `json:"address"`
+	PubKey    string    `json:"pub_key"`
+	Upload    int64     `json:"upload"`
+	Download  int64     `json:"download"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (subscriptionModel) TableName() string {
@@ -26,42 +26,42 @@ func (subscriptionModel) TableName() string {
 }
 
 func (s subscriptionModel) Subscription() (*types.Subscription, error) {
-	clientAddress, err := csdkTypes.AccAddressFromBech32(s.ClientAddress)
+	address, err := csdkTypes.AccAddressFromBech32(s.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	clientPubKey, err := csdkTypes.GetAccPubKeyBech32(s.ClientPubKey)
+	pubKey, err := csdkTypes.GetAccPubKeyBech32(s.PubKey)
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.Subscription{
-		ID:                 sdkTypes.NewIDFromString(s.ID),
-		TxHash:             s.TxHash,
-		ClientAddress:      clientAddress,
-		ClientPubKey:       clientPubKey,
-		RemainingBandwidth: sdkTypes.NewBandwidthFromInt64(s.RemainingUpload, s.RemainingDownload),
-		Status:             s.Status,
-		CreatedAt:          s.CreatedAt,
+		ID:        sdkTypes.NewIDFromString(s.ID),
+		TxHash:    s.TxHash,
+		Address:   address,
+		PubKey:    pubKey,
+		Bandwidth: sdkTypes.NewBandwidthFromInt64(s.Upload, s.Download),
+		Status:    s.Status,
+		CreatedAt: s.CreatedAt,
 	}, nil
 }
 
 func (d DB) SubscriptionSave(sub *types.Subscription) error {
-	clientPubKey, err := csdkTypes.Bech32ifyAccPub(sub.ClientPubKey)
+	pubKey, err := csdkTypes.Bech32ifyAccPub(sub.PubKey)
 	if err != nil {
 		return err
 	}
 
 	_sub := subscriptionModel{
-		ID:                sub.ID.String(),
-		TxHash:            sub.TxHash,
-		ClientAddress:     sub.ClientAddress.String(),
-		ClientPubKey:      clientPubKey,
-		RemainingUpload:   sub.RemainingBandwidth.Upload.Int64(),
-		RemainingDownload: sub.RemainingBandwidth.Download.Int64(),
-		Status:            sub.Status,
-		CreatedAt:         sub.CreatedAt,
+		ID:        sub.ID.String(),
+		TxHash:    sub.TxHash,
+		Address:   sub.Address.String(),
+		PubKey:    pubKey,
+		Upload:    sub.Bandwidth.Upload.Int64(),
+		Download:  sub.Bandwidth.Download.Int64(),
+		Status:    sub.Status,
+		CreatedAt: sub.CreatedAt,
 	}
 
 	d.db.Create(&_sub)

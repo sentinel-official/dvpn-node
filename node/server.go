@@ -1,7 +1,7 @@
 package node
 
 import (
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -14,30 +14,53 @@ import (
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
 	"github.com/ironman0x7b2/vpn-node/types"
+	"github.com/ironman0x7b2/vpn-node/utils"
+)
+
+var (
+	Upgrader = &websocket.Upgrader{
+		HandshakeTimeout: 45 * time.Second,
+	}
 )
 
 func (n Node) Router() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.Methods("POST").Path("/subscriptions").
-		HandlerFunc(n.handlerFuncAddSubscription).Name("AddSubscription")
+	router.
+		Methods("POST").
+		Path("/subscriptions").
+		HandlerFunc(n.handlerFuncAddSubscription).
+		Name("AddSubscription")
 
-	router.Methods("POST").Path("/subscriptions/{id}/key").
-		HandlerFunc(n.handlerFuncSubscriptionKey).Name("SubscriptionKey")
+	router.
+		Methods("POST").
+		Path("/subscriptions/{id}/key").
+		HandlerFunc(n.handlerFuncSubscriptionKey).
+		Name("SubscriptionKey")
 
-	router.Methods("POST").Path("/subscriptions/{id}/sessions").
-		HandlerFunc(n.handlerFuncInitSession).Name("InitSession")
+	router.
+		Methods("POST").
+		Path("/subscriptions/{id}/sessions").
+		HandlerFunc(n.handlerFuncInitSession).
+		Name("InitSession")
 
-	router.Methods("GET").Path("/subscriptions/{id}/websocket").
-		HandlerFunc(n.handlerFuncSubscriptionWebsocket).Name("SubscriptionWebsocket")
+	router.
+		Methods("POST").
+		Path("/subscriptions/{id}/websocket").
+		HandlerFunc(n.handlerFuncSubscriptionWebsocket).
+		Name("SubscriptionWebsocket")
 
 	return router
+}
+
+type requestAddSubscription struct {
+	TxHash string `json:"tx_hash"`
 }
 
 func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
 	var body requestAddSubscription
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Error occurred while decoding the response body",
 		})
 		return
@@ -45,19 +68,19 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 
 	sub, err := n.tx.QuerySubscriptionByTxHash(body.TxHash)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain by transaction hash",
 		})
 		return
 	}
 	if sub.Status != vpn.StatusActive {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found on the chain",
 		})
 		return
 	}
 	if sub.NodeID != n.id {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Subscription does not belong to this node",
 		})
 		return
@@ -69,13 +92,13 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 
 	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
 		})
 		return
 	}
 	if _sub != nil {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Subscription is already exists in the database",
 		})
 		return
@@ -83,30 +106,30 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 
 	client, err := n.tx.QueryAccount(sub.Client.String())
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the account from chain",
 		})
 		return
 	}
 
 	_sub = &types.Subscription{
-		ID:                 sub.ID,
-		TxHash:             body.TxHash,
-		ClientAddress:      client.GetAddress(),
-		ClientPubKey:       client.GetPubKey(),
-		RemainingBandwidth: sub.RemainingBandwidth,
-		Status:             types.ACTIVE,
-		CreatedAt:          time.Now().UTC(),
+		ID:        sub.ID,
+		TxHash:    body.TxHash,
+		Address:   client.GetAddress(),
+		PubKey:    client.GetPubKey(),
+		Bandwidth: sub.RemainingBandwidth,
+		Status:    types.ACTIVE,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	if err := n.db.SubscriptionSave(_sub); err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while adding the subscription to database",
 		})
 		return
 	}
 
-	writeResultToResponse(w, 201, nil)
+	utils.WriteResultToResponse(w, 201, nil)
 }
 
 func (n Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request) {
@@ -118,45 +141,45 @@ func (n Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request)
 
 	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
 		})
 		return
 	}
 	if _sub == nil {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Subscription does not exist in the database",
 		})
 		return
 	}
 	if _sub.Status != types.ACTIVE {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found in the database",
 		})
 		return
 	}
-	if !_sub.RemainingBandwidth.AllPositive() {
-		writeErrorToResponse(w, 400, Error{
-			Message: "Invalid remaining bandwidth found in the database",
+	if !_sub.Bandwidth.AllPositive() {
+		utils.WriteErrorToResponse(w, 400, types.Error{
+			Message: "Invalid bandwidth found in the database",
 		})
 		return
 	}
 
 	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
 		})
 		return
 	}
 	if sub.Status != vpn.StatusActive {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found on the chain",
 		})
 		return
 	}
 	if !sub.RemainingBandwidth.AllPositive() {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid remaining bandwidth found on the chain",
 		})
 		return
@@ -172,7 +195,19 @@ func (n Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request)
 	_, _ = w.Write(key)
 }
 
+type requestInitSession struct {
+	Signature string `json:"signature"`
+}
+
 func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
+	var body requestInitSession
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		utils.WriteErrorToResponse(w, 500, types.Error{
+			Message: "Error occurred while decoding the body",
+		})
+		return
+	}
+
 	vars := mux.Vars(r)
 
 	query, args := "id = ?", []interface{}{
@@ -181,45 +216,45 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 
 	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
 		})
 		return
 	}
 	if _sub == nil {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Subscription does not exist in the database",
 		})
 		return
 	}
 	if _sub.Status != types.ACTIVE {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found in the database",
 		})
 		return
 	}
-	if !_sub.RemainingBandwidth.AllPositive() {
-		writeErrorToResponse(w, 400, Error{
-			Message: "Invalid remaining bandwidth found in the database",
+	if !_sub.Bandwidth.AllPositive() {
+		utils.WriteErrorToResponse(w, 400, types.Error{
+			Message: "Invalid bandwidth found in the database",
 		})
 		return
 	}
 
 	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
 		})
 		return
 	}
 	if sub.Status != vpn.StatusActive {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found on the chain",
 		})
 		return
 	}
 	if !sub.RemainingBandwidth.AllPositive() {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid remaining bandwidth found on the chain",
 		})
 		return
@@ -227,7 +262,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 
 	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the sessions count of subscription from chain",
 		})
 		return
@@ -240,7 +275,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 
 	_session, err := n.db.SessionFindOne(query, args...)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the session from database",
 		})
 	}
@@ -255,15 +290,32 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := n.db.SessionSave(_session); err != nil {
-			writeErrorToResponse(w, 500, Error{
+			utils.WriteErrorToResponse(w, 500, types.Error{
 				Message: "Error occurred while adding the session to database",
 			})
 			return
 		}
 	}
 	if _session.Status == types.ACTIVE {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Session status is active in the database",
+		})
+		return
+	}
+
+	signature, err := base64.StdEncoding.DecodeString(body.Signature)
+	if err != nil {
+		utils.WriteErrorToResponse(w, 400, types.Error{
+			Message: "Error occurred while decoding the signature",
+		})
+		return
+	}
+
+	data := vpn.NewBandwidthSignatureData(_session.ID, _session.Index, _session.Bandwidth)
+	if !_sub.PubKey.VerifyBytes(data.Bytes(), signature) {
+		utils.WriteErrorToResponse(w, 400, types.Error{
+			Message: "Invalid bandwidth signature",
+			Info:    _session,
 		})
 		return
 	}
@@ -275,74 +327,68 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updates := map[string]interface{}{
-		"status": types.INIT,
+		"signature": signature,
+		"status":    types.INIT,
 	}
 
 	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while updating the session in database",
 		})
 		return
 	}
 
-	writeResultToResponse(w, 200, _session)
+	utils.WriteResultToResponse(w, 200, _session)
 }
 
 func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Request) {
-	var body requestSubscriptionWebsocket
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErrorToResponse(w, 400, Error{
-			Message: "Error occurred while decoding the response body",
-		})
-		return
-	}
-
 	vars := mux.Vars(r)
+
 	query, args := "id = ?", []interface{}{
 		vars["id"],
 	}
 
 	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
 		})
 		return
 	}
 	if _sub == nil {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Subscription does not exist in the database",
 		})
 		return
 	}
 	if _sub.Status != types.ACTIVE {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found in the database",
 		})
 		return
 	}
-	if !_sub.RemainingBandwidth.AllPositive() {
-		writeErrorToResponse(w, 400, Error{
-			Message: "Invalid remaining bandwidth found in the database",
+	if !_sub.Bandwidth.AllPositive() {
+		utils.WriteErrorToResponse(w, 400, types.Error{
+			Message: "Invalid bandwidth found in the database",
 		})
 		return
 	}
 
 	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
 		})
 		return
 	}
 	if sub.Status != vpn.StatusActive {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid subscription status found on the chain",
 		})
 		return
 	}
 	if !sub.RemainingBandwidth.AllPositive() {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid remaining bandwidth found on the chain",
 		})
 		return
@@ -350,7 +396,7 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 
 	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the sessions count of subscription from chain",
 		})
 		return
@@ -363,35 +409,19 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 
 	_session, err := n.db.SessionFindOne(query, args...)
 	if err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the session from database",
 		})
 	}
 	if _session == nil {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Session does not exist in the database",
 		})
 		return
 	}
 	if _session.Status != types.INIT {
-		writeErrorToResponse(w, 400, Error{
+		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Invalid session status found in the database",
-		})
-		return
-	}
-
-	signature, err := hex.DecodeString(body.Signature)
-	if err != nil {
-		writeErrorToResponse(w, 400, Error{
-			Message: "Error occurred while decoding the signature",
-		})
-		return
-	}
-
-	data := vpn.NewBandwidthSignatureData(_session.ID, _session.Index, _session.Bandwidth)
-	if !_sub.ClientPubKey.VerifyBytes(data.Bytes(), signature) {
-		writeErrorToResponse(w, 400, Error{
-			Message: "Invalid signature",
 		})
 		return
 	}
@@ -399,28 +429,38 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 	query, args = "id = ? AND index = ? AND status = ?", []interface{}{
 		vars["id"],
 		index,
-		types.ACTIVE,
+		types.INIT,
 	}
 
 	updates := map[string]interface{}{
-		"status":    types.ACTIVE,
-		"signature": signature,
+		"status": types.ACTIVE,
 	}
 
 	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-		writeErrorToResponse(w, 500, Error{
+		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while updating the session in database",
 		})
 		return
 	}
 
-	conn, err := types.Upgrader.Upgrade(w, r, nil)
+	conn, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		query, args = "id = ? AND index = ? AND status = ?", []interface{}{
+			vars["id"],
+			index,
+			types.ACTIVE,
+		}
+
+		updates := map[string]interface{}{
+			"status": types.INIT,
+		}
+
+		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
 		return
 	}
 
 	n.clients[vars["id"]] = &client{
-		pubKey:      _sub.ClientPubKey,
+		pubKey:      _sub.PubKey,
 		conn:        conn,
 		outMessages: make(chan types.Msg),
 	}
@@ -477,7 +517,7 @@ func (n Node) readMessages(id string, index uint64) {
 
 func (n Node) handleIncomingMessage(client *client, msg *types.Msg) error {
 	switch msg.Type {
-	case "msg_bandwidth_sign":
+	case "MsgBandwidthSignature":
 		var data MsgBandwidthSignature
 		if err := json.Unmarshal(msg.Data, &data); err != nil {
 			return errors.Errorf("Error occurred while decoding the message data")
@@ -522,7 +562,7 @@ func (n Node) writeMessages(id string, index uint64) {
 	client := n.clients[id]
 
 	for message := range client.outMessages {
-		data := message.GetBytes()
+		data := message.Bytes()
 		if err := client.conn.WriteMessage(websocket.TextMessage, data); err != nil {
 			return
 		}

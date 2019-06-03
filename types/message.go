@@ -9,7 +9,7 @@ type Msg struct {
 	Data json.RawMessage `json:"data"`
 }
 
-func (m Msg) GetBytes() []byte {
+func (m Msg) Bytes() []byte {
 	data, err := json.Marshal(m)
 	if err != nil {
 		panic(err)

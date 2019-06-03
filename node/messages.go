@@ -3,9 +3,8 @@ package node
 import (
 	"encoding/json"
 
-	"github.com/pkg/errors"
-
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
