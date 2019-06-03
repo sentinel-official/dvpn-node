@@ -1,18 +1,40 @@
 package config
 
 import (
-	"encoding/json"
+	"bytes"
 	"io/ioutil"
 	"log"
 	"os"
+	"text/template"
+
+	"github.com/pelletier/go-toml"
+	"github.com/tendermint/tendermint/libs/common"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
+var openVPNConfigTemplate *template.Template
+
+func init() {
+	var err error
+
+	openVPNConfigTemplate, err = template.New("openVPNConfig").Parse(defaultOpenVPNConfigTemplate)
+	if err != nil {
+		panic(err)
+	}
+}
+
+var defaultOpenVPNConfigTemplate = `
+##### base options #####
+port = {{ .Port }}
+protocol = "{{ .Protocol }}"
+encryption = "{{ .Encryption }}"
+`
+
 type OpenVPNConfig struct {
-	Port             uint16 `json:"port"`
-	Protocol         string `json:"protocol"`
-	EncryptionMethod string `json:"encryption_method"`
+	Port       uint16 `json:"port"`
+	Protocol   string `json:"protocol"`
+	Encryption string `json:"encryption"`
 }
 
 func NewOpenVPNConfig() *OpenVPNConfig {
@@ -31,18 +53,16 @@ func (o *OpenVPNConfig) LoadFromPath(path string) error {
 	}
 
 	if len(data) == 0 {
-		data, err = json.Marshal(OpenVPNConfig{})
-		if err != nil {
-			return err
-		}
+		*o = OpenVPNConfig{}
+		return nil
 	}
 
-	return json.Unmarshal(data, o)
+	return toml.Unmarshal(data, o)
 }
 
 func (o OpenVPNConfig) SaveToPath(path string) error {
-	data, err := json.MarshalIndent(o, "", "  ")
-	if err != nil {
+	var buffer bytes.Buffer
+	if err := openVPNConfigTemplate.Execute(&buffer, o); err != nil {
 		return err
 	}
 
@@ -50,5 +70,5 @@ func (o OpenVPNConfig) SaveToPath(path string) error {
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 
-	return ioutil.WriteFile(path, data, os.ModePerm)
+	return common.WriteFile(path, buffer.Bytes(), os.ModePerm)
 }

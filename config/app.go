@@ -1,25 +1,64 @@
 package config
 
 import (
-	"encoding/json"
+	"bytes"
 	"io/ioutil"
 	"log"
 	"os"
+	"text/template"
+
+	"github.com/pelletier/go-toml"
+	"github.com/tendermint/tendermint/libs/common"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
+
+var appConfigTemplate *template.Template
+
+func init() {
+	var err error
+
+	appConfigTemplate, err = template.New("appConfig").Parse(defaultAppConfigTemplate)
+	if err != nil {
+		panic(err)
+	}
+}
+
+var defaultAppConfigTemplate = `
+##### base options #####
+chain_id = "{{ .ChainID }}"
+rpc_address = "{{ .RPCAddress }}"
+resolver_address = "{{ .ResolverAddress }}"
+vpn_type = "{{ .VPNType }}"
+api_port = {{ .APIPort }}
+
+
+##### account options #####
+[account]
+name = "{{ .Account.Name }}"
+
+
+##### node options #####
+[node]
+id = "{{ .Node.ID }}"
+moniker = "{{ .Node.Moniker }}"
+description = "{{ .Node.Description }}"
+prices_per_gb = "{{ .Node.PricesPerGB }}"
+`
 
 type AppConfig struct {
 	ChainID         string `json:"chain_id"`
 	RPCAddress      string `json:"rpc_address"`
 	ResolverAddress string `json:"resolver_address"`
-	Account         struct {
+	VPNType         string `json:"vpn_type"`
+	APIPort         uint16 `json:"api_port"`
+
+	Account struct {
 		Name     string `json:"name"`
 		Password string `json:"password,omitempty"`
 	} `json:"account"`
-	APIPort uint16 `json:"api_port"`
-	VPNType string `json:"vpn_type"`
-	Node    struct {
+
+	Node struct {
 		ID          string `json:"id"`
 		Moniker     string `json:"moniker"`
 		Description string `json:"description"`
@@ -31,7 +70,7 @@ func NewAppConfig() *AppConfig {
 	return &AppConfig{}
 }
 
-func (c *AppConfig) LoadFromPath(path string) error {
+func (a *AppConfig) LoadFromPath(path string) error {
 	if len(path) == 0 {
 		path = types.DefaultAppConfigFilePath
 	}
@@ -43,20 +82,18 @@ func (c *AppConfig) LoadFromPath(path string) error {
 	}
 
 	if len(data) == 0 {
-		data, err = json.Marshal(AppConfig{})
-		if err != nil {
-			return err
-		}
+		*a = AppConfig{}
+		return nil
 	}
 
-	return json.Unmarshal(data, c)
+	return toml.Unmarshal(data, a)
 }
 
-func (c AppConfig) SaveToPath(path string) error {
-	c.Account.Password = ""
+func (a AppConfig) SaveToPath(path string) error {
+	a.Account.Password = ""
 
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
+	var buffer bytes.Buffer
+	if err := appConfigTemplate.Execute(&buffer, a); err != nil {
 		return err
 	}
 
@@ -64,5 +101,5 @@ func (c AppConfig) SaveToPath(path string) error {
 		path = types.DefaultAppConfigFilePath
 	}
 
-	return ioutil.WriteFile(path, data, os.ModePerm)
+	return common.WriteFile(path, buffer.Bytes(), os.ModePerm)
 }

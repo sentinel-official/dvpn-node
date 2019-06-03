@@ -772,6 +772,7 @@
     "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types",
     "github.com/jinzhu/gorm",
     "github.com/jinzhu/gorm/dialects/sqlite",
+    "github.com/pelletier/go-toml",
     "github.com/pkg/errors",
     "github.com/tendermint/tendermint/crypto",
     "github.com/tendermint/tendermint/libs/common",
