@@ -2,7 +2,7 @@ package database
 
 import (
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/sqlite" // SQLite driver
 )
 
 type DB struct {
@@ -14,6 +14,11 @@ func NewDatabase(source string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	db.AutoMigrate(&subscription{})
+	db.AutoMigrate(&session{})
+
+	db.Model(&session{}).AddForeignKey("_id", "subscriptions(_id)", "CASCADE", "CASCADE")
 
 	return &DB{
 		db: db,

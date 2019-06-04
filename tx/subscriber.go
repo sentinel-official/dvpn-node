@@ -40,6 +40,7 @@ func NewSubscriber(address string, cdc *codec.Codec) (*Subscriber, error) {
 	return &subscriber, nil
 }
 
+// nolint:gocyclo
 func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 	log.Printf("Dialing the rpc server `%s`", s.uri)
 	conn, _, err := websocket.DefaultDialer.Dial(s.uri, nil)

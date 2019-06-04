@@ -39,7 +39,9 @@ func NewManager(cliContext context.CLIContext, txBuilder txBuilder.TxBuilder, pa
 	}
 }
 
-func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec, info keys.Info, kb keys.Keybase) (*Manager, error) {
+func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
+	info keys.Info, kb keys.Keybase) (*Manager, error) {
+
 	verifier, err := proxy.NewVerifier(appCfg.ChainID,
 		filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
 		client.NewHTTP(appCfg.RPCAddress, "/websocket"),

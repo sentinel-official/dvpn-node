@@ -1,3 +1,4 @@
+// nolint:gochecknoinits,gochecknoglobals
 package config
 
 import (
@@ -24,8 +25,8 @@ func init() {
 	}
 }
 
-var defaultOpenVPNConfigTemplate = `
-##### base options #####
+var defaultOpenVPNConfigTemplate = `# OpenVPN config file
+
 port = {{ .Port }}
 protocol = "{{ .Protocol }}"
 encryption = "{{ .Encryption }}"
@@ -42,7 +43,7 @@ func NewOpenVPNConfig() *OpenVPNConfig {
 }
 
 func (o *OpenVPNConfig) LoadFromPath(path string) error {
-	if len(path) == 0 {
+	if path == "" {
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 
@@ -66,7 +67,7 @@ func (o OpenVPNConfig) SaveToPath(path string) error {
 		return err
 	}
 
-	if len(path) == 0 {
+	if path == "" {
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 

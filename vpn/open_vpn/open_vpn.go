@@ -11,9 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -104,6 +103,7 @@ func (o OpenVPN) Stop() error {
 	return o.process.Kill()
 }
 
+// nolint:gocyclo
 func (o OpenVPN) ClientList() (map[string]sdkTypes.Bandwidth, error) {
 	if _, err := os.Stat(statusLogFilePath); os.IsNotExist(err) {
 		log.Printf("OpenVPN status log file does not exist")

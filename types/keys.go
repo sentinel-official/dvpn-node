@@ -12,6 +12,7 @@ const (
 	INACTIVE = "INACTIVE"
 )
 
+// nolint:gochecknoglobals
 var (
 	HomeDir                            = os.ExpandEnv("$HOME")
 	DefaultConfigDir                   = filepath.Join(HomeDir, ".sentinel", "node")

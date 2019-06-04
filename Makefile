@@ -1,25 +1,30 @@
-BUILD_TAGS = netgo
-BUILD_FLAGS = -tags "${BUILD_TAGS}" -ldflags "-s -w"
+PACKAGES := $(shell go list ./...)
 
-all: get_tools get_vendor_deps install test
+export GO111MODULE=on
 
-build:
-	go build $(BUILD_FLAGS) -o bin/vpn-node main.go
+BUILD_TAGS := netgo
+BUILD_TAGS := $(strip ${BUILD_TAGS})
+
+LD_FLAGS := -s -w
+
+BUILD_FLAGS := -tags "${BUILD_TAGS}" -ldflags "${LD_FLAGS}"
+
+all: install test
+
+build: dep_verify
+	go build -mod=readonly ${BUILD_FLAGS} -o bin/vpn-node main.go
 
 install: build
-	mv bin/vpn-node $(GOPATH)/bin/
-
-get_tools:
-	go get -u github.com/golang/dep/cmd/dep
-
-get_vendor_deps:
-	@rm -rf vendor/ .vendor-new/
-	@dep ensure -v
+	mv bin/vpn-node ${GOPATH}/bin/
 
 test:
-	@go test -cover $(PACKAGES)
+	@go test -mod=readonly -cover ${PACKAGES}
 
 benchmark:
-	@go test -bench=. $(PACKAGES)
+	@go test -mod=readonly -bench=. ${PACKAGES}
 
-.PHONY: get_tools get_vendor_deps install test benchmark
+dep_verify:
+	@echo "--> Ensure dependencies have not been modified"
+	@go mod verify
+
+.PHONY: all build install test benchmark dep_verify

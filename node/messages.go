@@ -35,11 +35,11 @@ func NewMsgBandwidthSignature(id sdkTypes.ID, index uint64, bandwidth sdkTypes.B
 	}
 }
 
-func (msg MsgBandwidthSignature) Type() string {
+func (msg *MsgBandwidthSignature) Type() string {
 	return "MsgBandwidthSignature"
 }
 
-func (msg MsgBandwidthSignature) Validate() error {
+func (msg *MsgBandwidthSignature) Validate() error {
 	if msg.ID.String() == "" {
 		return errors.Errorf("id is empty")
 	}
@@ -74,10 +74,10 @@ func NewMsgError(code int8, message string) types.Msg {
 	}
 }
 
-func (msg MsgError) Type() string {
+func (msg *MsgError) Type() string {
 	return "MsgError"
 }
 
-func (msg MsgError) Validate() error {
+func (msg *MsgError) Validate() error {
 	return nil
 }

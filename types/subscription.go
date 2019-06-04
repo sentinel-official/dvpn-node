@@ -4,9 +4,8 @@ import (
 	"time"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto"
-
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 type Subscription struct {

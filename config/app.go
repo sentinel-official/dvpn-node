@@ -1,3 +1,4 @@
+// nolint:gochecknoinits,gochecknoglobals
 package config
 
 import (
@@ -24,21 +25,17 @@ func init() {
 	}
 }
 
-var defaultAppConfigTemplate = `
-##### base options #####
+var defaultAppConfigTemplate = `# Application config file
+
 chain_id = "{{ .ChainID }}"
 rpc_address = "{{ .RPCAddress }}"
 resolver_address = "{{ .ResolverAddress }}"
 vpn_type = "{{ .VPNType }}"
 api_port = {{ .APIPort }}
 
-
-##### account options #####
 [account]
 name = "{{ .Account.Name }}"
 
-
-##### node options #####
 [node]
 id = "{{ .Node.ID }}"
 moniker = "{{ .Node.Moniker }}"
@@ -71,7 +68,7 @@ func NewAppConfig() *AppConfig {
 }
 
 func (a *AppConfig) LoadFromPath(path string) error {
-	if len(path) == 0 {
+	if path == "" {
 		path = types.DefaultAppConfigFilePath
 	}
 
@@ -97,7 +94,7 @@ func (a AppConfig) SaveToPath(path string) error {
 		return err
 	}
 
-	if len(path) == 0 {
+	if path == "" {
 		path = types.DefaultAppConfigFilePath
 	}
 

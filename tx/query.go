@@ -3,10 +3,9 @@ package tx
 import (
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/pkg/errors"
-
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common"
+	"github.com/pkg/errors"
 )
 
 func (t Tx) QueryAccount(_address string) (auth.Account, error) {

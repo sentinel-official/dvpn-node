@@ -1,3 +1,4 @@
+// nolint:gocyclo
 package main
 
 import (
@@ -7,7 +8,7 @@ import (
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/database"
-	_node "github.com/ironman0x7b2/vpn-node/node"
+	"github.com/ironman0x7b2/vpn-node/node"
 	"github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 	"github.com/ironman0x7b2/vpn-node/utils"
@@ -31,7 +32,7 @@ func main() {
 	}
 
 	appCfg.Account.Name = info.GetName()
-	if err := appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
+	if err = appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
@@ -42,7 +43,7 @@ func main() {
 
 	appCfg.Account.Password = password
 
-	vpn, err := utils.ProcessVPN(appCfg.VPNType)
+	_vpn, err := utils.ProcessVPN(appCfg.VPNType)
 	if err != nil {
 		panic(err)
 	}
@@ -52,13 +53,13 @@ func main() {
 		panic(err)
 	}
 
-	node, err := utils.ProcessNode(appCfg, _tx, vpn)
+	_node, err := utils.ProcessNode(appCfg, _tx, _vpn)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Node.ID = node.ID.String()
-	if err := appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
+	appCfg.Node.ID = _node.ID.String()
+	if err = appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
@@ -67,6 +68,6 @@ func main() {
 		panic(err)
 	}
 
-	_node.NewNode(node.ID, info.GetAddress(), info.GetPubKey(),
-		_tx, db, vpn).Start(appCfg.APIPort)
+	node.NewNode(_node.ID, info.GetAddress(), info.GetPubKey(),
+		_tx, _vpn, db).Start(appCfg.APIPort)
 }

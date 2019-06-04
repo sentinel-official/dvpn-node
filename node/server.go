@@ -1,3 +1,4 @@
+// nolint:gocyclo,gochecknoglobals
 package node
 
 import (
@@ -8,22 +9,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/pkg/errors"
-
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 	"github.com/ironman0x7b2/vpn-node/utils"
 )
 
 var (
-	Upgrader = &websocket.Upgrader{
+	upgrader = &websocket.Upgrader{
 		HandshakeTimeout: 45 * time.Second,
 	}
 )
 
-func (n Node) Router() *mux.Router {
+func (n *Node) Router() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.
@@ -57,7 +57,7 @@ type requestAddSubscription struct {
 	TxHash string `json:"tx_hash"`
 }
 
-func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
+func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
 	var body requestAddSubscription
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.WriteErrorToResponse(w, 400, types.Error{
@@ -66,7 +66,7 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sub, err := n.tx.QuerySubscriptionByTxHash(body.TxHash)
+	sub, err := n._tx.QuerySubscriptionByTxHash(body.TxHash)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain by transaction hash",
@@ -86,7 +86,7 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	query, args := "id = ?", []interface{}{
+	query, args := "_id = ?", []interface{}{
 		sub.ID.String(),
 	}
 
@@ -104,7 +104,7 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	client, err := n.tx.QueryAccount(sub.Client.String())
+	client, err := n._tx.QueryAccount(sub.Client.String())
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the account from chain",
@@ -132,10 +132,10 @@ func (n Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request)
 	utils.WriteResultToResponse(w, 201, nil)
 }
 
-func (n Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request) {
+func (n *Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	query, args := "id = ?", []interface{}{
+	query, args := "_id = ?", []interface{}{
 		vars["id"],
 	}
 
@@ -165,7 +165,7 @@ func (n Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sub, err := n.tx.QuerySubscription(vars["id"])
+	sub, err := n._tx.QuerySubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
@@ -185,9 +185,9 @@ func (n Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// TODO: Revoke previous vpn key
+	// TODO: Revoke previous _vpn key
 
-	key, err := n.vpn.GenerateClientKey(vars["id"])
+	key, err := n._vpn.GenerateClientKey(vars["id"])
 	if err != nil {
 		return
 	}
@@ -199,7 +199,7 @@ type requestInitSession struct {
 	Signature string `json:"signature"`
 }
 
-func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
+func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 	var body requestInitSession
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
@@ -210,7 +210,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
-	query, args := "id = ?", []interface{}{
+	query, args := "_id = ?", []interface{}{
 		vars["id"],
 	}
 
@@ -240,7 +240,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub, err := n.tx.QuerySubscription(vars["id"])
+	sub, err := n._tx.QuerySubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
@@ -260,7 +260,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
+	index, err := n._tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the sessions count of subscription from chain",
@@ -268,7 +268,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, args = "id = ? AND index = ?", []interface{}{
+	query, args = "_id = ? AND _index = ?", []interface{}{
 		vars["id"],
 		index,
 	}
@@ -289,7 +289,7 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: time.Now().UTC(),
 		}
 
-		if err := n.db.SessionSave(_session); err != nil {
+		if err = n.db.SessionSave(_session); err != nil {
 			utils.WriteErrorToResponse(w, 500, types.Error{
 				Message: "Error occurred while adding the session to database",
 			})
@@ -320,15 +320,15 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, args = "id = ? AND index = ? AND status = ?", []interface{}{
+	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 		vars["id"],
 		index,
 		types.INACTIVE,
 	}
 
 	updates := map[string]interface{}{
-		"signature": signature,
-		"status":    types.INIT,
+		"_signature": signature,
+		"_status":    types.INIT,
 	}
 
 	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
@@ -341,10 +341,10 @@ func (n Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResultToResponse(w, 200, _session)
 }
 
-func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Request) {
+func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	query, args := "id = ?", []interface{}{
+	query, args := "_id = ?", []interface{}{
 		vars["id"],
 	}
 
@@ -374,7 +374,7 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	sub, err := n.tx.QuerySubscription(vars["id"])
+	sub, err := n._tx.QuerySubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
@@ -394,7 +394,7 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
+	index, err := n._tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the sessions count of subscription from chain",
@@ -402,7 +402,7 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	query, args = "id = ? AND index = ?", []interface{}{
+	query, args = "_id = ? AND _index = ?", []interface{}{
 		vars["id"],
 		index,
 	}
@@ -426,33 +426,33 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	query, args = "id = ? AND index = ? AND status = ?", []interface{}{
+	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 		vars["id"],
 		index,
 		types.INIT,
 	}
 
 	updates := map[string]interface{}{
-		"status": types.ACTIVE,
+		"_status": types.ACTIVE,
 	}
 
-	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while updating the session in database",
 		})
 		return
 	}
 
-	conn, err := Upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		query, args = "id = ? AND index = ? AND status = ?", []interface{}{
+		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			vars["id"],
 			index,
 			types.ACTIVE,
 		}
 
 		updates := map[string]interface{}{
-			"status": types.INIT,
+			"_status": types.INIT,
 		}
 
 		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
@@ -466,21 +466,21 @@ func (n Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Re
 	}
 
 	go n.readMessages(vars["id"], index)
-	go n.writeMessages(vars["id"], index)
+	go n.writeMessages(vars["id"])
 }
 
-func (n Node) readMessages(id string, index uint64) {
+func (n *Node) readMessages(id string, index uint64) {
 	client := n.clients[id]
 
 	defer func() {
-		query, args := "id = ? AND index = ? AND status = ?", []interface{}{
+		query, args := "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			id,
 			index,
 			types.ACTIVE,
 		}
 
 		updates := map[string]interface{}{
-			"status": types.INACTIVE,
+			"_status": types.INACTIVE,
 		}
 
 		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
@@ -515,7 +515,7 @@ func (n Node) readMessages(id string, index uint64) {
 	}
 }
 
-func (n Node) handleIncomingMessage(client *client, msg *types.Msg) error {
+func (n *Node) handleIncomingMessage(client *client, msg *types.Msg) error {
 	switch msg.Type {
 	case "MsgBandwidthSignature":
 		var data MsgBandwidthSignature
@@ -534,7 +534,7 @@ func (n Node) handleIncomingMessage(client *client, msg *types.Msg) error {
 			return errors.Errorf("Invalid client signature")
 		}
 
-		query, args := "id = ? AND index = ? AND status = ? AND upload <= ? AND download <= ?", []interface{}{
+		query, args := "_id = ? AND _index = ? AND _status = ? AND _upload <= ? AND _download <= ?", []interface{}{
 			data.ID.String(),
 			data.Index,
 			types.ACTIVE,
@@ -543,9 +543,9 @@ func (n Node) handleIncomingMessage(client *client, msg *types.Msg) error {
 		}
 
 		updates := map[string]interface{}{
-			"upload":    data.Bandwidth.Upload.Int64(),
-			"download":  data.Bandwidth.Download.Int64(),
-			"signature": data.ClientSignature,
+			"_upload":    data.Bandwidth.Upload.Int64(),
+			"_download":  data.Bandwidth.Download.Int64(),
+			"_signature": data.ClientSignature,
 		}
 
 		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
@@ -558,7 +558,7 @@ func (n Node) handleIncomingMessage(client *client, msg *types.Msg) error {
 	return nil
 }
 
-func (n Node) writeMessages(id string, index uint64) {
+func (n *Node) writeMessages(id string) {
 	client := n.clients[id]
 
 	for message := range client.outMessages {

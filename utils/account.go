@@ -24,11 +24,11 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 	}
 
 	name = strings.TrimSpace(name)
-	if len(name) == 0 {
+	if name == "" {
 		return nil, errors.Errorf("Entered account name is empty")
 	}
 
-	if _, err := kb.Get(name); err == nil {
+	if _, err = kb.Get(name); err == nil {
 		return nil, errors.Errorf("Account already exists with name `%s`", name)
 	}
 
@@ -45,15 +45,15 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 		return nil, err
 	}
 
-	if len(mnemonic) == 0 {
-		entropySeed, err := bip39.NewEntropy(mnemonicEntropySize)
-		if err != nil {
-			return nil, err
+	if mnemonic == "" {
+		entropySeed, _err := bip39.NewEntropy(mnemonicEntropySize)
+		if _err != nil {
+			return nil, _err
 		}
 
-		mnemonic, err = bip39.NewMnemonic(entropySeed)
-		if err != nil {
-			return nil, err
+		mnemonic, _err = bip39.NewMnemonic(entropySeed)
+		if _err != nil {
+			return nil, _err
 		}
 	}
 
@@ -70,7 +70,7 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 }
 
 func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
-	if len(name) > 0 {
+	if name != "" {
 		log.Printf("Got the account name `%s`", name)
 		return kb.Get(name)
 	}
@@ -91,7 +91,7 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 	}
 
 	fmt.Printf("\n")
-	fmt.Printf("NAME:\tTYPE:\tADDRESS:\t\t\t\t\t\tPUBKEY:\n")
+	fmt.Printf("NAME:\tTYPE:\tADDRESS:\t\t\t\t\tPUBKEY:\n")
 	for _, account := range accounts {
 		fmt.Printf("%s\t%s\t%s\t%s\n", account.Name, account.Type, account.Address, account.PubKey)
 	}
@@ -102,7 +102,7 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(name) == 0 {
+	if name == "" {
 		return createAccount(kb)
 	}
 

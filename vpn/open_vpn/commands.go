@@ -1,3 +1,4 @@
+// nolint:gochecknoglobals
 package open_vpn
 
 import (
