@@ -14,8 +14,8 @@ import (
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
-	"github.com/ironman0x7b2/vpn-node/db"
-	"github.com/ironman0x7b2/vpn-node/tx"
+	_db "github.com/ironman0x7b2/vpn-node/db"
+	_tx "github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
@@ -30,34 +30,34 @@ type Node struct {
 	address csdkTypes.AccAddress
 	pubKey  crypto.PubKey
 
-	_tx     *tx.Tx
-	_vpn    types.BaseVPN
-	_db     *db.DB
+	tx      *_tx.Tx
+	vpn     types.BaseVPN
+	db      *_db.DB
 	clients map[string]*client
 }
 
 func NewNode(id sdkTypes.ID, address csdkTypes.AccAddress, pubKey crypto.PubKey,
-	_tx *tx.Tx, _vpn types.BaseVPN, _db *db.DB) *Node {
+	tx *_tx.Tx, _vpn types.BaseVPN, db *_db.DB) *Node {
 
 	return &Node{
 		id:      id,
 		address: address,
 		pubKey:  pubKey,
 
-		_tx:     _tx,
-		_vpn:    _vpn,
-		_db:     _db,
+		tx:      tx,
+		vpn:     _vpn,
+		db:      db,
 		clients: make(map[string]*client),
 	}
 }
 
 func (n *Node) Start(apiPort uint16) {
-	if err := n._vpn.Init(); err != nil {
+	if err := n.vpn.Init(); err != nil {
 		panic(err)
 	}
 
 	go func() {
-		if err := n._vpn.Start(); err != nil {
+		if err := n.vpn.Start(); err != nil {
 			panic(err)
 		}
 	}()
@@ -90,12 +90,12 @@ func (n *Node) updateNodeStatus() error {
 	for ; ; <-t.C {
 		msg := vpn.NewMsgUpdateNodeStatus(n.address, n.id, vpn.StatusActive)
 
-		data, err := n._tx.CompleteAndSubscribeTx(msg)
+		data, err := n.tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
 			return err
 		}
 
-		log.Printf("Node status updated at block height `%d`, _tx hash `%s`",
+		log.Printf("Node status updated at block height `%d`, tx hash `%s`",
 			data.Height, common.HexBytes(data.Tx.Hash()).String())
 	}
 }

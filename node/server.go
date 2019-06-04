@@ -67,7 +67,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	sub, err := n._tx.QuerySubscriptionByTxHash(body.TxHash)
+	sub, err := n.tx.QuerySubscriptionByTxHash(body.TxHash)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain by transaction hash",
@@ -91,7 +91,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		sub.ID.String(),
 	}
 
-	_sub, err := n._db.SubscriptionFindOne(query, args...)
+	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
@@ -105,7 +105,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	client, err := n._tx.QueryAccount(sub.Client.String())
+	client, err := n.tx.QueryAccount(sub.Client.String())
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the account from chain",
@@ -123,7 +123,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		CreatedAt: time.Now().UTC(),
 	}
 
-	if err := n._db.SubscriptionSave(_sub); err != nil {
+	if err := n.db.SubscriptionSave(_sub); err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while adding the subscription to database",
 		})
@@ -140,7 +140,7 @@ func (n *Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request
 		vars["id"],
 	}
 
-	_sub, err := n._db.SubscriptionFindOne(query, args...)
+	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
@@ -166,7 +166,7 @@ func (n *Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	sub, err := n._tx.QuerySubscription(vars["id"])
+	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
@@ -186,9 +186,9 @@ func (n *Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// TODO: Revoke previous _vpn key
+	// TODO: Revoke previous vpn key
 
-	key, err := n._vpn.GenerateClientKey(vars["id"])
+	key, err := n.vpn.GenerateClientKey(vars["id"])
 	if err != nil {
 		return
 	}
@@ -215,7 +215,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		vars["id"],
 	}
 
-	_sub, err := n._db.SubscriptionFindOne(query, args...)
+	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
@@ -241,7 +241,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub, err := n._tx.QuerySubscription(vars["id"])
+	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
@@ -261,7 +261,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	index, err := n._tx.QuerySessionsCountOfSubscription(vars["id"])
+	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the sessions count of subscription from chain",
@@ -274,7 +274,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		index,
 	}
 
-	_session, err := n._db.SessionFindOne(query, args...)
+	_session, err := n.db.SessionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the session from database",
@@ -290,7 +290,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: time.Now().UTC(),
 		}
 
-		if err = n._db.SessionSave(_session); err != nil {
+		if err = n.db.SessionSave(_session); err != nil {
 			utils.WriteErrorToResponse(w, 500, types.Error{
 				Message: "Error occurred while adding the session to database",
 			})
@@ -332,7 +332,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		"_status":    types.INIT,
 	}
 
-	if err := n._db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while updating the session in database",
 		})
@@ -349,7 +349,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		vars["id"],
 	}
 
-	_sub, err := n._db.SubscriptionFindOne(query, args...)
+	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from database",
@@ -375,7 +375,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	sub, err := n._tx.QuerySubscription(vars["id"])
+	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the subscription from chain",
@@ -395,7 +395,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	index, err := n._tx.QuerySessionsCountOfSubscription(vars["id"])
+	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the sessions count of subscription from chain",
@@ -408,7 +408,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		index,
 	}
 
-	_session, err := n._db.SessionFindOne(query, args...)
+	_session, err := n.db.SessionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while querying the session from database",
@@ -437,7 +437,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		"_status": types.ACTIVE,
 	}
 
-	if err = n._db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while updating the session in database",
 		})
@@ -456,7 +456,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			"_status": types.INIT,
 		}
 
-		_ = n._db.SessionFindOneAndUpdate(updates, query, args...)
+		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
 		return
 	}
 
@@ -484,7 +484,7 @@ func (n *Node) readMessages(id string, index uint64) {
 			"_status": types.INACTIVE,
 		}
 
-		if err := n._db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 			panic(err)
 		}
 
@@ -558,7 +558,7 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		"_signature": msg.ClientSignature,
 	}
 
-	if err := n._db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 		return NewMsgError(6, "Error occurred while updating the session in database")
 	}
 

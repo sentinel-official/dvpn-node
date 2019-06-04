@@ -30,10 +30,10 @@ type Manager struct {
 	mutex      *sync.Mutex
 }
 
-func NewManager(cliContext context.CLIContext, txBuilder txBuilder.TxBuilder, password string) *Manager {
+func NewManager(cliContext context.CLIContext, _txBuilder txBuilder.TxBuilder, password string) *Manager {
 	return &Manager{
 		CLIContext: cliContext,
-		TxBuilder:  txBuilder,
+		TxBuilder:  _txBuilder,
 		password:   password,
 		mutex:      &sync.Mutex{},
 	}

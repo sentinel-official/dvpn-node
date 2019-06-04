@@ -11,12 +11,12 @@ import (
 	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
-	"github.com/ironman0x7b2/vpn-node/tx"
+	_tx "github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-func ProcessNode(appCfg *config.AppConfig, _tx *tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {
-	fromAddress := _tx.Manager.CLIContext.FromAddress
+func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {
+	fromAddress := tx.Manager.CLIContext.FromAddress
 	nodeID := appCfg.Node.ID
 
 	if nodeID == "" {
@@ -35,7 +35,7 @@ func ProcessNode(appCfg *config.AppConfig, _tx *tx.Tx, _vpn types.BaseVPN) (*vpn
 		msg := vpnTypes.NewMsgRegisterNode(fromAddress, _vpn.Type(), types.Version,
 			appCfg.Node.Moniker, pricesPerGB, internetSpeed, _vpn.EncryptionMethod())
 
-		data, err := _tx.CompleteAndSubscribeTx(msg)
+		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func ProcessNode(appCfg *config.AppConfig, _tx *tx.Tx, _vpn types.BaseVPN) (*vpn
 			data.Height, common.HexBytes(data.Tx.Hash()).String(), nodeID)
 	}
 
-	node, err := _tx.QueryNode(nodeID)
+	node, err := tx.QueryNode(nodeID)
 	if err != nil {
 		return nil, err
 	}
