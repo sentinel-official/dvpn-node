@@ -4,10 +4,11 @@ import (
 	"log"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
-	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/common"
+
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/tx"

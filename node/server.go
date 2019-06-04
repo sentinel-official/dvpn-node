@@ -9,9 +9,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/tendermint/tendermint/crypto"
+
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
-	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 	"github.com/ironman0x7b2/vpn-node/utils"
@@ -451,7 +452,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			types.ACTIVE,
 		}
 
-		updates := map[string]interface{}{
+		updates = map[string]interface{}{
 			"_status": types.INIT,
 		}
 
@@ -462,7 +463,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 	n.clients[vars["id"]] = &client{
 		pubKey:      _sub.PubKey,
 		conn:        conn,
-		outMessages: make(chan types.Msg),
+		outMessages: make(chan *types.Msg),
 	}
 
 	go n.readMessages(vars["id"], index)
@@ -503,10 +504,12 @@ func (n *Node) readMessages(id string, index uint64) {
 
 		var msg types.Msg
 		if err := json.Unmarshal(p, &msg); err != nil {
+			client.outMessages <- NewMsgError(1, "Error occurred while decoding the message")
 			continue
 		}
 
-		if err := n.handleIncomingMessage(client, &msg); err != nil {
+		if errMsg := n.handleIncomingMessage(client.pubKey, &msg); errMsg != nil {
+			client.outMessages <- errMsg
 			continue
 		}
 
@@ -515,44 +518,48 @@ func (n *Node) readMessages(id string, index uint64) {
 	}
 }
 
-func (n *Node) handleIncomingMessage(client *client, msg *types.Msg) error {
+func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg *types.Msg) *types.Msg {
 	switch msg.Type {
 	case "MsgBandwidthSignature":
-		var data MsgBandwidthSignature
-		if err := json.Unmarshal(msg.Data, &data); err != nil {
-			return errors.Errorf("Error occurred while decoding the message data")
-		}
-		if err := data.Validate(); err != nil {
-			return err
-		}
-
-		_data := vpn.NewBandwidthSignatureData(data.ID, data.Index, data.Bandwidth)
-		if n.pubKey.VerifyBytes(_data.Bytes(), data.NodeOwnerSignature) {
-			return errors.Errorf("Invalid node owner signature")
-		}
-		if client.pubKey.VerifyBytes(_data.Bytes(), data.NodeOwnerSignature) {
-			return errors.Errorf("Invalid client signature")
-		}
-
-		query, args := "_id = ? AND _index = ? AND _status = ? AND _upload <= ? AND _download <= ?", []interface{}{
-			data.ID.String(),
-			data.Index,
-			types.ACTIVE,
-			data.Bandwidth.Upload.Int64(),
-			data.Bandwidth.Download.Int64(),
-		}
-
-		updates := map[string]interface{}{
-			"_upload":    data.Bandwidth.Upload.Int64(),
-			"_download":  data.Bandwidth.Download.Int64(),
-			"_signature": data.ClientSignature,
-		}
-
-		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-			return errors.Errorf("Error occurred while updating the session in database")
-		}
+		return n.handleMsgBandwidthSignature(pubKey, msg.Data)
 	default:
-		return errors.Errorf("Invalid message type: %s", msg.Type)
+		return NewMsgError(1, "Invalid message type")
+	}
+}
+
+func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.RawMessage) *types.Msg {
+	var msg MsgBandwidthSignature
+	if err := json.Unmarshal(rawMsg, &msg); err != nil {
+		return NewMsgError(2, "Error occurred while decoding the raw message")
+	}
+	if err := msg.Validate(); err != nil {
+		return NewMsgError(3, "Invalid message")
+	}
+
+	data := vpn.NewBandwidthSignatureData(msg.ID, msg.Index, msg.Bandwidth).Bytes()
+	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
+		return NewMsgError(4, "Invalid node owner signature")
+	}
+	if !pubKey.VerifyBytes(data, msg.ClientSignature) {
+		return NewMsgError(5, "Invalid client signature")
+	}
+
+	query, args := "_id = ? AND _index = ? AND _status = ? AND _upload <= ? AND _download <= ?", []interface{}{
+		msg.ID.String(),
+		msg.Index,
+		types.ACTIVE,
+		msg.Bandwidth.Upload.Int64(),
+		msg.Bandwidth.Download.Int64(),
+	}
+
+	updates := map[string]interface{}{
+		"_upload":    msg.Bandwidth.Upload.Int64(),
+		"_download":  msg.Bandwidth.Download.Int64(),
+		"_signature": msg.ClientSignature,
+	}
+
+	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+		return NewMsgError(6, "Error occurred while updating the session in database")
 	}
 
 	return nil

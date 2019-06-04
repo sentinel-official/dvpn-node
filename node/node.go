@@ -8,10 +8,11 @@ import (
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/websocket"
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
+
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
 	"github.com/ironman0x7b2/vpn-node/database"
 	"github.com/ironman0x7b2/vpn-node/tx"
@@ -21,7 +22,7 @@ import (
 type client struct {
 	pubKey      crypto.PubKey
 	conn        *websocket.Conn
-	outMessages chan types.Msg
+	outMessages chan *types.Msg
 }
 
 type Node struct {

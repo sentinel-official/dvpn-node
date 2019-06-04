@@ -3,8 +3,9 @@ package node
 import (
 	"encoding/json"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/pkg/errors"
+
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -18,7 +19,7 @@ type MsgBandwidthSignature struct {
 }
 
 func NewMsgBandwidthSignature(id sdkTypes.ID, index uint64, bandwidth sdkTypes.Bandwidth,
-	nodeOwnerSignature, clientSignature []byte) types.Msg {
+	nodeOwnerSignature, clientSignature []byte) *types.Msg {
 
 	msg := MsgBandwidthSignature{
 		ID:                 id,
@@ -29,7 +30,7 @@ func NewMsgBandwidthSignature(id sdkTypes.ID, index uint64, bandwidth sdkTypes.B
 	}
 	data, _ := json.Marshal(msg)
 
-	return types.Msg{
+	return &types.Msg{
 		Type: msg.Type(),
 		Data: data,
 	}
@@ -61,14 +62,14 @@ type MsgError struct {
 	Message string `json:"message"`
 }
 
-func NewMsgError(code int8, message string) types.Msg {
+func NewMsgError(code int8, message string) *types.Msg {
 	msg := MsgError{
 		Code:    code,
 		Message: message,
 	}
 	data, _ := json.Marshal(msg)
 
-	return types.Msg{
+	return &types.Msg{
 		Type: msg.Type(),
 		Data: data,
 	}

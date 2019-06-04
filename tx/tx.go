@@ -5,9 +5,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/app/hub"
 	"github.com/pkg/errors"
 	tmTypes "github.com/tendermint/tendermint/types"
+
+	"github.com/ironman0x7b2/sentinel-sdk/app/hub"
 
 	"github.com/ironman0x7b2/vpn-node/config"
 )
