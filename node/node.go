@@ -14,7 +14,7 @@ import (
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
-	"github.com/ironman0x7b2/vpn-node/database"
+	"github.com/ironman0x7b2/vpn-node/db"
 	"github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -32,12 +32,12 @@ type Node struct {
 
 	_tx     *tx.Tx
 	_vpn    types.BaseVPN
-	db      *database.DB
+	_db     *db.DB
 	clients map[string]*client
 }
 
 func NewNode(id sdkTypes.ID, address csdkTypes.AccAddress, pubKey crypto.PubKey,
-	_tx *tx.Tx, _vpn types.BaseVPN, db *database.DB) *Node {
+	_tx *tx.Tx, _vpn types.BaseVPN, _db *db.DB) *Node {
 
 	return &Node{
 		id:      id,
@@ -46,7 +46,7 @@ func NewNode(id sdkTypes.ID, address csdkTypes.AccAddress, pubKey crypto.PubKey,
 
 		_tx:     _tx,
 		_vpn:    _vpn,
-		db:      db,
+		_db:     _db,
 		clients: make(map[string]*client),
 	}
 }
