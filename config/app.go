@@ -3,6 +3,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
@@ -83,7 +84,17 @@ func (a *AppConfig) LoadFromPath(path string) error {
 		return nil
 	}
 
-	return toml.Unmarshal(data, a)
+	tree, err := toml.LoadBytes(data)
+	if err != nil {
+		return err
+	}
+
+	data, err = json.Marshal(tree.ToMap())
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, a)
 }
 
 func (a AppConfig) SaveToPath(path string) error {

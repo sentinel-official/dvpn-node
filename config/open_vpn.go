@@ -3,6 +3,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
@@ -58,7 +59,17 @@ func (o *OpenVPNConfig) LoadFromPath(path string) error {
 		return nil
 	}
 
-	return toml.Unmarshal(data, o)
+	tree, err := toml.LoadBytes(data)
+	if err != nil {
+		return err
+	}
+
+	data, err = json.Marshal(tree.ToMap())
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, o)
 }
 
 func (o OpenVPNConfig) SaveToPath(path string) error {
