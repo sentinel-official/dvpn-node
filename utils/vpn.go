@@ -30,10 +30,10 @@ func processOpenVPN() (*open_vpn.OpenVPN, error) {
 		}
 	}()
 
-	publicIP, err := PublicIP()
+	ip, err := PublicIP()
 	if err != nil {
 		return nil, err
 	}
 
-	return open_vpn.NewOpenVPN(cfg.Port, publicIP, cfg.Protocol, cfg.Encryption), nil
+	return open_vpn.NewOpenVPN(cfg.Port, ip, cfg.Protocol, cfg.Encryption), nil
 }

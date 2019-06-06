@@ -1,11 +1,13 @@
 PACKAGES := $(shell go list ./...)
+VERSION := $(shell git rev-parse --short HEAD)
 
 export GO111MODULE=on
 
 BUILD_TAGS := netgo
 BUILD_TAGS := $(strip ${BUILD_TAGS})
 
-LD_FLAGS := -s -w
+LD_FLAGS := -s -w \
+	-X github.com/ironman0x7b2/vpn-node/types.Version=${VERSION}
 
 BUILD_FLAGS := -tags "${BUILD_TAGS}" -ldflags "${LD_FLAGS}"
 

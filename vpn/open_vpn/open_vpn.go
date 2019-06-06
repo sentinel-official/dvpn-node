@@ -23,19 +23,19 @@ const (
 )
 
 type OpenVPN struct {
-	port             uint16
-	publicIP         string
-	protocol         string
-	encryptionMethod string
-	process          *os.Process
+	port       uint16
+	ip         string
+	protocol   string
+	encryption string
+	process    *os.Process
 }
 
-func NewOpenVPN(port uint16, publicIP, protocol, encryptionMethod string) *OpenVPN {
+func NewOpenVPN(port uint16, ip, protocol, encryption string) *OpenVPN {
 	return &OpenVPN{
-		port:             port,
-		publicIP:         publicIP,
-		protocol:         protocol,
-		encryptionMethod: encryptionMethod,
+		port:       port,
+		ip:         ip,
+		protocol:   protocol,
+		encryption: encryption,
 	}
 }
 
@@ -43,12 +43,12 @@ func (o OpenVPN) Type() string {
 	return "OpenVPN"
 }
 
-func (o OpenVPN) EncryptionMethod() string {
-	return o.encryptionMethod
+func (o OpenVPN) Encryption() string {
+	return o.encryption
 }
 
 func (o OpenVPN) writeServerConfig() error {
-	data := fmt.Sprintf(serverConfigTemplate, o.port, o.encryptionMethod, statusLogFilePath, managementPort)
+	data := fmt.Sprintf(serverConfigTemplate, o.port, o.encryption, statusLogFilePath, managementPort)
 
 	return ioutil.WriteFile(serverConfigFilePath, []byte(data), os.ModePerm)
 }
@@ -105,7 +105,7 @@ func (o OpenVPN) Stop() error {
 }
 
 // nolint:gocyclo
-func (o OpenVPN) ClientList() (map[string]sdkTypes.Bandwidth, error) {
+func (o OpenVPN) ClientsList() (map[string]sdkTypes.Bandwidth, error) {
 	if _, err := os.Stat(statusLogFilePath); os.IsNotExist(err) {
 		log.Printf("OpenVPN status log file does not exist")
 		return nil, nil
@@ -213,7 +213,7 @@ func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 		return nil, err
 	}
 
-	clientKey := fmt.Sprintf(clientConfigTemplate, o.publicIP, o.port, o.encryptionMethod, ca, cert, key, tlsAuth)
+	clientKey := fmt.Sprintf(clientConfigTemplate, o.ip, o.port, o.encryption, ca, cert, key, tlsAuth)
 
 	return []byte(clientKey), nil
 }

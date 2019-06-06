@@ -7,10 +7,10 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-func WriteErrorToResponse(w http.ResponseWriter, statusCode int, _error types.Error) {
+func WriteErrorToResponse(w http.ResponseWriter, statusCode int, err types.Error) {
 	res := types.Response{
 		Success: false,
-		Error:   _error,
+		Error:   err,
 	}
 
 	w.WriteHeader(statusCode)

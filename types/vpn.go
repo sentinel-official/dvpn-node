@@ -6,7 +6,7 @@ import (
 
 type BaseVPN interface {
 	Type() string
-	EncryptionMethod() string
+	Encryption() string
 
 	Init() error
 	Start() error
@@ -14,5 +14,5 @@ type BaseVPN interface {
 
 	GenerateClientKey(id string) ([]byte, error)
 	DisconnectClient(id string) error
-	ClientList() (map[string]types.Bandwidth, error)
+	ClientsList() (map[string]types.Bandwidth, error)
 }

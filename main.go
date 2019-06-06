@@ -36,12 +36,10 @@ func main() {
 		panic(err)
 	}
 
-	password, err := utils.ProcessAccountPassword(kb, appCfg.Account.Name)
+	appCfg.Account.Password, err = utils.ProcessAccountPassword(kb, appCfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
-
-	appCfg.Account.Password = password
 
 	vpn, err := utils.ProcessVPN(appCfg.VPNType)
 	if err != nil {
@@ -63,7 +61,7 @@ func main() {
 		panic(err)
 	}
 
-	db, err := _db.NewDatabase("database.db")
+	db, err := _db.NewDatabase("sentinel.db")
 	if err != nil {
 		panic(err)
 	}
