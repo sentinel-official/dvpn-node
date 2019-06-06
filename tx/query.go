@@ -1,7 +1,7 @@
 package tx
 
 import (
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 
@@ -10,7 +10,7 @@ import (
 )
 
 func (t Tx) QueryAccount(_address string) (auth.Account, error) {
-	address, err := csdkTypes.AccAddressFromBech32(_address)
+	address, err := csdk.AccAddressFromBech32(_address)
 	if err != nil {
 		return nil, err
 	}

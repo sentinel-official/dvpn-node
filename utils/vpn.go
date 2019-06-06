@@ -5,7 +5,7 @@ import (
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/types"
-	"github.com/ironman0x7b2/vpn-node/vpn/open_vpn"
+	openvpn "github.com/ironman0x7b2/vpn-node/vpn/open_vpn"
 )
 
 func ProcessVPN(_type string) (types.BaseVPN, error) {
@@ -17,7 +17,7 @@ func ProcessVPN(_type string) (types.BaseVPN, error) {
 	}
 }
 
-func processOpenVPN() (*open_vpn.OpenVPN, error) {
+func processOpenVPN() (*openvpn.OpenVPN, error) {
 	cfg := config.NewOpenVPNConfig()
 
 	if err := cfg.LoadFromPath(types.DefaultOpenVPNConfigFilePath); err != nil {
@@ -35,5 +35,5 @@ func processOpenVPN() (*open_vpn.OpenVPN, error) {
 		return nil, err
 	}
 
-	return open_vpn.NewOpenVPN(cfg.Port, ip, cfg.Protocol, cfg.Encryption), nil
+	return openvpn.NewOpenVPN(cfg.Port, ip, cfg.Protocol, cfg.Encryption), nil
 }

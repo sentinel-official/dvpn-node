@@ -8,9 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/common"
-	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
-	rpcTypes "github.com/tendermint/tendermint/rpc/lib/types"
-	tmTypes "github.com/tendermint/tendermint/types"
+	core "github.com/tendermint/tendermint/rpc/core/types"
+	rpc "github.com/tendermint/tendermint/rpc/lib/types"
+	tm "github.com/tendermint/tendermint/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -19,14 +19,14 @@ type Subscriber struct {
 	uri    string
 	cdc    *codec.Codec
 	conn   *websocket.Conn
-	events map[string]chan tmTypes.EventDataTx
+	events map[string]chan tm.EventDataTx
 }
 
 func NewSubscriber(address string, cdc *codec.Codec) (*Subscriber, error) {
 	subscriber := Subscriber{
 		uri:    fmt.Sprintf("ws://%s/websocket", address),
 		cdc:    cdc,
-		events: make(map[string]chan tmTypes.EventDataTx),
+		events: make(map[string]chan tm.EventDataTx),
 	}
 
 	ok := make(chan bool)
@@ -57,8 +57,8 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 	s.conn = conn
 	ok <- true
 
-	var response rpcTypes.RPCResponse
-	var result coreTypes.ResultEvent
+	var response rpc.RPCResponse
+	var result core.ResultEvent
 
 	for {
 		_, p, err := conn.ReadMessage()
@@ -85,7 +85,7 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 			continue
 		}
 
-		data, ok := result.Data.(tmTypes.EventDataTx)
+		data, ok := result.Data.(tm.EventDataTx)
 		if !ok {
 			continue
 		}
@@ -101,7 +101,7 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 	}
 }
 
-func (s *Subscriber) WriteTxQuery(hash string, event chan tmTypes.EventDataTx) error {
+func (s *Subscriber) WriteTxQuery(hash string, event chan tm.EventDataTx) error {
 	if s.conn == nil {
 		return errors.Errorf("RPC connection is nil")
 	}

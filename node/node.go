@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
 	_db "github.com/ironman0x7b2/vpn-node/db"
@@ -26,8 +26,8 @@ type client struct {
 }
 
 type Node struct {
-	id      sdkTypes.ID
-	address csdkTypes.AccAddress
+	id      sdk.ID
+	address csdk.AccAddress
 	pubKey  crypto.PubKey
 
 	tx      *_tx.Tx
@@ -36,7 +36,7 @@ type Node struct {
 	clients map[string]*client
 }
 
-func NewNode(id sdkTypes.ID, address csdkTypes.AccAddress, pubKey crypto.PubKey,
+func NewNode(id sdk.ID, address csdk.AccAddress, pubKey crypto.PubKey,
 	tx *_tx.Tx, _vpn types.BaseVPN, db *_db.DB) *Node {
 
 	return &Node{
@@ -105,6 +105,6 @@ func (n *Node) updateAllSessionBandwidthsInfo() error {
 	return nil
 }
 
-func (n *Node) requestBandwidthSign(session *types.Session, bandwidth sdkTypes.Bandwidth) error {
+func (n *Node) requestBandwidthSign(session *types.Session, bandwidth sdk.Bandwidth) error {
 	return nil
 }

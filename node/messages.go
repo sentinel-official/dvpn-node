@@ -5,20 +5,20 @@ import (
 
 	"github.com/pkg/errors"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type MsgBandwidthSignature struct {
-	ID                 sdkTypes.ID        `json:"id"`
-	Index              uint64             `json:"index"`
-	Bandwidth          sdkTypes.Bandwidth `json:"bandwidth"`
-	NodeOwnerSignature []byte             `json:"node_owner_signature"`
-	ClientSignature    []byte             `json:"client_signature"`
+	ID                 sdk.ID        `json:"id"`
+	Index              uint64         `json:"index"`
+	Bandwidth          sdk.Bandwidth `json:"bandwidth"`
+	NodeOwnerSignature []byte         `json:"node_owner_signature"`
+	ClientSignature    []byte         `json:"client_signature"`
 }
 
-func NewMsgBandwidthSignature(id sdkTypes.ID, index uint64, bandwidth sdkTypes.Bandwidth,
+func NewMsgBandwidthSignature(id sdk.ID, index uint64, bandwidth sdk.Bandwidth,
 	nodeOwnerSignature, clientSignature []byte) *types.Msg {
 
 	msg := MsgBandwidthSignature{

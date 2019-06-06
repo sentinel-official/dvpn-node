@@ -1,4 +1,4 @@
-package open_vpn
+package openvpn
 
 import (
 	"bufio"
@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 )
 
 const (
@@ -105,7 +105,7 @@ func (o OpenVPN) Stop() error {
 }
 
 // nolint:gocyclo
-func (o OpenVPN) ClientsList() (map[string]sdkTypes.Bandwidth, error) {
+func (o OpenVPN) ClientsList() (map[string]sdk.Bandwidth, error) {
 	if _, err := os.Stat(statusLogFilePath); os.IsNotExist(err) {
 		log.Printf("OpenVPN status log file does not exist")
 		return nil, nil
@@ -122,7 +122,7 @@ func (o OpenVPN) ClientsList() (map[string]sdkTypes.Bandwidth, error) {
 		}
 	}()
 
-	clients := make(map[string]sdkTypes.Bandwidth)
+	clients := make(map[string]sdk.Bandwidth)
 	reader := bufio.NewReader(file)
 
 	for {
@@ -149,7 +149,7 @@ func (o OpenVPN) ClientsList() (map[string]sdkTypes.Bandwidth, error) {
 				return nil, err
 			}
 
-			clients[id] = sdkTypes.NewBandwidthFromInt64(int64(upload), int64(download))
+			clients[id] = sdk.NewBandwidthFromInt64(int64(upload), int64(download))
 		} else if strings.Contains(line, "ROUTING TABLE") {
 			break
 		}

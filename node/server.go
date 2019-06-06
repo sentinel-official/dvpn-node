@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
 	"github.com/ironman0x7b2/vpn-node/types"
@@ -284,7 +284,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		_session = &types.Session{
 			ID:        sub.ID,
 			Index:     index,
-			Bandwidth: sdkTypes.NewBandwidthFromInt64(0, 0),
+			Bandwidth: sdk.NewBandwidthFromInt64(0, 0),
 			Signature: nil,
 			Status:    types.INACTIVE,
 			CreatedAt: time.Now().UTC(),

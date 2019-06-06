@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 )
 
 type BaseVPN interface {
@@ -14,5 +14,5 @@ type BaseVPN interface {
 
 	GenerateClientKey(id string) ([]byte, error)
 	DisconnectClient(id string) error
-	ClientsList() (map[string]types.Bandwidth, error)
+	ClientsList() (map[string]sdk.Bandwidth, error)
 }

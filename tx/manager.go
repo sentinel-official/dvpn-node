@@ -11,13 +11,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	txBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/pkg/errors"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
 	"github.com/tendermint/tendermint/rpc/client"
-	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
+	core "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/types"
@@ -67,12 +67,12 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
 	_txBuilder := txBuilder.NewTxBuilder(utils.GetTxEncoder(cdc),
 		account.GetAccountNumber(), account.GetSequence(), 1000000000,
 		1.0, false, appCfg.ChainID,
-		"", csdkTypes.Coins{}, csdkTypes.DecCoins{}).WithKeybase(kb)
+		"", csdk.Coins{}, csdk.DecCoins{}).WithKeybase(kb)
 
 	return NewManager(cliContext, _txBuilder, appCfg.Account.Password), nil
 }
 
-func (m *Manager) CompleteAndBroadcastTxSync(messages []csdkTypes.Msg) (*csdkTypes.TxResponse, error) {
+func (m *Manager) CompleteAndBroadcastTxSync(messages []csdk.Msg) (*csdk.TxResponse, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -91,7 +91,7 @@ func (m *Manager) CompleteAndBroadcastTxSync(messages []csdkTypes.Msg) (*csdkTyp
 		m.TxBuilder = m.TxBuilder.WithSequence(m.TxBuilder.Sequence() + 1)
 	}
 
-	txRes := csdkTypes.NewResponseFormatBroadcastTx(res)
+	txRes := csdk.NewResponseFormatBroadcastTx(res)
 	if txRes.Code != 0 {
 		return &txRes, errors.Errorf(txRes.String())
 	}
@@ -99,7 +99,7 @@ func (m *Manager) CompleteAndBroadcastTxSync(messages []csdkTypes.Msg) (*csdkTyp
 	return &txRes, err
 }
 
-func (m *Manager) QueryTx(hash string) (*coreTypes.ResultTx, error) {
+func (m *Manager) QueryTx(hash string) (*core.ResultTx, error) {
 	_hash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err

@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
-	tmTypes "github.com/tendermint/tendermint/types"
+	tm "github.com/tendermint/tendermint/types"
 
 	"github.com/ironman0x7b2/sentinel-sdk/app/hub"
 
@@ -27,7 +27,7 @@ func NewTx(manager *Manager, subscriber *Subscriber) *Tx {
 
 func NewTxFromConfig(appCfg *config.AppConfig, info keys.Info, kb keys.Keybase) (*Tx, error) {
 	cdc := hub.MakeCodec()
-	tmTypes.RegisterEventDatas(cdc)
+	tm.RegisterEventDatas(cdc)
 
 	log.Println("Initializing the transaction manager")
 	manager, err := NewManagerFromConfig(appCfg, cdc, info, kb)
@@ -44,17 +44,17 @@ func NewTxFromConfig(appCfg *config.AppConfig, info keys.Info, kb keys.Keybase) 
 	return NewTx(manager, subscriber), nil
 }
 
-func (t Tx) FromAddress() csdkTypes.AccAddress {
+func (t Tx) FromAddress() csdk.AccAddress {
 	return t.Manager.CLIContext.FromAddress
 }
 
-func (t Tx) CompleteAndSubscribeTx(messages ...csdkTypes.Msg) (*tmTypes.EventDataTx, error) {
+func (t Tx) CompleteAndSubscribeTx(messages ...csdk.Msg) (*tm.EventDataTx, error) {
 	res, err := t.Manager.CompleteAndBroadcastTxSync(messages)
 	if err != nil {
 		return nil, err
 	}
 
-	event := make(chan tmTypes.EventDataTx)
+	event := make(chan tm.EventDataTx)
 	defer close(event)
 
 	if err := t.Subscriber.WriteTxQuery(res.TxHash, event); err != nil {

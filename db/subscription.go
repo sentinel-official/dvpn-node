@@ -3,10 +3,10 @@ package db
 import (
 	"time"
 
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/jinzhu/gorm"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -27,29 +27,29 @@ func (subscription) TableName() string {
 }
 
 func (s *subscription) Subscription() (*types.Subscription, error) {
-	address, err := csdkTypes.AccAddressFromBech32(s.Address)
+	address, err := csdk.AccAddressFromBech32(s.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	pubKey, err := csdkTypes.GetAccPubKeyBech32(s.PubKey)
+	pubKey, err := csdk.GetAccPubKeyBech32(s.PubKey)
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.Subscription{
-		ID:        sdkTypes.NewIDFromString(s.ID),
+		ID:        sdk.NewIDFromString(s.ID),
 		TxHash:    s.TxHash,
 		Address:   address,
 		PubKey:    pubKey,
-		Bandwidth: sdkTypes.NewBandwidthFromInt64(s.Upload, s.Download),
+		Bandwidth: sdk.NewBandwidthFromInt64(s.Upload, s.Download),
 		Status:    s.Status,
 		CreatedAt: s.CreatedAt,
 	}, nil
 }
 
 func (d DB) SubscriptionSave(s *types.Subscription) error {
-	pubKey, err := csdkTypes.Bech32ifyAccPub(s.PubKey)
+	pubKey, err := csdk.Bech32ifyAccPub(s.PubKey)
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,5 @@
 // nolint:gochecknoglobals
-package open_vpn
+package openvpn
 
 import (
 	"fmt"

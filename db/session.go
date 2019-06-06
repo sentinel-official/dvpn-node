@@ -5,7 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -27,9 +27,9 @@ func (session) TableName() string {
 
 func (s *session) Session() (*types.Session, error) {
 	return &types.Session{
-		ID:        sdkTypes.NewIDFromString(s.ID),
+		ID:        sdk.NewIDFromString(s.ID),
 		Index:     s.Index,
-		Bandwidth: sdkTypes.NewBandwidthFromInt64(s.Upload, s.Download),
+		Bandwidth: sdk.NewBandwidthFromInt64(s.Upload, s.Download),
 		Signature: s.Signature,
 		Status:    s.Status,
 		CreatedAt: s.CreatedAt,

@@ -3,12 +3,11 @@ package utils
 import (
 	"log"
 
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/common"
 
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
-	vpnTypes "github.com/ironman0x7b2/sentinel-sdk/x/vpn/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	_tx "github.com/ironman0x7b2/vpn-node/tx"
@@ -21,7 +20,7 @@ func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn
 	if nodeID == "" {
 		log.Println("Got an empty node ID, so registering the node")
 
-		pricesPerGB, err := csdkTypes.ParseCoins(appCfg.Node.PricesPerGB)
+		pricesPerGB, err := csdk.ParseCoins(appCfg.Node.PricesPerGB)
 		if err != nil {
 			return nil, err
 		}
@@ -31,7 +30,7 @@ func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn
 			return nil, err
 		}
 
-		msg := vpnTypes.NewMsgRegisterNode(tx.FromAddress(), _vpn.Type(), types.Version,
+		msg := vpn.NewMsgRegisterNode(tx.FromAddress(), _vpn.Type(), types.Version,
 			appCfg.Node.Moniker, pricesPerGB, internetSpeed, _vpn.Encryption())
 
 		data, err := tx.CompleteAndSubscribeTx(msg)
