@@ -17,11 +17,18 @@ func NewRequest() Request {
 	return Request{}
 }
 
-func NewDefaultRequest() Request {
+func NewSubscribeRequest() Request {
 	return Request{}.
 		WithJSONRPC("2.0").
 		WithID("0").
 		WithMethod("subscribe")
+}
+
+func NewUnsubscribeRequest() Request {
+	return Request{}.
+		WithJSONRPC("2.0").
+		WithID("0").
+		WithMethod("unsubscribe")
 }
 
 func (r Request) WithJSONRPC(jsonRPC string) Request {
@@ -48,9 +55,16 @@ func (r Request) WithQuery(query string) Request {
 	return r
 }
 
-func NewTxRequest(hash string) Request {
+func NewTxSubscribeRequest(hash string) Request {
 	query := fmt.Sprintf("tm.event = 'Tx' AND tx.hash = '%s'", hash)
 
-	return NewDefaultRequest().
+	return NewSubscribeRequest().
+		WithQuery(query)
+}
+
+func NewTxUnSubscribeRequest(hash string) Request {
+	query := fmt.Sprintf("tm.event = 'Tx' AND tx.hash = '%s'", hash)
+
+	return NewUnsubscribeRequest().
 		WithQuery(query)
 }

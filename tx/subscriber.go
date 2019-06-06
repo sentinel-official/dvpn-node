@@ -81,13 +81,22 @@ func (s *Subscriber) ReadTxQuery(ok chan bool) error {
 			return err
 		}
 
-		if result.Data != nil {
-			switch data := result.Data.(type) {
-			case tmTypes.EventDataTx:
-				hash := common.HexBytes(data.Tx.Hash()).String()
-				s.events[hash] <- data
-				delete(s.events, hash)
-			}
+		if result.Data == nil {
+			continue
+		}
+
+		data, ok := result.Data.(tmTypes.EventDataTx)
+		if !ok {
+			continue
+		}
+
+		hash := common.HexBytes(data.Tx.Hash()).String()
+		s.events[hash] <- data
+		delete(s.events, hash)
+
+		request := types.NewTxUnSubscribeRequest(hash)
+		if err := s.conn.WriteJSON(request); err != nil {
+			return err
 		}
 	}
 }
@@ -102,7 +111,7 @@ func (s *Subscriber) WriteTxQuery(hash string, event chan tmTypes.EventDataTx) e
 
 	s.events[hash] = event
 
-	request := types.NewTxRequest(hash)
+	request := types.NewTxSubscribeRequest(hash)
 	if err := s.conn.WriteJSON(request); err != nil {
 		delete(s.events, hash)
 

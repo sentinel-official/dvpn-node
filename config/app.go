@@ -68,6 +68,7 @@ func NewAppConfig() *AppConfig {
 	return &AppConfig{}
 }
 
+// nolint:dupl
 func (a *AppConfig) LoadFromPath(path string) error {
 	if path == "" {
 		path = types.DefaultAppConfigFilePath

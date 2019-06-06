@@ -3,12 +3,14 @@ package db
 import (
 	"time"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 	"github.com/jinzhu/gorm"
+
+	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
+// nolint:lll
 type session struct {
 	ID        string    `json:"id" gorm:"Column:_id;type:string REFERENCES subscriptions(_id) ON DELETE CASCADE ON UPDATE CASCADE;Size:16;PRIMARY_KEY"`
 	Index     uint64    `json:"index" gorm:"Column:_index;PRIMARY_KEY;AUTO_INCREMENT:false"`

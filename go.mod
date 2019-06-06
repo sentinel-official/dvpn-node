@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/websocket v1.4.0
-	github.com/ironman0x7b2/sentinel-sdk v0.0.0-20190604122145-b342c8579555
+	github.com/ironman0x7b2/sentinel-sdk v0.0.0-20190606130024-d4d6fed744d1
 	github.com/jinzhu/gorm v1.9.8
 	github.com/jinzhu/inflection v0.0.0-20190603042836-f5c5f50e6090 // indirect
 	github.com/lib/pq v1.1.1 // indirect
@@ -21,6 +21,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/tendermint/tendermint v0.31.5
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5 // indirect
+	golang.org/x/sys v0.0.0-20190606122018-79a91cf218c4 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20190605220351-eb0b1bdb6ae6 // indirect
 	google.golang.org/grpc v1.21.1 // indirect

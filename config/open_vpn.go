@@ -43,6 +43,7 @@ func NewOpenVPNConfig() *OpenVPNConfig {
 	return &OpenVPNConfig{}
 }
 
+// nolint:dupl
 func (o *OpenVPNConfig) LoadFromPath(path string) error {
 	if path == "" {
 		path = types.DefaultOpenVPNConfigFilePath
