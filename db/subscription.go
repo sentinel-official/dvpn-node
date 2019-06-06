@@ -4,6 +4,7 @@ import (
 	"time"
 
 	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/jinzhu/gorm"
 
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
 
@@ -13,11 +14,11 @@ import (
 type subscription struct {
 	ID        string    `json:"id" gorm:"Column:_id;Size:16;NOT NULL;PRIMARY_KEY"`
 	TxHash    string    `json:"tx_hash" gorm:"Column:_tx_hash;Size:64;NOT NULL;UNIQUE"`
-	Address   string    `json:"address" gorm:"Column:_address;Size:64;NOT NULL"`
+	Address   string    `json:"address" gorm:"Column:_address;Size:64;NOT NULL;INDEX"`
 	PubKey    string    `json:"pub_key" gorm:"Column:_pub_key;Size:128;NOT NULL"`
 	Upload    int64     `json:"upload" gorm:"Column:_upload;NOT NULL"`
 	Download  int64     `json:"download" gorm:"Column:_download;NOT NULL"`
-	Status    string    `json:"status" gorm:"Column:_status;Size:8;NOT NULL"`
+	Status    string    `json:"status" gorm:"Column:_status;Size:8;NOT NULL;INDEX"`
 	CreatedAt time.Time `json:"created_at" gorm:"Column:_created_at;NOT NULL"`
 }
 
@@ -72,6 +73,10 @@ func (d DB) SubscriptionFindOne(query interface{}, args ...interface{}) (*types.
 
 	result := d.db.Table("subscriptions").Where(query, args...).First(&_s)
 	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+
 		return nil, result.Error
 	}
 

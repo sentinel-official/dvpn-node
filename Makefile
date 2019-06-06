@@ -17,8 +17,7 @@ build: dep_verify
 	go build -mod=readonly ${BUILD_FLAGS} -o bin/vpn-node main.go
 
 install: build
-	mkdir -p ${GOPATH}/bin/
-	mv bin/vpn-node ${GOPATH}/bin/
+	mkdir -p ${GOPATH}/bin/ && mv bin/vpn-node ${GOPATH}/bin/
 
 test:
 	@go test -mod=readonly -cover ${PACKAGES}

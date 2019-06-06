@@ -15,10 +15,14 @@ func NewDatabase(source string) (*DB, error) {
 		return nil, err
 	}
 
+	db.LogMode(false)
+
 	db.AutoMigrate(&subscription{})
 	db.AutoMigrate(&session{})
 
-	db.Model(&session{}).AddForeignKey("_id", "subscriptions(_id)", "CASCADE", "CASCADE")
+	db.Exec("PRAGMA FOREIGN_KEYS = ON")
+	db.Exec("PRAGMA JOURNAL_MODE = WAL")
+	db.Exec("PRAGMA SYNCHRONOUS = NORMAL")
 
 	return &DB{
 		db: db,

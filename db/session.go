@@ -4,17 +4,18 @@ import (
 	"time"
 
 	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/jinzhu/gorm"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
 type session struct {
-	ID        string    `json:"id" gorm:"Column:_id;Size:16;NOT NULL;PRIMARY_KEY"`
-	Index     uint64    `json:"index" gorm:"Column:_index;NOT NULL;PRIMARY_KEY;AUTO_INCREMENT:false"`
+	ID        string    `json:"id" gorm:"Column:_id;type:string REFERENCES subscriptions(_id) ON DELETE CASCADE ON UPDATE CASCADE;Size:16;PRIMARY_KEY"`
+	Index     uint64    `json:"index" gorm:"Column:_index;PRIMARY_KEY;AUTO_INCREMENT:false"`
 	Upload    int64     `json:"upload" gorm:"Column:_upload;NOT NULL"`
 	Download  int64     `json:"download" gorm:"Column:_download;NOT NULL"`
 	Signature []byte    `json:"signature" gorm:"Column:_signature"`
-	Status    string    `json:"status" gorm:"Column:_status;Size:8;NOT NULL"`
+	Status    string    `json:"status" gorm:"Column:_status;Size:8;NOT NULL;INDEX"`
 	CreatedAt time.Time `json:"created_at" gorm:"Column:_created_at;NOT NULL"`
 }
 
@@ -52,6 +53,10 @@ func (d DB) SessionFindOne(query interface{}, args ...interface{}) (*types.Sessi
 
 	result := d.db.Table("sessions").Where(query, args...).First(&_s)
 	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+
 		return nil, result.Error
 	}
 
