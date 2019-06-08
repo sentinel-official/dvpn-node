@@ -4,6 +4,9 @@ import (
 	"log"
 
 	"github.com/cosmos/cosmos-sdk/client/keys"
+	csdk "github.com/cosmos/cosmos-sdk/types"
+
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/config"
 	_db "github.com/ironman0x7b2/vpn-node/db"
@@ -15,6 +18,12 @@ import (
 
 // nolint:gocyclo
 func main() {
+	cfg := csdk.GetConfig()
+	cfg.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
+	cfg.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
+	cfg.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	cfg.Seal()
+
 	appCfg := config.NewAppConfig()
 	if err := appCfg.LoadFromPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
