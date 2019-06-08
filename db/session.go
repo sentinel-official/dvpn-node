@@ -10,9 +10,8 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-// nolint:lll
 type session struct {
-	ID        string    `json:"id" gorm:"Column:_id;type:string REFERENCES subscriptions(_id) ON DELETE CASCADE ON UPDATE CASCADE;Size:16;PRIMARY_KEY"`
+	ID        string    `json:"id" gorm:"Column:_id;type:string REFERENCES subscriptions(_id) ON DELETE CASCADE ON UPDATE CASCADE;Size:16;PRIMARY_KEY"` // nolint:lll
 	Index     uint64    `json:"index" gorm:"Column:_index;PRIMARY_KEY;AUTO_INCREMENT:false"`
 	Upload    int64     `json:"upload" gorm:"Column:_upload;NOT NULL"`
 	Download  int64     `json:"download" gorm:"Column:_download;NOT NULL"`

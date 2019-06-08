@@ -44,10 +44,6 @@ func NewTxFromConfig(appCfg *config.AppConfig, info keys.Info, kb keys.Keybase) 
 	return NewTx(manager, subscriber), nil
 }
 
-func (t Tx) FromAddress() csdk.AccAddress {
-	return t.Manager.CLIContext.FromAddress
-}
-
 func (t Tx) CompleteAndSubscribeTx(messages ...csdk.Msg) (*tm.EventDataTx, error) {
 	res, err := t.Manager.CompleteAndBroadcastTxSync(messages)
 	if err != nil {

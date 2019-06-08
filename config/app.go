@@ -1,4 +1,4 @@
-// nolint:gochecknoinits,gochecknoglobals
+// nolint:gochecknoglobals,gochecknoinits
 package config
 
 import (
@@ -16,16 +16,6 @@ import (
 )
 
 var appConfigTemplate *template.Template
-
-func init() {
-	var err error
-
-	appConfigTemplate, err = template.New("appConfig").Parse(defaultAppConfigTemplate)
-	if err != nil {
-		panic(err)
-	}
-}
-
 var defaultAppConfigTemplate = `# Application config file
 
 chain_id = "{{ .ChainID }}"
@@ -43,6 +33,15 @@ moniker = "{{ .Node.Moniker }}"
 description = "{{ .Node.Description }}"
 prices_per_gb = "{{ .Node.PricesPerGB }}"
 `
+
+func init() {
+	var err error
+
+	appConfigTemplate, err = template.New("appConfig").Parse(defaultAppConfigTemplate)
+	if err != nil {
+		panic(err)
+	}
+}
 
 type AppConfig struct {
 	ChainID         string `json:"chain_id"`

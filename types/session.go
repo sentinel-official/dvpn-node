@@ -8,9 +8,9 @@ import (
 
 type Session struct {
 	ID        sdk.ID        `json:"id"`
-	Index     uint64         `json:"index"`
+	Index     uint64        `json:"index"`
 	Bandwidth sdk.Bandwidth `json:"bandwidth"`
-	Signature []byte         `json:"signature"`
-	Status    string         `json:"status"`
-	CreatedAt time.Time      `json:"created_at"`
+	Signature []byte        `json:"signature"`
+	Status    string        `json:"status"`
+	CreatedAt time.Time     `json:"created_at"`
 }

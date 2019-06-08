@@ -12,10 +12,10 @@ import (
 
 type MsgBandwidthSignature struct {
 	ID                 sdk.ID        `json:"id"`
-	Index              uint64         `json:"index"`
+	Index              uint64        `json:"index"`
 	Bandwidth          sdk.Bandwidth `json:"bandwidth"`
-	NodeOwnerSignature []byte         `json:"node_owner_signature"`
-	ClientSignature    []byte         `json:"client_signature"`
+	NodeOwnerSignature []byte        `json:"node_owner_signature"`
+	ClientSignature    []byte        `json:"client_signature"`
 }
 
 func NewMsgBandwidthSignature(id sdk.ID, index uint64, bandwidth sdk.Bandwidth,

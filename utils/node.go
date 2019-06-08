@@ -30,7 +30,7 @@ func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn
 			return nil, err
 		}
 
-		msg := vpn.NewMsgRegisterNode(tx.FromAddress(), _vpn.Type(), types.Version,
+		msg := vpn.NewMsgRegisterNode(tx.Manager.CLIContext.FromAddress, _vpn.Type(), types.Version,
 			appCfg.Node.Moniker, pricesPerGB, internetSpeed, _vpn.Encryption())
 
 		data, err := tx.CompleteAndSubscribeTx(msg)
@@ -48,7 +48,7 @@ func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn
 	if err != nil {
 		return nil, err
 	}
-	if !node.Owner.Equals(tx.FromAddress()) {
+	if !node.Owner.Equals(tx.Manager.CLIContext.FromAddress) {
 		return nil, errors.Errorf("Registered node owner address does not match with current account address")
 	}
 

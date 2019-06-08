@@ -1,4 +1,3 @@
-// nolint:gocyclo
 package main
 
 import (
@@ -14,6 +13,7 @@ import (
 	"github.com/ironman0x7b2/vpn-node/utils"
 )
 
+// nolint:gocyclo
 func main() {
 	appCfg := config.NewAppConfig()
 	if err := appCfg.LoadFromPath(types.DefaultAppConfigFilePath); err != nil {

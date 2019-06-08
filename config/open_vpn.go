@@ -1,4 +1,4 @@
-// nolint:gochecknoinits,gochecknoglobals
+// nolint:gochecknoglobals,gochecknoinits
 package config
 
 import (
@@ -16,6 +16,12 @@ import (
 )
 
 var openVPNConfigTemplate *template.Template
+var defaultOpenVPNConfigTemplate = `# OpenVPN config file
+
+port = {{ .Port }}
+protocol = "{{ .Protocol }}"
+encryption = "{{ .Encryption }}"
+`
 
 func init() {
 	var err error
@@ -25,13 +31,6 @@ func init() {
 		panic(err)
 	}
 }
-
-var defaultOpenVPNConfigTemplate = `# OpenVPN config file
-
-port = {{ .Port }}
-protocol = "{{ .Protocol }}"
-encryption = "{{ .Encryption }}"
-`
 
 type OpenVPNConfig struct {
 	Port       uint16 `json:"port"`

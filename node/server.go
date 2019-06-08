@@ -54,12 +54,11 @@ func (n *Node) Router() *mux.Router {
 	return router
 }
 
-type requestAddSubscription struct {
-	TxHash string `json:"tx_hash"`
-}
-
 func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
-	var body requestAddSubscription
+	var body struct {
+		TxHash string `json:"tx_hash"`
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.WriteErrorToResponse(w, 400, types.Error{
 			Message: "Error occurred while decoding the response body",
@@ -196,12 +195,11 @@ func (n *Node) handlerFuncSubscriptionKey(w http.ResponseWriter, r *http.Request
 	_, _ = w.Write(key)
 }
 
-type requestInitSession struct {
-	Signature string `json:"signature"`
-}
-
 func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
-	var body requestInitSession
+	var body struct {
+		Signature string `json:"signature"`
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.WriteErrorToResponse(w, 500, types.Error{
 			Message: "Error occurred while decoding the body",
