@@ -290,7 +290,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 			Index:     index,
 			Bandwidth: sdk.NewBandwidthFromInt64(0, 0),
 			Signature: nil,
-			Status:    types.INACTIVE,
+			Status:    types.INIT,
 			CreatedAt: time.Now().UTC(),
 		}
 
@@ -325,10 +325,10 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
+	query, args = "_id = ? AND _index = ? AND _status IN (?)", []interface{}{
 		vars["id"],
 		index,
-		types.INACTIVE,
+		[]string{types.INIT, types.INACTIVE},
 	}
 
 	updates := map[string]interface{}{

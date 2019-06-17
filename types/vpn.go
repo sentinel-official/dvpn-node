@@ -13,6 +13,7 @@ type BaseVPN interface {
 	Stop() error
 
 	GenerateClientKey(id string) ([]byte, error)
+	RevokeClient(id string) error
 	DisconnectClient(id string) error
 	ClientsList() (map[string]sdk.Bandwidth, error)
 }

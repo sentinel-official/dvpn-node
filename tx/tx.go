@@ -9,6 +9,8 @@ import (
 	tm "github.com/tendermint/tendermint/types"
 
 	"github.com/ironman0x7b2/sentinel-sdk/app/hub"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
+	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 )
 
 type Tx struct {
@@ -67,4 +69,14 @@ func (t Tx) CompleteAndSubscribeTx(messages ...csdk.Msg) (*tm.EventDataTx, error
 	}
 
 	return &data, nil
+}
+
+func (t Tx) SignSessionBandwidth(id sdk.ID, index uint64, bandwidth sdk.Bandwidth) ([]byte, error) {
+	signature, _, err := t.Manager.CLIContext.Keybase.Sign(t.Manager.CLIContext.FromName,
+		t.Manager.password, vpn.NewBandwidthSignatureData(id, index, bandwidth).Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	return signature, nil
 }

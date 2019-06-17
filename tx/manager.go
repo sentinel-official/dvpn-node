@@ -29,6 +29,7 @@ type Manager struct {
 	mutex      *sync.Mutex
 }
 
+// nolint: gocritic
 func NewManager(cliContext context.CLIContext, _txBuilder txBuilder.TxBuilder, password string) *Manager {
 	return &Manager{
 		CLIContext: cliContext,

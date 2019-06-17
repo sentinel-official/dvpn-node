@@ -159,10 +159,11 @@ func (o OpenVPN) ClientsList() (map[string]sdk.Bandwidth, error) {
 	return clients, nil
 }
 
-func (o OpenVPN) RevokeClientCertificate(cname string) error {
+func (o OpenVPN) RevokeClient(id string) error {
+	cname := "client_" + id
 	cmd := exec.Command("sh", "-c", commandRevokeClientCertificate(cname))
 
-	log.Printf("Revoking the client certificate with common name `%s`", cname)
+	log.Printf("Revoking the client with common name `%s`", cname)
 	return cmd.Run()
 }
 
@@ -171,11 +172,7 @@ func (o OpenVPN) DisconnectClient(id string) error {
 	cmd := exec.Command("sh", "-c", commandDisconnectClient(cname, managementPort))
 
 	log.Printf("Disconnecting the client with common name `%s`", cname)
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	return o.RevokeClientCertificate(cname)
+	return cmd.Run()
 }
 
 func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {

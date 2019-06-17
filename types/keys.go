@@ -14,15 +14,14 @@ const (
 
 // nolint:gochecknoglobals
 var (
-	Version                            = ""
-	HomeDir                            = os.ExpandEnv("$HOME")
-	DefaultConfigDir                   = filepath.Join(HomeDir, ".sentinel", "vpn_node")
-	DefaultDatabaseFilePath            = filepath.Join(DefaultConfigDir, "database.db")
-	DefaultAppConfigFilePath           = filepath.Join(DefaultConfigDir, "app_config.toml")
-	DefaultOpenVPNConfigFilePath       = filepath.Join(DefaultConfigDir, "open_vpn_config.toml")
-	ConnectionReadTimeout              = 30 * time.Second
-	SessionTimeout                     = 30 * time.Second
-	RequestBandwidthSignInterval       = 5 * time.Second
-	UpdateNodeStatusInterval           = 200 * time.Second
-	UpdateSessionBandwidthInfoInterval = 100 * time.Second
+	Version                      = ""
+	HomeDir                      = os.ExpandEnv("$HOME")
+	DefaultConfigDir             = filepath.Join(HomeDir, ".sentinel", "vpn_node")
+	DefaultDatabaseFilePath      = filepath.Join(DefaultConfigDir, "database.db")
+	DefaultAppConfigFilePath     = filepath.Join(DefaultConfigDir, "app_config.toml")
+	DefaultOpenVPNConfigFilePath = filepath.Join(DefaultConfigDir, "open_vpn_config.toml")
+	ConnectionReadTimeout        = 30 * time.Second
+	RequestBandwidthSignInterval = 5 * time.Second
+	UpdateNodeStatusInterval     = 200 * time.Second
+	UpdateBandwidthInfosInterval = 100 * time.Second
 )
