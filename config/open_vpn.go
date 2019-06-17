@@ -1,4 +1,3 @@
-// nolint:gochecknoglobals,gochecknoinits
 package config
 
 import (
@@ -15,14 +14,17 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-var openVPNConfigTemplate *template.Template
-var defaultOpenVPNConfigTemplate = `# OpenVPN config file
-
+// nolint: gochecknoglobals
+var (
+	openVPNConfigTemplate        *template.Template
+	defaultOpenVPNConfigTemplate = `
 port = {{ .Port }}
 protocol = "{{ .Protocol }}"
 encryption = "{{ .Encryption }}"
 `
+)
 
+// nolint: gochecknoinits
 func init() {
 	var err error
 
@@ -72,7 +74,7 @@ func (o *OpenVPNConfig) LoadFromPath(path string) error {
 	return json.Unmarshal(data, o)
 }
 
-func (o OpenVPNConfig) SaveToPath(path string) error {
+func (o *OpenVPNConfig) SaveToPath(path string) error {
 	var buffer bytes.Buffer
 	if err := openVPNConfigTemplate.Execute(&buffer, o); err != nil {
 		return err

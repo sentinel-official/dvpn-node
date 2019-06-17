@@ -1,4 +1,3 @@
-// nolint:gochecknoglobals,gochecknoinits
 package config
 
 import (
@@ -15,9 +14,10 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-var appConfigTemplate *template.Template
-var defaultAppConfigTemplate = `# Application config file
-
+// nolint:gochecknoglobals
+var (
+	appConfigTemplate        *template.Template
+	defaultAppConfigTemplate = `
 chain_id = "{{ .ChainID }}"
 rpc_address = "{{ .RPCAddress }}"
 resolver_address = "{{ .ResolverAddress }}"
@@ -33,7 +33,9 @@ moniker = "{{ .Node.Moniker }}"
 description = "{{ .Node.Description }}"
 prices_per_gb = "{{ .Node.PricesPerGB }}"
 `
+)
 
+// nolint:gochecknoinits
 func init() {
 	var err error
 
@@ -51,8 +53,7 @@ type AppConfig struct {
 	APIPort         uint16 `json:"api_port"`
 
 	Account struct {
-		Name     string `json:"name"`
-		Password string `json:"password,omitempty"`
+		Name string `json:"name"`
 	} `json:"account"`
 
 	Node struct {
@@ -97,9 +98,7 @@ func (a *AppConfig) LoadFromPath(path string) error {
 	return json.Unmarshal(data, a)
 }
 
-func (a AppConfig) SaveToPath(path string) error {
-	a.Account.Password = ""
-
+func (a *AppConfig) SaveToPath(path string) error {
 	var buffer bytes.Buffer
 	if err := appConfigTemplate.Execute(&buffer, a); err != nil {
 		return err

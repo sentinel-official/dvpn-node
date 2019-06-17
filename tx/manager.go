@@ -19,7 +19,6 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 	core "github.com/tendermint/tendermint/rpc/core/types"
 
-	"github.com/ironman0x7b2/vpn-node/config"
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
@@ -39,12 +38,12 @@ func NewManager(cliContext context.CLIContext, _txBuilder txBuilder.TxBuilder, p
 	}
 }
 
-func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
-	info keys.Info, kb keys.Keybase) (*Manager, error) {
+func NewManagerWithConfig(chainID, rpcAddress, password string, cdc *codec.Codec, keyInfo keys.Info,
+	kb keys.Keybase) (*Manager, error) {
 
-	verifier, err := proxy.NewVerifier(appCfg.ChainID,
-		filepath.Join(types.DefaultConfigDir, ".vpn_lite"),
-		client.NewHTTP(appCfg.RPCAddress, "/websocket"),
+	verifier, err := proxy.NewVerifier(chainID,
+		filepath.Join(types.DefaultConfigDir, ".lite"),
+		client.NewHTTP(rpcAddress, "/websocket"),
 		tmLog.NewNopLogger(), 10)
 	if err != nil {
 		return nil, err
@@ -53,23 +52,24 @@ func NewManagerFromConfig(appCfg *config.AppConfig, cdc *codec.Codec,
 	cliContext := context.NewCLIContext().
 		WithCodec(cdc).
 		WithAccountDecoder(cdc).
-		WithNodeURI(appCfg.RPCAddress).
+		WithNodeURI(rpcAddress).
 		WithVerifier(verifier).
-		WithFrom(info.GetName()).
-		WithFromName(info.GetName()).
-		WithFromAddress(info.GetAddress())
+		WithFrom(keyInfo.GetName()).
+		WithFromName(keyInfo.GetName()).
+		WithFromAddress(keyInfo.GetAddress())
+	cliContext.Keybase = kb
 
-	account, err := cliContext.GetAccount(info.GetAddress().Bytes())
+	account, err := cliContext.GetAccount(keyInfo.GetAddress().Bytes())
 	if err != nil {
 		return nil, err
 	}
 
 	_txBuilder := txBuilder.NewTxBuilder(utils.GetTxEncoder(cdc),
 		account.GetAccountNumber(), account.GetSequence(), 1000000000,
-		1.0, false, appCfg.ChainID,
+		1.0, false, chainID,
 		"", csdk.Coins{}, csdk.DecCoins{}).WithKeybase(kb)
 
-	return NewManager(cliContext, _txBuilder, appCfg.Account.Password), nil
+	return NewManager(cliContext, _txBuilder, password), nil
 }
 
 func (m *Manager) CompleteAndBroadcastTxSync(messages []csdk.Msg) (*csdk.TxResponse, error) {
@@ -110,14 +110,13 @@ func (m *Manager) QueryTx(hash string) (*core.ResultTx, error) {
 		return nil, err
 	}
 
-	log.Printf("Querying the transaction details with hash `%s`", hash)
+	log.Printf("Querying the transaction with hash `%s`", hash)
 	res, err := node.Tx(_hash, !m.CLIContext.TrustNode)
 	if err != nil {
 		return nil, err
 	}
 
 	if !m.CLIContext.TrustNode {
-		log.Println("Validating the queried transaction details")
 		if err := tx.ValidateTxResult(m.CLIContext, res); err != nil {
 			return nil, err
 		}

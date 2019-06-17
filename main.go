@@ -35,17 +35,17 @@ func main() {
 		panic(err)
 	}
 
-	info, err := utils.ProcessAccount(kb, appCfg.Account.Name)
+	keyInfo, err := utils.ProcessAccount(kb, appCfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Account.Name = info.GetName()
+	appCfg.Account.Name = keyInfo.GetName()
 	if err = appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
-	appCfg.Account.Password, err = utils.ProcessAccountPassword(kb, appCfg.Account.Name)
+	password, err := utils.ProcessAccountPassword(kb, appCfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
@@ -55,26 +55,28 @@ func main() {
 		panic(err)
 	}
 
-	tx, err := _tx.NewTxFromConfig(appCfg, info, kb)
+	tx, err := _tx.NewTxWithConfig(appCfg.ChainID, appCfg.RPCAddress, password, keyInfo, kb)
 	if err != nil {
 		panic(err)
 	}
 
-	node, err := utils.ProcessNode(appCfg, tx, vpn)
+	nodeInfo, err := utils.ProcessNode(appCfg.Node.ID, appCfg.Node.Moniker, appCfg.Node.PricesPerGB, tx, vpn)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Node.ID = node.ID.String()
+	appCfg.Node.ID = nodeInfo.ID.String()
 	if err = appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
-	db, err := _db.NewDatabase("sentinel.db")
+	db, err := _db.NewDatabase(types.DefaultDatabaseFilePath)
 	if err != nil {
 		panic(err)
 	}
 
-	_node.NewNode(node.ID, info.GetAddress(), info.GetPubKey(),
-		tx, vpn, db).Start(appCfg.APIPort)
+	node := _node.NewNode(nodeInfo.ID, keyInfo.GetAddress(), keyInfo.GetPubKey(), tx, db, vpn)
+	if err = node.Start(appCfg.APIPort); err != nil {
+		panic(err)
+	}
 }

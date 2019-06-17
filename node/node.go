@@ -7,7 +7,6 @@ import (
 	"time"
 
 	csdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
@@ -19,25 +18,19 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-type client struct {
-	pubKey      crypto.PubKey
-	conn        *websocket.Conn
-	outMessages chan *types.Msg
-}
-
 type Node struct {
 	id      sdk.ID
 	address csdk.AccAddress
 	pubKey  crypto.PubKey
 
 	tx      *_tx.Tx
-	vpn     types.BaseVPN
 	db      *_db.DB
+	vpn     types.BaseVPN
 	clients map[string]*client
 }
 
 func NewNode(id sdk.ID, address csdk.AccAddress, pubKey crypto.PubKey,
-	tx *_tx.Tx, _vpn types.BaseVPN, db *_db.DB) *Node {
+	tx *_tx.Tx, db *_db.DB, _vpn types.BaseVPN) *Node {
 
 	return &Node{
 		id:      id,
@@ -45,15 +38,15 @@ func NewNode(id sdk.ID, address csdk.AccAddress, pubKey crypto.PubKey,
 		pubKey:  pubKey,
 
 		tx:      tx,
-		vpn:     _vpn,
 		db:      db,
+		vpn:     _vpn,
 		clients: make(map[string]*client),
 	}
 }
 
-func (n *Node) Start(apiPort uint16) {
+func (n *Node) Start(apiPort uint16) error {
 	if err := n.vpn.Init(); err != nil {
-		panic(err)
+		return err
 	}
 
 	go func() {
@@ -74,12 +67,10 @@ func (n *Node) Start(apiPort uint16) {
 		}
 	}()
 
-	listenAddress := fmt.Sprintf("0.0.0.0:%d", apiPort)
+	addr := fmt.Sprintf("0.0.0.0:%d", apiPort)
 
-	log.Printf("Listening the API server on address `%s`", listenAddress)
-	if err := http.ListenAndServe(listenAddress, n.Router()); err != nil {
-		panic(err)
-	}
+	log.Printf("Listening the API server on address `%s`", addr)
+	return http.ListenAndServe(addr, n.Router())
 }
 
 func (n *Node) updateNodeStatus() error {

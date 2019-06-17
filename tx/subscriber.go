@@ -23,45 +23,35 @@ type Subscriber struct {
 }
 
 func NewSubscriber(address string, cdc *codec.Codec) (*Subscriber, error) {
-	subscriber := Subscriber{
-		uri:    fmt.Sprintf("ws://%s/websocket", address),
-		cdc:    cdc,
-		events: make(map[string]chan tm.EventDataTx),
+	uri := fmt.Sprintf("ws://%s/websocket", address)
+
+	log.Printf("Dialing the rpc server `%s`", uri)
+	conn, _, err := websocket.DefaultDialer.Dial(uri, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	ok := make(chan bool)
-	go func() {
-		if err := subscriber.ReadTxQuery(ok); err != nil {
-			panic(err)
-		}
-	}()
-
-	<-ok
-	return &subscriber, nil
+	return &Subscriber{
+		uri:    uri,
+		cdc:    cdc,
+		conn:   conn,
+		events: make(map[string]chan tm.EventDataTx),
+	}, nil
 }
 
 // nolint:gocyclo
-func (s *Subscriber) ReadTxQuery(ok chan bool) error {
-	log.Printf("Dialing the rpc server `%s`", s.uri)
-	conn, _, err := websocket.DefaultDialer.Dial(s.uri, nil)
-	if err != nil {
-		return err
-	}
-
+func (s *Subscriber) ReadTxQuery() error {
 	defer func() {
-		if err := conn.Close(); err != nil {
+		if err := s.conn.Close(); err != nil {
 			panic(err)
 		}
 	}()
-
-	s.conn = conn
-	ok <- true
 
 	var response rpc.RPCResponse
 	var result core.ResultEvent
 
 	for {
-		_, p, err := conn.ReadMessage()
+		_, p, err := s.conn.ReadMessage()
 		if err != nil {
 			return err
 		}

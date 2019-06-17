@@ -10,6 +10,10 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
+const (
+	sessionTable = "sessions"
+)
+
 type session struct {
 	ID        string    `json:"id" gorm:"Column:_id;type:string REFERENCES subscriptions(_id) ON DELETE CASCADE ON UPDATE CASCADE;Size:16;PRIMARY_KEY"` // nolint:lll
 	Index     uint64    `json:"index" gorm:"Column:_index;PRIMARY_KEY;AUTO_INCREMENT:false"`
@@ -21,7 +25,7 @@ type session struct {
 }
 
 func (session) TableName() string {
-	return "sessions"
+	return sessionTable
 }
 
 func (s *session) Session() (*types.Session, error) {
@@ -46,29 +50,27 @@ func (d DB) SessionSave(s *types.Session) error {
 		CreatedAt: s.CreatedAt,
 	}
 
-	return d.db.Table("sessions").Create(&_s).Error
+	return d.db.Table(sessionTable).Create(&_s).Error
 }
 
 func (d DB) SessionFindOne(query interface{}, args ...interface{}) (*types.Session, error) {
 	var _s session
 
-	result := d.db.Table("sessions").Where(query, args...).First(&_s)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-
-		return nil, result.Error
+	err := d.db.Table(sessionTable).
+		Where(query, args...).
+		First(&_s).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
 	}
-
-	session, err := _s.Session()
 	if err != nil {
 		return nil, err
 	}
 
-	return session, nil
+	return _s.Session()
 }
 
 func (d DB) SessionFindOneAndUpdate(values map[string]interface{}, query interface{}, args ...interface{}) error {
-	return d.db.Table("sessions").Where(query, args...).Updates(values).Error
+	return d.db.Table(sessionTable).
+		Where(query, args...).
+		Updates(values).Error
 }

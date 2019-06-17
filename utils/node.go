@@ -9,18 +9,17 @@ import (
 
 	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
 
-	"github.com/ironman0x7b2/vpn-node/config"
 	_tx "github.com/ironman0x7b2/vpn-node/tx"
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {
-	nodeID := appCfg.Node.ID
+func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {
+	from := tx.Manager.CLIContext.FromAddress
 
-	if nodeID == "" {
+	if id == "" {
 		log.Println("Got an empty node ID, so registering the node")
 
-		pricesPerGB, err := csdk.ParseCoins(appCfg.Node.PricesPerGB)
+		pricesPerGB, err := csdk.ParseCoins(_pricesPerGB)
 		if err != nil {
 			return nil, err
 		}
@@ -30,25 +29,25 @@ func ProcessNode(appCfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn
 			return nil, err
 		}
 
-		msg := vpn.NewMsgRegisterNode(tx.Manager.CLIContext.FromAddress, _vpn.Type(), types.Version,
-			appCfg.Node.Moniker, pricesPerGB, internetSpeed, _vpn.Encryption())
+		msg := vpn.NewMsgRegisterNode(from, _vpn.Type(), types.Version,
+			moniker, pricesPerGB, internetSpeed, _vpn.Encryption())
 
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
 			return nil, err
 		}
 
-		nodeID = string(data.Result.Tags[1].Value)
+		id = string(data.Result.Tags[1].Value)
 
 		log.Printf("Node registered at height `%d`, tx hash `%s`, node ID `%s`",
-			data.Height, common.HexBytes(data.Tx.Hash()).String(), nodeID)
+			data.Height, common.HexBytes(data.Tx.Hash()).String(), id)
 	}
 
-	node, err := tx.QueryNode(nodeID)
+	node, err := tx.QueryNode(id)
 	if err != nil {
 		return nil, err
 	}
-	if !node.Owner.Equals(tx.Manager.CLIContext.FromAddress) {
+	if !node.Owner.Equals(from) {
 		return nil, errors.Errorf("Registered node owner address does not match with current account address")
 	}
 

@@ -9,8 +9,6 @@ import (
 	tm "github.com/tendermint/tendermint/types"
 
 	"github.com/ironman0x7b2/sentinel-sdk/app/hub"
-
-	"github.com/ironman0x7b2/vpn-node/config"
 )
 
 type Tx struct {
@@ -25,21 +23,27 @@ func NewTx(manager *Manager, subscriber *Subscriber) *Tx {
 	}
 }
 
-func NewTxFromConfig(appCfg *config.AppConfig, info keys.Info, kb keys.Keybase) (*Tx, error) {
+func NewTxWithConfig(chainID, rpcAddress, password string, keyInfo keys.Info, kb keys.Keybase) (*Tx, error) {
 	cdc := hub.MakeCodec()
 	tm.RegisterEventDatas(cdc)
 
 	log.Println("Initializing the transaction manager")
-	manager, err := NewManagerFromConfig(appCfg, cdc, info, kb)
+	manager, err := NewManagerWithConfig(chainID, rpcAddress, password, cdc, keyInfo, kb)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Println("Initializing the transaction subscriber")
-	subscriber, err := NewSubscriber(appCfg.RPCAddress, cdc)
+	subscriber, err := NewSubscriber(rpcAddress, cdc)
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		if err := subscriber.ReadTxQuery(); err != nil {
+			panic(err)
+		}
+	}()
 
 	return NewTx(manager, subscriber), nil
 }

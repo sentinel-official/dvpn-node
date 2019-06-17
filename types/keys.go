@@ -16,7 +16,8 @@ const (
 var (
 	Version                            = ""
 	HomeDir                            = os.ExpandEnv("$HOME")
-	DefaultConfigDir                   = filepath.Join(HomeDir, ".sentinel", "vpn-node")
+	DefaultConfigDir                   = filepath.Join(HomeDir, ".sentinel", "vpn_node")
+	DefaultDatabaseFilePath            = filepath.Join(DefaultConfigDir, "database.db")
 	DefaultAppConfigFilePath           = filepath.Join(DefaultConfigDir, "app_config.toml")
 	DefaultOpenVPNConfigFilePath       = filepath.Join(DefaultConfigDir, "open_vpn_config.toml")
 	ConnectionReadTimeout              = 30 * time.Second

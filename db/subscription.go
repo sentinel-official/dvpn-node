@@ -11,6 +11,10 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
+const (
+	subscriptionTable = "subscriptions"
+)
+
 type subscription struct {
 	ID        string    `json:"id" gorm:"Column:_id;Size:16;NOT NULL;PRIMARY_KEY"`
 	TxHash    string    `json:"tx_hash" gorm:"Column:_tx_hash;Size:64;NOT NULL;UNIQUE"`
@@ -23,7 +27,7 @@ type subscription struct {
 }
 
 func (subscription) TableName() string {
-	return "subscriptions"
+	return subscriptionTable
 }
 
 func (s *subscription) Subscription() (*types.Subscription, error) {
@@ -71,19 +75,15 @@ func (d DB) SubscriptionSave(s *types.Subscription) error {
 func (d DB) SubscriptionFindOne(query interface{}, args ...interface{}) (*types.Subscription, error) {
 	var _s subscription
 
-	result := d.db.Table("subscriptions").Where(query, args...).First(&_s)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-
-		return nil, result.Error
+	err := d.db.Table(subscriptionTable).
+		Where(query, args...).
+		First(&_s).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
 	}
-
-	sub, err := _s.Subscription()
 	if err != nil {
 		return nil, err
 	}
 
-	return sub, nil
+	return _s.Subscription()
 }

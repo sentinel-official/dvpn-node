@@ -57,7 +57,7 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 		}
 	}
 
-	info, err := kb.CreateAccount(name, mnemonic, keys.DefaultBIP39Passphrase, password, uint32(0), uint32(0))
+	keyInfo, err := kb.CreateAccount(name, mnemonic, keys.DefaultBIP39Passphrase, password, uint32(0), uint32(0))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 		"It is the only way to recover your account if you ever forget your password.\n\n"+
 		"%s\n\n", mnemonic)
 
-	return info, err
+	return keyInfo, err
 }
 
 func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
@@ -76,16 +76,16 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 	}
 
 	log.Println("Got an empty account name, so listing all the available accounts")
-	info, err := kb.List()
+	keysInfo, err := kb.List()
 	if err != nil {
 		return nil, err
 	}
-	if len(info) == 0 {
+	if len(keysInfo) == 0 {
 		log.Println("No accounts found in the keybase, so creating a new account")
 		return createAccount(kb)
 	}
 
-	accounts, err := keys.Bech32KeysOutput(info)
+	accounts, err := keys.Bech32KeysOutput(keysInfo)
 	if err != nil {
 		return nil, err
 	}

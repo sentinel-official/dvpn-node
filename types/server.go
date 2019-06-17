@@ -8,6 +8,6 @@ type Error struct {
 
 type Response struct {
 	Success bool        `json:"success"`
-	Error   Error       `json:"error,omitempty"`
+	Error   interface{} `json:"error,omitempty"`
 	Result  interface{} `json:"result,omitempty"`
 }
