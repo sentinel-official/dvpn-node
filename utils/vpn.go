@@ -10,7 +10,7 @@ import (
 
 func ProcessVPN(_type string) (types.BaseVPN, error) {
 	switch _type {
-	case "OpenVPN":
+	case openvpn.Type:
 		return processOpenVPN()
 	default:
 		return nil, errors.Errorf("Currently the VPN type `%s` is not supported", _type)

@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	Type                 = "OpenVPN"
 	managementPort       = 1195
 	serverConfigFilePath = "/etc/openvpn/server.conf"
 	statusLogFilePath    = "/etc/openvpn/status.log"
@@ -40,7 +41,7 @@ func NewOpenVPN(port uint16, ip, protocol, encryption string) *OpenVPN {
 }
 
 func (o OpenVPN) Type() string {
-	return "OpenVPN"
+	return Type
 }
 
 func (o OpenVPN) Encryption() string {
