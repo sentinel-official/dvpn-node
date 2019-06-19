@@ -1,6 +1,6 @@
 package types
 
-type Error struct {
+type StdError struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Info    interface{} `json:"info,omitempty"`
