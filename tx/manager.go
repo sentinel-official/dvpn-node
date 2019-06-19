@@ -3,6 +3,7 @@ package tx
 import (
 	"encoding/hex"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	csdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	txBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/pkg/errors"
 	tmLog "github.com/tendermint/tendermint/libs/log"
@@ -42,23 +44,30 @@ func NewManager(cliContext context.CLIContext, _txBuilder txBuilder.TxBuilder, p
 func NewManagerWithConfig(chainID, rpcAddress, password string, cdc *codec.Codec, keyInfo keys.Info,
 	kb keys.Keybase) (*Manager, error) {
 
-	verifier, err := proxy.NewVerifier(chainID,
-		filepath.Join(types.DefaultConfigDir, ".lite"),
-		client.NewHTTP(rpcAddress, "/websocket"),
-		tmLog.NewNopLogger(), 10)
+	_client := client.NewHTTP(rpcAddress, "/websocket")
+
+	verifier, err := proxy.NewVerifier(chainID, filepath.Join(types.DefaultConfigDir, "lite"),
+		_client, tmLog.NewNopLogger(), 10)
 	if err != nil {
 		return nil, err
 	}
 
-	cliContext := context.NewCLIContext().
-		WithCodec(cdc).
-		WithAccountDecoder(cdc).
-		WithNodeURI(rpcAddress).
-		WithVerifier(verifier).
-		WithFrom(keyInfo.GetName()).
-		WithFromName(keyInfo.GetName()).
-		WithFromAddress(keyInfo.GetAddress())
-	cliContext.Keybase = kb
+	cliContext := context.CLIContext{
+		Codec:         cdc,
+		Client:        _client,
+		Keybase:       kb,
+		Output:        os.Stdout,
+		OutputFormat:  "text",
+		NodeURI:       rpcAddress,
+		From:          keyInfo.GetName(),
+		AccountStore:  auth.StoreKey,
+		BroadcastMode: "sync",
+		Verifier:      verifier,
+		VerifierHome:  types.DefaultConfigDir,
+		FromAddress:   keyInfo.GetAddress(),
+		FromName:      keyInfo.GetName(),
+		SkipConfirm:   true,
+	}.WithAccountDecoder(cdc)
 
 	account, err := cliContext.GetAccount(keyInfo.GetAddress().Bytes())
 	if err != nil {
@@ -68,7 +77,8 @@ func NewManagerWithConfig(chainID, rpcAddress, password string, cdc *codec.Codec
 	_txBuilder := txBuilder.NewTxBuilder(utils.GetTxEncoder(cdc),
 		account.GetAccountNumber(), account.GetSequence(), 1000000000,
 		1.0, false, chainID,
-		"", csdk.Coins{}, csdk.DecCoins{}).WithKeybase(kb)
+		"", csdk.Coins{}, csdk.DecCoins{}).
+		WithKeybase(kb)
 
 	return NewManager(cliContext, _txBuilder, password), nil
 }

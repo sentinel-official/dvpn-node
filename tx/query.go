@@ -43,7 +43,16 @@ func (t Tx) QuerySubscriptionByTxHash(hash string) (*vpn.Subscription, error) {
 		return nil, errors.Errorf(res.TxResult.String())
 	}
 
-	id := string(res.TxResult.Tags[1].Value)
+	var stdTx auth.StdTx
+	if err := t.Manager.CLIContext.Codec.UnmarshalBinaryLengthPrefixed(res.Tx, &stdTx); err != nil {
+		return nil, err
+	}
+
+	if len(stdTx.Msgs) != 1 || stdTx.Msgs[0].Type() != "MsgStartSubscription" {
+		return nil, errors.Errorf("Invalid subscription transaction")
+	}
+
+	id := string(res.TxResult.Tags[2].Value)
 	return common.QuerySubscription(t.Manager.CLIContext, t.Manager.CLIContext.Codec, id)
 }
 
