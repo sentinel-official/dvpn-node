@@ -163,7 +163,7 @@ func (o OpenVPN) RevokeClient(id string) error {
 	cname := "client_" + id
 	cmd := exec.Command("sh", "-c", commandRevokeClientCertificate(cname))
 
-	log.Printf("Revoking the client with common name `%s`", cname)
+	log.Printf("Revoking the client key with common name `%s`", cname)
 	return cmd.Run()
 }
 
@@ -175,20 +175,36 @@ func (o OpenVPN) DisconnectClient(id string) error {
 	return cmd.Run()
 }
 
+// nolint:gocyclo
 func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 	cname := "client_" + id
-	certPath := fmt.Sprintf("/usr/share/easy-rsa/pki/issued/%s.crt", cname)
-	keyPath := fmt.Sprintf("/usr/share/easy-rsa/pki/private/%s.key", cname)
-	_, certPathErr := os.Stat(certPath)
-	_, keyPathErr := os.Stat(keyPath)
 
-	if os.IsNotExist(certPathErr) || os.IsNotExist(keyPathErr) {
-		cmd := exec.Command("sh", "-c", commandGenerateClientKeys(cname))
-
-		log.Printf("Generating the client key with common name `%s`", cname)
-		if err := cmd.Run(); err != nil {
+	reqPath := fmt.Sprintf("/usr/share/easy-rsa/pki/reqs/%s.req", cname)
+	if _, err := os.Stat(reqPath); err == nil {
+		if err := os.Remove(reqPath); err != nil {
 			return nil, err
 		}
+	}
+
+	certPath := fmt.Sprintf("/usr/share/easy-rsa/pki/issued/%s.crt", cname)
+	if _, err := os.Stat(certPath); err == nil {
+		if err := os.Remove(certPath); err != nil {
+			return nil, err
+		}
+	}
+
+	keyPath := fmt.Sprintf("/usr/share/easy-rsa/pki/private/%s.key", cname)
+	if _, err := os.Stat(keyPath); err == nil {
+		if err := os.Remove(keyPath); err != nil {
+			return nil, err
+		}
+	}
+
+	cmd := exec.Command("sh", "-c", commandGenerateClientKeys(cname))
+
+	log.Printf("Generating the client key with common name `%s`", cname)
+	if err := cmd.Run(); err != nil {
+		return nil, err
 	}
 
 	ca, err := ioutil.ReadFile("/usr/share/easy-rsa/pki/ca.crt")
@@ -206,12 +222,11 @@ func (o OpenVPN) GenerateClientKey(id string) ([]byte, error) {
 		return nil, err
 	}
 
-	tlsAuth, err := ioutil.ReadFile("/usr/share/easy-rsa/pki/ta.key")
+	ta, err := ioutil.ReadFile("/usr/share/easy-rsa/pki/ta.key")
 	if err != nil {
 		return nil, err
 	}
 
-	clientKey := fmt.Sprintf(clientConfigTemplate, o.ip, o.port, o.encryption, ca, cert, key, tlsAuth)
-
+	clientKey := fmt.Sprintf(clientConfigTemplate, o.ip, o.port, o.encryption, ca, cert, key, ta)
 	return []byte(clientKey), nil
 }
