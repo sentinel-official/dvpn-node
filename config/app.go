@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	"github.com/pelletier/go-toml"
-	"github.com/tendermint/tendermint/libs/common"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -108,5 +107,5 @@ func (a *AppConfig) SaveToPath(path string) error {
 		path = types.DefaultAppConfigFilePath
 	}
 
-	return common.WriteFile(path, buffer.Bytes(), os.ModePerm)
+	return ioutil.WriteFile(path, buffer.Bytes(), os.ModePerm)
 }
