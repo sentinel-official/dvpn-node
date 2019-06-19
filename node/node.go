@@ -9,6 +9,7 @@ import (
 
 	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
@@ -80,7 +81,7 @@ func (n *Node) updateNodeStatus() error {
 		types.UpdateNodeStatusInterval.String())
 
 	t := time.NewTicker(types.UpdateNodeStatusInterval)
-	for range t.C {
+	for ; ; <-t.C {
 		msg := vpn.NewMsgUpdateNodeStatus(n.address, n.id, vpn.StatusActive)
 
 		data, err := n.tx.CompleteAndSubscribeTx(msg)
@@ -91,8 +92,6 @@ func (n *Node) updateNodeStatus() error {
 		log.Printf("Node status updated at block height `%d`, tx hash `%s`",
 			data.Height, common.HexBytes(data.Tx.Hash()).String())
 	}
-
-	return nil
 }
 
 func (n *Node) updateBandwidthInfos() error {
@@ -107,7 +106,7 @@ func (n *Node) updateBandwidthInfos() error {
 	var makeTx bool
 	var wg sync.WaitGroup
 
-	for range t2.C {
+	for ; ; <-t2.C {
 		select {
 		case <-t1.C:
 			makeTx = true
@@ -148,8 +147,6 @@ func (n *Node) updateBandwidthInfos() error {
 			}()
 		}
 	}
-
-	return nil
 }
 
 func (n *Node) requestBandwidthSign(id string, bandwidth sdk.Bandwidth, makeTx bool) (msg csdk.Msg, err error) {
@@ -168,7 +165,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth sdk.Bandwidth, makeTx b
 
 	client, ok := n.clients[id]
 	if !ok {
-		return nil, fmt.Errorf("client with id `%s` exists in database but not in memory", id)
+		return nil, errors.Errorf("Client with id `%s` exists in database but not in memory", id)
 	}
 
 	if makeTx {
