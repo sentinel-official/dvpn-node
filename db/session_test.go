@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	csdkTypes "github.com/cosmos/cosmos-sdk/types"
+	csdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	sdkTypes "github.com/ironman0x7b2/sentinel-sdk/types"
+	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -31,9 +31,9 @@ func TestDB_SessionSave(t *testing.T) {
 	require.Nil(t, _ses)
 
 	ses := &types.Session{
-		ID:        sdkTypes.NewIDFromString("0"),
+		ID:        sdk.NewIDFromString("0"),
 		Index:     0,
-		Bandwidth: sdkTypes.NewBandwidthFromInt64(1024, 1024),
+		Bandwidth: sdk.NewBandwidthFromInt64(1024, 1024),
 		Signature: nil,
 		Status:    types.ACTIVE,
 		CreatedAt: time.Now().UTC(),
@@ -47,13 +47,13 @@ func TestDB_SessionSave(t *testing.T) {
 	require.Nil(t, _ses)
 
 	pubKey := ed25519.GenPrivKey().PubKey()
-	address := csdkTypes.AccAddress(pubKey.Address())
+	address := csdk.AccAddress(pubKey.Address())
 	sub := &types.Subscription{
-		ID:        sdkTypes.NewIDFromUInt64(0),
+		ID:        sdk.NewIDFromUInt64(0),
 		TxHash:    fmt.Sprintf("%d", 0),
 		Address:   address,
 		PubKey:    pubKey,
-		Bandwidth: sdkTypes.NewBandwidthFromInt64(1024, 1024),
+		Bandwidth: sdk.NewBandwidthFromInt64(1024, 1024),
 		Status:    types.ACTIVE,
 		CreatedAt: time.Now().UTC(),
 	}
