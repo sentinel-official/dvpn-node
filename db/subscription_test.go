@@ -1,8 +1,10 @@
+// nolint
 package db
 
 import (
 	"fmt"
-	"syscall"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -15,38 +17,190 @@ import (
 	"github.com/ironman0x7b2/vpn-node/types"
 )
 
-func TestDB_SubscriptionSave(t *testing.T) {
-	_ = syscall.Unlink("/tmp/sentinel.db")
+var (
+	testPubKey          = ed25519.GenPrivKey().PubKey()
+	testBech32PubKey, _ = csdk.Bech32ifyAccPub(testPubKey)
+	testAddress         = csdk.AccAddress(testPubKey.Address())
+	testIDZero          = sdk.NewIDFromUInt64(0)
+	testIDPos           = sdk.NewIDFromUInt64(1)
+	testBandwidth1      = sdk.NewBandwidthFromInt64(1024, 1024)
+	testBandwidth2      = sdk.NewBandwidthFromInt64(2048, 2048)
+	testTime            = time.Now().UTC()
+)
 
-	db, err := NewDatabase("/tmp/sentinel.db")
-	require.NotNil(t, db)
-	require.Nil(t, err)
-
-	query, args := "_id = ?", []interface{}{
-		"0",
-	}
-
-	_sub, err := db.SubscriptionFindOne(query, args...)
-	require.Nil(t, err)
-	require.Nil(t, _sub)
-
-	pubKey := ed25519.GenPrivKey().PubKey()
-	address := csdk.AccAddress(pubKey.Address())
-	sub := &types.Subscription{
-		ID:        sdk.NewIDFromUInt64(0),
+var (
+	testSubscription = types.Subscription{
+		ID:        testIDZero,
 		TxHash:    fmt.Sprintf("%d", 0),
-		Address:   address,
-		PubKey:    pubKey,
-		Bandwidth: sdk.NewBandwidthFromInt64(1024, 1024),
+		Address:   testAddress,
+		PubKey:    testPubKey,
+		Bandwidth: testBandwidth1,
 		Status:    types.ACTIVE,
-		CreatedAt: time.Now().UTC(),
+		CreatedAt: testTime,
+	}
+	testDBSubscription = subscription{
+		ID:        "0",
+		TxHash:    fmt.Sprintf("%d", 0),
+		Address:   testAddress.String(),
+		PubKey:    testBech32PubKey,
+		Upload:    1024,
+		Download:  1024,
+		Status:    types.ACTIVE,
+		CreatedAt: testTime,
+	}
+)
+
+func tempFile() string {
+	file, err := ioutil.TempFile(os.TempDir(), "db_")
+	if err != nil {
+		panic(err)
 	}
 
-	err = db.SubscriptionSave(sub)
+	return file.Name()
+}
+
+func TestSubscription_TableName(t *testing.T) {
+	name := subscription{}.TableName()
+	require.NotEqual(t, name, "")
+	require.Equal(t, name, subscriptionTable)
+}
+
+func TestSubscription_Subscription(t *testing.T) {
+	subscription0 := testDBSubscription
+	sub, err := subscription0.Subscription()
+	require.Nil(t, err)
+	require.NotNil(t, sub)
+	require.Equal(t, &testSubscription, sub)
+
+	subscription0.Address = "address"
+	sub, err = subscription0.Subscription()
+	require.NotNil(t, err)
+	require.Nil(t, sub)
+
+	subscription0.Address = ""
+	sub, err = subscription0.Subscription()
+	require.Nil(t, err)
+	require.NotNil(t, sub)
+
+	subscription0.PubKey = "pub_key"
+	sub, err = subscription0.Subscription()
+	require.NotNil(t, err)
+	require.Nil(t, sub)
+
+	subscription0.PubKey = ""
+	sub, err = subscription0.Subscription()
+	require.NotNil(t, err)
+	require.Nil(t, sub)
+}
+
+func TestDB_SubscriptionSave(t *testing.T) {
+	db, err := NewDatabase(tempFile())
 	require.Nil(t, err)
 
-	_sub, err = db.SubscriptionFindOne(query, args...)
+	query, args := "_id = ?", []interface{}{"0"}
+	subscription0, err := db.SubscriptionFindOne(query, args...)
 	require.Nil(t, err)
-	require.NotNil(t, _sub)
-	require.Equal(t, sub, _sub)
+	require.Nil(t, subscription0)
+
+	err = db.SubscriptionSave(&testSubscription)
+	require.Nil(t, err)
+
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	err = db.SubscriptionSave(&testSubscription)
+	require.NotNil(t, err)
+
+	subscription1 := testSubscription
+	subscription1.ID = testIDPos
+	subscription1.TxHash = fmt.Sprintf("%d", 1)
+	err = db.SubscriptionSave(&subscription1)
+	require.Nil(t, err)
+
+	query, args = "_id = ?", []interface{}{"1"}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &subscription1, subscription0)
+}
+
+func TestDB_SubscriptionFindOne(t *testing.T) {
+	db, err := NewDatabase(tempFile())
+	require.Nil(t, err)
+
+	query, args := "_id = ?", []interface{}{"0"}
+	subscription0, err := db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.Nil(t, subscription0)
+
+	err = db.SubscriptionSave(&testSubscription)
+	require.Nil(t, err)
+
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	args = []interface{}{"1"}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.Nil(t, subscription0)
+
+	query, args = "_id = ? and _tx_hash = ?", []interface{}{"0", fmt.Sprintf("%d", 1)}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.Nil(t, subscription0)
+
+	args = []interface{}{"0", fmt.Sprintf("%d", 0)}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	query, args = "_id = ? and _address = ?", []interface{}{"0", testAddress.String()}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	query, args = "_id = ? and _pub_key = ?", []interface{}{"0", testBech32PubKey}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	query, args = "_id = ? and _upload = ? and _download = ?", []interface{}{"0", -1024, -1024}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.Nil(t, subscription0)
+
+	args = []interface{}{"0", 1024, 1024}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	query, args = "_id = ? and _status = ?", []interface{}{"0", types.INACTIVE}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.Nil(t, subscription0)
+
+	args = []interface{}{"0", types.ACTIVE}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
+
+	query, args = "_id = ? and _created_at = ?", []interface{}{"0", testTime}
+	subscription0, err = db.SubscriptionFindOne(query, args...)
+	require.Nil(t, err)
+	require.NotNil(t, subscription0)
+	require.Equal(t, &testSubscription, subscription0)
 }

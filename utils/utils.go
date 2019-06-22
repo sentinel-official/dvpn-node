@@ -11,6 +11,12 @@ func PublicIP() (string, error) {
 		return "", err
 	}
 
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
 	var res struct {
 		IP string
 	}
