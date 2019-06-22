@@ -18,14 +18,17 @@ import (
 
 // nolint:gocyclo
 func main() {
-	cfg := csdk.GetConfig()
-	cfg.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	cfg.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	cfg.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
-	cfg.Seal()
+	_cfg := csdk.GetConfig()
+	_cfg.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
+	_cfg.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
+	_cfg.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	_cfg.Seal()
 
-	appCfg := config.NewAppConfig()
-	if err := appCfg.LoadFromPath(types.DefaultAppConfigFilePath); err != nil {
+	cfg := config.NewAppConfig()
+	if err := cfg.LoadFromPath(types.DefaultAppConfigFilePath); err != nil {
+		panic(err)
+	}
+	if err := cfg.Validate(); err != nil {
 		panic(err)
 	}
 
@@ -35,38 +38,38 @@ func main() {
 		panic(err)
 	}
 
-	keyInfo, err := utils.ProcessAccount(kb, appCfg.Account.Name)
+	keyInfo, err := utils.ProcessAccount(kb, cfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Account.Name = keyInfo.GetName()
-	if err = appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
+	cfg.Account.Name = keyInfo.GetName()
+	if err = cfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
-	password, err := utils.ProcessAccountPassword(kb, appCfg.Account.Name)
+	password, err := utils.ProcessAccountPassword(kb, cfg.Account.Name)
 	if err != nil {
 		panic(err)
 	}
 
-	vpn, err := utils.ProcessVPN(appCfg.VPNType)
+	vpn, err := utils.ProcessVPN(cfg.VPNType)
 	if err != nil {
 		panic(err)
 	}
 
-	tx, err := _tx.NewTxWithConfig(appCfg.ChainID, appCfg.RPCAddress, password, keyInfo, kb)
+	tx, err := _tx.NewTxWithConfig(cfg.ChainID, cfg.RPCAddress, password, keyInfo, kb)
 	if err != nil {
 		panic(err)
 	}
 
-	nodeInfo, err := utils.ProcessNode(appCfg.Node.ID, appCfg.Node.Moniker, appCfg.Node.PricesPerGB, tx, vpn)
+	nodeInfo, err := utils.ProcessNode(cfg.Node.ID, cfg.Node.Moniker, cfg.Node.PricesPerGB, tx, vpn)
 	if err != nil {
 		panic(err)
 	}
 
-	appCfg.Node.ID = nodeInfo.ID.String()
-	if err = appCfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
+	cfg.Node.ID = nodeInfo.ID.String()
+	if err = cfg.SaveToPath(types.DefaultAppConfigFilePath); err != nil {
 		panic(err)
 	}
 
@@ -76,7 +79,7 @@ func main() {
 	}
 
 	node := _node.NewNode(nodeInfo.ID, keyInfo.GetAddress(), keyInfo.GetPubKey(), tx, db, vpn)
-	if err = node.Start(appCfg.APIPort); err != nil {
+	if err = node.Start(cfg.APIPort); err != nil {
 		panic(err)
 	}
 }

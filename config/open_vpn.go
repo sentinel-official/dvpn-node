@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/pelletier/go-toml"
+	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -84,4 +85,15 @@ func (o *OpenVPNConfig) SaveToPath(path string) error {
 	}
 
 	return ioutil.WriteFile(path, buffer.Bytes(), os.ModePerm)
+}
+
+func (o *OpenVPNConfig) Validate() error {
+	if o.Protocol != "udp" && o.Protocol != "tcp" {
+		return errors.Errorf("Invalid protocol")
+	}
+	if o.Encryption != "AES-256-CBC" && o.Encryption != "AES-256-GCM" {
+		return errors.Errorf("Invalid encryption")
+	}
+
+	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/pelletier/go-toml"
+	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/types"
 )
@@ -108,4 +109,30 @@ func (a *AppConfig) SaveToPath(path string) error {
 	}
 
 	return ioutil.WriteFile(path, buffer.Bytes(), os.ModePerm)
+}
+
+func (a *AppConfig) Validate() error {
+	if a.ChainID == "" {
+		return errors.Errorf("Invalid chain_id")
+	}
+	if a.RPCAddress == "" {
+		return errors.Errorf("Invalid rpc_address")
+	}
+	if a.ResolverAddress == "" {
+		return errors.Errorf("Invalid resolver_address")
+	}
+	if a.VPNType == "" {
+		return errors.Errorf("Invalid vpn_type")
+	}
+	if a.Account.Name == "" {
+		return errors.Errorf("Invalid account.name")
+	}
+	if a.Node.Moniker == "" {
+		return errors.Errorf("Invalid node.moniker")
+	}
+	if a.Node.PricesPerGB == "" {
+		return errors.Errorf("Invalid node.prices_per_gb")
+	}
+
+	return nil
 }

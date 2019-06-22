@@ -19,6 +19,9 @@ func ProcessVPN(_type string) (types.BaseVPN, error) {
 
 func processOpenVPN() (*openvpn.OpenVPN, error) {
 	cfg := config.NewOpenVPNConfig()
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 
 	if err := cfg.LoadFromPath(types.DefaultOpenVPNConfigFilePath); err != nil {
 		return nil, err
