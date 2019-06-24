@@ -24,13 +24,13 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 			return nil, err
 		}
 
-		internetSpeed, err := CalculateInternetSpeed()
+		speed, err := InternetSpeed()
 		if err != nil {
 			return nil, err
 		}
 
 		msg := vpn.NewMsgRegisterNode(from, _vpn.Type(), types.Version,
-			moniker, pricesPerGB, internetSpeed, _vpn.Encryption())
+			moniker, pricesPerGB, speed, _vpn.Encryption())
 
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
