@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -25,13 +26,13 @@ const (
 
 type OpenVPN struct {
 	port       uint16
-	ip         string
+	ip         net.IP
 	protocol   string
 	encryption string
 	process    *os.Process
 }
 
-func NewOpenVPN(port uint16, ip, protocol, encryption string) *OpenVPN {
+func NewOpenVPN(port uint16, ip net.IP, protocol, encryption string) *OpenVPN {
 	return &OpenVPN{
 		port:       port,
 		ip:         ip,

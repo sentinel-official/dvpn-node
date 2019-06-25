@@ -73,7 +73,7 @@ func (n *Node) Start(port uint16) error {
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
 	log.Printf("Listening the API server on address `%s`", addr)
-	return http.ListenAndServe(addr, n.Router())
+	return http.ListenAndServeTLS(addr, types.DefaultTLSCertFilePath, types.DefaultTLSKeyFilePath, n.Router())
 }
 
 func (n *Node) updateNodeStatus() error {
@@ -191,8 +191,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth sdk.Bandwidth, makeTx b
 		"_download": bandwidth.Download.Int64(),
 	}
 
-	// nolint:govet
-	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil { // nolint:gocritic
 		return nil, err
 	}
 

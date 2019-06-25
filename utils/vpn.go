@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"net"
+
 	"github.com/pkg/errors"
 
 	"github.com/ironman0x7b2/vpn-node/config"
@@ -8,21 +10,17 @@ import (
 	openvpn "github.com/ironman0x7b2/vpn-node/vpn/open_vpn"
 )
 
-func ProcessVPN(_type string) (types.BaseVPN, error) {
+func ProcessVPN(_type string, ip net.IP) (types.BaseVPN, error) {
 	switch _type {
 	case openvpn.Type:
-		return processOpenVPN()
+		return processOpenVPN(ip)
 	default:
-		return nil, errors.Errorf("Currently the VPN type `%s` is not supported", _type)
+		return nil, errors.Errorf("VPN `%s` is not supported", _type)
 	}
 }
 
-func processOpenVPN() (*openvpn.OpenVPN, error) {
+func processOpenVPN(ip net.IP) (*openvpn.OpenVPN, error) {
 	cfg := config.NewOpenVPNConfig()
-	if err := cfg.Validate(); err != nil {
-		return nil, err
-	}
-
 	if err := cfg.LoadFromPath(types.DefaultOpenVPNConfigFilePath); err != nil {
 		return nil, err
 	}
@@ -33,8 +31,7 @@ func processOpenVPN() (*openvpn.OpenVPN, error) {
 		}
 	}()
 
-	ip, err := PublicIP()
-	if err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 

@@ -53,7 +53,12 @@ func main() {
 		panic(err)
 	}
 
-	vpn, err := utils.ProcessVPN(cfg.VPNType)
+	ip, err := utils.PublicIP()
+	if err != nil {
+		panic(err)
+	}
+
+	vpn, err := utils.ProcessVPN(cfg.VPNType, ip)
 	if err != nil {
 		panic(err)
 	}
@@ -75,6 +80,10 @@ func main() {
 
 	db, err := _db.NewDatabase(types.DefaultDatabaseFilePath)
 	if err != nil {
+		panic(err)
+	}
+
+	if err = utils.NewTLSKey(ip); err != nil {
 		panic(err)
 	}
 
