@@ -74,6 +74,12 @@ func (a *AppConfig) LoadFromPath(path string) error {
 		path = types.DefaultAppConfigFilePath
 	}
 
+	if _, err := os.Stat(path); err != nil {
+		if err := a.SaveToPath(path); err != nil {
+			return err
+		}
+	}
+
 	log.Printf("Loading the app configuration from path `%s`", path)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -123,9 +129,6 @@ func (a *AppConfig) Validate() error {
 	}
 	if a.VPNType == "" {
 		return errors.Errorf("Invalid vpn_type")
-	}
-	if a.Account.Name == "" {
-		return errors.Errorf("Invalid account.name")
 	}
 	if a.Node.Moniker == "" {
 		return errors.Errorf("Invalid node.moniker")

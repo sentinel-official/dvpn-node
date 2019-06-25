@@ -50,6 +50,12 @@ func (o *OpenVPNConfig) LoadFromPath(path string) error {
 		path = types.DefaultOpenVPNConfigFilePath
 	}
 
+	if _, err := os.Stat(path); err != nil {
+		if err := o.SaveToPath(path); err != nil {
+			return err
+		}
+	}
+
 	log.Printf("Loading the OpenVPN configuration from path `%s`", path)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
