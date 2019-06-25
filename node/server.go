@@ -11,11 +11,11 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
 
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	hub "github.com/sentinel-official/sentinel-hub/types"
+	"github.com/sentinel-official/sentinel-hub/x/vpn"
 
-	"github.com/ironman0x7b2/vpn-node/types"
-	"github.com/ironman0x7b2/vpn-node/utils"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	"github.com/sentinel-official/sentinel-dvpn-node/utils"
 )
 
 type client struct {
@@ -324,7 +324,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		_session = &types.Session{
 			ID:        sub.ID,
 			Index:     index,
-			Bandwidth: sdk.NewBandwidthFromInt64(0, 0),
+			Bandwidth: hub.NewBandwidthFromInt64(0, 0),
 			Signature: nil,
 			Status:    types.INIT,
 			CreatedAt: time.Now().UTC(),

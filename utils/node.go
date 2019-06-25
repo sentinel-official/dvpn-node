@@ -3,14 +3,14 @@ package utils
 import (
 	"log"
 
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/common"
 
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	"github.com/sentinel-official/sentinel-hub/x/vpn"
 
-	_tx "github.com/ironman0x7b2/vpn-node/tx"
-	"github.com/ironman0x7b2/vpn-node/types"
+	_tx "github.com/sentinel-official/sentinel-dvpn-node/tx"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
 )
 
 func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {
@@ -19,7 +19,7 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 	if id == "" {
 		log.Println("Got an empty node ID, so registering the node")
 
-		pricesPerGB, err := csdk.ParseCoins(_pricesPerGB)
+		pricesPerGB, err := sdk.ParseCoins(_pricesPerGB)
 		if err != nil {
 			return nil, err
 		}
