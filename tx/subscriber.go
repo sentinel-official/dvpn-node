@@ -12,7 +12,7 @@ import (
 	rpc "github.com/tendermint/tendermint/rpc/lib/types"
 	tm "github.com/tendermint/tendermint/types"
 
-	"github.com/ironman0x7b2/vpn-node/types"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
 )
 
 type Subscriber struct {

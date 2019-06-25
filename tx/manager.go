@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	txBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/pkg/errors"
@@ -21,7 +21,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 	core "github.com/tendermint/tendermint/rpc/core/types"
 
-	"github.com/ironman0x7b2/vpn-node/types"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
 )
 
 type Manager struct {
@@ -77,13 +77,13 @@ func NewManagerWithConfig(chainID, rpcAddress, password string, cdc *codec.Codec
 	_txBuilder := txBuilder.NewTxBuilder(utils.GetTxEncoder(cdc),
 		account.GetAccountNumber(), account.GetSequence(), 1000000000,
 		1.0, false, chainID,
-		"", csdk.Coins{}, csdk.DecCoins{}).
+		"", sdk.Coins{}, sdk.DecCoins{}).
 		WithKeybase(kb)
 
 	return NewManager(cliContext, _txBuilder, password), nil
 }
 
-func (m *Manager) CompleteAndBroadcastTxSync(messages []csdk.Msg) (*csdk.TxResponse, error) {
+func (m *Manager) CompleteAndBroadcastTxSync(messages []sdk.Msg) (*sdk.TxResponse, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -102,7 +102,7 @@ func (m *Manager) CompleteAndBroadcastTxSync(messages []csdk.Msg) (*csdk.TxRespo
 		m.TxBuilder = m.TxBuilder.WithSequence(m.TxBuilder.Sequence() + 1)
 	}
 
-	txRes := csdk.NewResponseFormatBroadcastTx(res)
+	txRes := sdk.NewResponseFormatBroadcastTx(res)
 	if txRes.Code != 0 {
 		return &txRes, errors.Errorf(txRes.String())
 	}

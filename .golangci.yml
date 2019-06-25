@@ -19,7 +19,7 @@ linters-settings:
   gofmt:
     simplify: true
   goimports:
-    local-prefixes: github.com/ironman0x7b2/sentinel-sdk
+    local-prefixes: github.com/sentinel-official/sentinel-dvpn-node
   gocyclo:
     min-complexity: 10
   maligned:

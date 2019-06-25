@@ -4,24 +4,24 @@ import (
 	"log"
 
 	"github.com/cosmos/cosmos-sdk/client/keys"
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
+	hub "github.com/sentinel-official/sentinel-hub/types"
 
-	"github.com/ironman0x7b2/vpn-node/config"
-	_db "github.com/ironman0x7b2/vpn-node/db"
-	_node "github.com/ironman0x7b2/vpn-node/node"
-	_tx "github.com/ironman0x7b2/vpn-node/tx"
-	"github.com/ironman0x7b2/vpn-node/types"
-	"github.com/ironman0x7b2/vpn-node/utils"
+	"github.com/sentinel-official/sentinel-dvpn-node/config"
+	_db "github.com/sentinel-official/sentinel-dvpn-node/db"
+	_node "github.com/sentinel-official/sentinel-dvpn-node/node"
+	_tx "github.com/sentinel-official/sentinel-dvpn-node/tx"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	"github.com/sentinel-official/sentinel-dvpn-node/utils"
 )
 
 // nolint:gocyclo
 func main() {
-	_cfg := csdk.GetConfig()
-	_cfg.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	_cfg.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	_cfg.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	_cfg := sdk.GetConfig()
+	_cfg.SetBech32PrefixForAccount(hub.Bech32PrefixAccAddr, hub.Bech32PrefixAccPub)
+	_cfg.SetBech32PrefixForValidator(hub.Bech32PrefixValAddr, hub.Bech32PrefixValPub)
+	_cfg.SetBech32PrefixForConsensusNode(hub.Bech32PrefixConsAddr, hub.Bech32PrefixConsPub)
 	_cfg.Seal()
 
 	cfg := config.NewAppConfig()

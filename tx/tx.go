@@ -4,13 +4,13 @@ import (
 	"log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
 	tm "github.com/tendermint/tendermint/types"
 
-	"github.com/ironman0x7b2/sentinel-sdk/app/hub"
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	"github.com/sentinel-official/sentinel-hub/app"
+	hub "github.com/sentinel-official/sentinel-hub/types"
+	"github.com/sentinel-official/sentinel-hub/x/vpn"
 )
 
 type Tx struct {
@@ -26,7 +26,7 @@ func NewTx(manager *Manager, subscriber *Subscriber) *Tx {
 }
 
 func NewTxWithConfig(chainID, rpcAddress, password string, keyInfo keys.Info, kb keys.Keybase) (*Tx, error) {
-	cdc := hub.MakeCodec()
+	cdc := app.MakeCodec()
 	tm.RegisterEventDatas(cdc)
 
 	log.Println("Initializing the transaction manager")
@@ -50,7 +50,7 @@ func NewTxWithConfig(chainID, rpcAddress, password string, keyInfo keys.Info, kb
 	return NewTx(manager, subscriber), nil
 }
 
-func (t Tx) CompleteAndSubscribeTx(messages ...csdk.Msg) (*tm.EventDataTx, error) {
+func (t Tx) CompleteAndSubscribeTx(messages ...sdk.Msg) (*tm.EventDataTx, error) {
 	res, err := t.Manager.CompleteAndBroadcastTxSync(messages)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (t Tx) CompleteAndSubscribeTx(messages ...csdk.Msg) (*tm.EventDataTx, error
 	return &data, nil
 }
 
-func (t Tx) SignSessionBandwidth(id sdk.ID, index uint64, bandwidth sdk.Bandwidth) ([]byte, error) {
+func (t Tx) SignSessionBandwidth(id hub.ID, index uint64, bandwidth hub.Bandwidth) ([]byte, error) {
 	signature, _, err := t.Manager.CLIContext.Keybase.Sign(t.Manager.CLIContext.FromName,
 		t.Manager.password, vpn.NewBandwidthSignatureData(id, index, bandwidth).Bytes())
 	if err != nil {

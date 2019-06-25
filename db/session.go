@@ -5,9 +5,9 @@ import (
 
 	"github.com/jinzhu/gorm"
 
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
+	hub "github.com/sentinel-official/sentinel-hub/types"
 
-	"github.com/ironman0x7b2/vpn-node/types"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
 )
 
 const (
@@ -30,9 +30,9 @@ func (session) TableName() string {
 
 func (s *session) Session() (*types.Session, error) {
 	return &types.Session{
-		ID:        sdk.NewIDFromString(s.ID),
+		ID:        hub.NewIDFromString(s.ID),
 		Index:     s.Index,
-		Bandwidth: sdk.NewBandwidthFromInt64(s.Upload, s.Download),
+		Bandwidth: hub.NewBandwidthFromInt64(s.Upload, s.Download),
 		Signature: s.Signature,
 		Status:    s.Status,
 		CreatedAt: s.CreatedAt,

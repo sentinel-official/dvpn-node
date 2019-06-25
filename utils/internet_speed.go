@@ -15,7 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
+	hub "github.com/sentinel-official/sentinel-hub/types"
 )
 
 const (
@@ -180,15 +180,15 @@ func uploadSpeed(s *server, load, size int) (int64, error) {
 	}
 }
 
-func InternetSpeed() (sdk.Bandwidth, error) {
+func InternetSpeed() (hub.Bandwidth, error) {
 	lat, lon, err := fetchLocation()
 	if err != nil {
-		return sdk.NewBandwidthFromInt64(0, 0), err
+		return hub.NewBandwidthFromInt64(0, 0), err
 	}
 
 	servers, err := fetchServers()
 	if err != nil {
-		return sdk.NewBandwidthFromInt64(0, 0), err
+		return hub.NewBandwidthFromInt64(0, 0), err
 	}
 
 	for i := range servers {
@@ -216,5 +216,5 @@ func InternetSpeed() (sdk.Bandwidth, error) {
 		}
 	}
 
-	return sdk.NewBandwidthFromInt64(upload, download), nil
+	return hub.NewBandwidthFromInt64(upload, download), nil
 }

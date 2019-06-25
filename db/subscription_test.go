@@ -8,23 +8,23 @@ import (
 	"testing"
 	"time"
 
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
+	hub "github.com/sentinel-official/sentinel-hub/types"
 
-	"github.com/ironman0x7b2/vpn-node/types"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
 )
 
 var (
 	testPubKey          = ed25519.GenPrivKey().PubKey()
-	testBech32PubKey, _ = csdk.Bech32ifyAccPub(testPubKey)
-	testAddress         = csdk.AccAddress(testPubKey.Address())
-	testIDZero          = sdk.NewIDFromUInt64(0)
-	testIDPos           = sdk.NewIDFromUInt64(1)
-	testBandwidth1      = sdk.NewBandwidthFromInt64(1024, 1024)
-	testBandwidth2      = sdk.NewBandwidthFromInt64(2048, 2048)
+	testBech32PubKey, _ = sdk.Bech32ifyAccPub(testPubKey)
+	testAddress         = sdk.AccAddress(testPubKey.Address())
+	testIDZero          = hub.NewIDFromUInt64(0)
+	testIDPos           = hub.NewIDFromUInt64(1)
+	testBandwidth1      = hub.NewBandwidthFromInt64(1024, 1024)
+	testBandwidth2      = hub.NewBandwidthFromInt64(2048, 2048)
 	testTime            = time.Now().UTC()
 )
 

@@ -7,23 +7,23 @@ import (
 	"sync"
 	"time"
 
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
-	sdk "github.com/ironman0x7b2/sentinel-sdk/types"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
+	hub "github.com/sentinel-official/sentinel-hub/types"
+	"github.com/sentinel-official/sentinel-hub/x/vpn"
 
-	_db "github.com/ironman0x7b2/vpn-node/db"
-	_tx "github.com/ironman0x7b2/vpn-node/tx"
-	"github.com/ironman0x7b2/vpn-node/types"
+	_db "github.com/sentinel-official/sentinel-dvpn-node/db"
+	_tx "github.com/sentinel-official/sentinel-dvpn-node/tx"
+	"github.com/sentinel-official/sentinel-dvpn-node/types"
 )
 
 type Node struct {
-	id      sdk.ID
-	address csdk.AccAddress
+	id      hub.ID
+	address sdk.AccAddress
 	pubKey  crypto.PubKey
 
 	tx      *_tx.Tx
@@ -32,7 +32,7 @@ type Node struct {
 	clients map[string]*client
 }
 
-func NewNode(id sdk.ID, address csdk.AccAddress, pubKey crypto.PubKey,
+func NewNode(id hub.ID, address sdk.AccAddress, pubKey crypto.PubKey,
 	tx *_tx.Tx, db *_db.DB, _vpn types.BaseVPN) *Node {
 
 	return &Node{
@@ -119,11 +119,11 @@ func (n *Node) updateBandwidthInfos() error {
 			return err
 		}
 
-		var messages []csdk.Msg
+		var messages []sdk.Msg
 		for id, bandwidth := range clients {
 			wg.Add(1)
 
-			go func(id string, bandwidth sdk.Bandwidth, makeTx bool) {
+			go func(id string, bandwidth hub.Bandwidth, makeTx bool) {
 				message, err := n.requestBandwidthSign(id, bandwidth, makeTx)
 				if err != nil {
 					panic(err)
@@ -149,7 +149,7 @@ func (n *Node) updateBandwidthInfos() error {
 	}
 }
 
-func (n *Node) requestBandwidthSign(id string, bandwidth sdk.Bandwidth, makeTx bool) (msg csdk.Msg, err error) {
+func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx bool) (msg sdk.Msg, err error) {
 	query, args := "_id = ? AND _status = ?", []interface{}{
 		id,
 		types.ACTIVE,

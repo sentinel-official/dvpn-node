@@ -1,16 +1,16 @@
 package tx
 
 import (
-	csdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn"
-	"github.com/ironman0x7b2/sentinel-sdk/x/vpn/client/common"
+	"github.com/sentinel-official/sentinel-hub/x/vpn"
+	"github.com/sentinel-official/sentinel-hub/x/vpn/client/common"
 )
 
 func (t Tx) QueryAccount(_address string) (auth.Account, error) {
-	address, err := csdk.AccAddressFromBech32(_address)
+	address, err := sdk.AccAddressFromBech32(_address)
 	if err != nil {
 		return nil, err
 	}
