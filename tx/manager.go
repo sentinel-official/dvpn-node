@@ -21,7 +21,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 	core "github.com/tendermint/tendermint/rpc/core/types"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Manager struct {

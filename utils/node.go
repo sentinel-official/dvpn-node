@@ -7,10 +7,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/common"
 
-	"github.com/sentinel-official/sentinel-hub/x/vpn"
+	"github.com/sentinel-official/hub/x/vpn"
 
-	_tx "github.com/sentinel-official/sentinel-dvpn-node/tx"
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	_tx "github.com/sentinel-official/dvpn-node/tx"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {

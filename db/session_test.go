@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 var (

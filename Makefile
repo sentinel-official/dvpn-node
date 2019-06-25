@@ -7,7 +7,7 @@ BUILD_TAGS := netgo
 BUILD_TAGS := $(strip ${BUILD_TAGS})
 
 LD_FLAGS := -s -w \
-	-X github.com/sentinel-official/sentinel-dvpn-node/types.Version=${VERSION}
+	-X github.com/sentinel-official/dvpn-node/types.Version=${VERSION}
 
 BUILD_FLAGS := -tags "${BUILD_TAGS}" -ldflags "${LD_FLAGS}"
 

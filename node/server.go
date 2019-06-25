@@ -11,11 +11,11 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
 
-	hub "github.com/sentinel-official/sentinel-hub/types"
-	"github.com/sentinel-official/sentinel-hub/x/vpn"
+	hub "github.com/sentinel-official/hub/types"
+	"github.com/sentinel-official/hub/x/vpn"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
-	"github.com/sentinel-official/sentinel-dvpn-node/utils"
+	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 type client struct {

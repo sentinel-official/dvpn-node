@@ -5,8 +5,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 
-	"github.com/sentinel-official/sentinel-hub/x/vpn"
-	"github.com/sentinel-official/sentinel-hub/x/vpn/client/common"
+	"github.com/sentinel-official/hub/x/vpn"
+	"github.com/sentinel-official/hub/x/vpn/client/common"
 )
 
 func (t Tx) QueryAccount(_address string) (auth.Account, error) {

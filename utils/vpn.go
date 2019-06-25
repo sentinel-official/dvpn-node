@@ -5,9 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/config"
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
-	openvpn "github.com/sentinel-official/sentinel-dvpn-node/vpn/open_vpn"
+	"github.com/sentinel-official/dvpn-node/config"
+	"github.com/sentinel-official/dvpn-node/types"
+	openvpn "github.com/sentinel-official/dvpn-node/vpn/open_vpn"
 )
 
 func ProcessVPN(_type string, ip net.IP) (types.BaseVPN, error) {

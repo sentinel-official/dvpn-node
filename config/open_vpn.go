@@ -11,7 +11,7 @@ import (
 	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 // nolint: gochecknoglobals

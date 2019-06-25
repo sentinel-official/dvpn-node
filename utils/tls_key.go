@@ -13,7 +13,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func publicKey(pk interface{}) interface{} {

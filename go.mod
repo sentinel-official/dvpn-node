@@ -1,4 +1,4 @@
-module github.com/sentinel-official/sentinel-dvpn-node
+module github.com/sentinel-official/dvpn-node
 
 go 1.12
 
@@ -11,7 +11,7 @@ require (
 	github.com/jinzhu/gorm v1.9.9
 	github.com/pelletier/go-toml v1.4.0
 	github.com/pkg/errors v0.8.1
-	github.com/sentinel-official/sentinel-hub v0.0.0-20190625113324-3097604ce119
+	github.com/sentinel-official/hub v0.0.0-20190625121651-69d3f09ffc37
 	github.com/stretchr/testify v1.3.0
 	github.com/tendermint/tendermint v0.31.5
 	google.golang.org/appengine v1.6.1 // indirect

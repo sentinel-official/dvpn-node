@@ -6,14 +6,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	hub "github.com/sentinel-official/sentinel-hub/types"
+	hub "github.com/sentinel-official/hub/types"
 
-	"github.com/sentinel-official/sentinel-dvpn-node/config"
-	_db "github.com/sentinel-official/sentinel-dvpn-node/db"
-	_node "github.com/sentinel-official/sentinel-dvpn-node/node"
-	_tx "github.com/sentinel-official/sentinel-dvpn-node/tx"
-	"github.com/sentinel-official/sentinel-dvpn-node/types"
-	"github.com/sentinel-official/sentinel-dvpn-node/utils"
+	"github.com/sentinel-official/dvpn-node/config"
+	_db "github.com/sentinel-official/dvpn-node/db"
+	_node "github.com/sentinel-official/dvpn-node/node"
+	_tx "github.com/sentinel-official/dvpn-node/tx"
+	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 // nolint:gocyclo
