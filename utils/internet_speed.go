@@ -87,53 +87,8 @@ func fetchServers() ([]server, error) {
 	return res.Servers, nil
 }
 
-func downloadSpeed(s *server, load, size int) (int64, error) {
-	c, wg, _errors := http.Client{}, &sync.WaitGroup{}, make(chan error, 1)
-	_url := fmt.Sprintf("%s/random%dx%d.jpg", strings.Split(s.URL, "/upload")[0], size, size)
-
-	start := time.Now()
-	for i := 0; i < load; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			resp, err := c.Get(_url)
-			if resp != nil {
-				if resp.StatusCode != http.StatusOK {
-					err = errors.New("Invalid status code")
-				}
-			}
-
-			if err != nil {
-				select {
-				case _errors <- err:
-				default:
-				}
-
-				return
-			}
-
-			defer func() {
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-
-			_, _ = ioutil.ReadAll(resp.Body)
-		}()
-	}
-
-	wg.Wait()
-	select {
-	case err := <-_errors:
-		return 0, err
-	default:
-		return int64(float64(load*2*size*size) / time.Since(start).Seconds()), nil
-	}
-}
-
-func uploadSpeed(s *server, load, size int) (int64, error) {
-	c, wg, _errors := http.Client{}, &sync.WaitGroup{}, make(chan error, 1)
+func uploadSpeed(s *server, load, size int) (v int64, err error) {
+	c, wg := http.Client{Timeout: 5 * time.Second}, &sync.WaitGroup{}
 	_url := s.URL
 
 	data := url.Values{}
@@ -145,25 +100,15 @@ func uploadSpeed(s *server, load, size int) (int64, error) {
 		go func() {
 			defer wg.Done()
 
-			resp, err := c.PostForm(_url, data)
-			if resp != nil {
-				if resp.StatusCode != http.StatusOK {
-					err = errors.New("Invalid status code")
-				}
-			}
-
-			if err != nil {
-				select {
-				case _errors <- err:
-				default:
-				}
-
+			resp, _err := c.PostForm(_url, data)
+			if _err != nil || resp.StatusCode != http.StatusOK {
+				err = errors.Errorf("something went wrong")
 				return
 			}
 
 			defer func() {
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
+				if _err := resp.Body.Close(); _err != nil {
+					panic(_err)
 				}
 			}()
 
@@ -172,12 +117,45 @@ func uploadSpeed(s *server, load, size int) (int64, error) {
 	}
 
 	wg.Wait()
-	select {
-	case err := <-_errors:
+	if err != nil {
 		return 0, err
-	default:
-		return int64(float64(load*size) / time.Since(start).Seconds()), nil
 	}
+
+	return int64(float64(load*size) / time.Since(start).Seconds()), nil
+}
+
+func downloadSpeed(s *server, load, size int) (v int64, err error) {
+	c, wg := http.Client{Timeout: 5 * time.Second}, &sync.WaitGroup{}
+	_url := fmt.Sprintf("%s/random%dx%d.jpg", strings.Split(s.URL, "/upload")[0], size, size)
+
+	start := time.Now()
+	for i := 0; i < load; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			resp, _err := c.Get(_url)
+			if _err != nil || resp.StatusCode != http.StatusOK {
+				err = errors.Errorf("something went wrong")
+				return
+			}
+
+			defer func() {
+				if _err := resp.Body.Close(); _err != nil {
+					panic(_err)
+				}
+			}()
+
+			_, _ = ioutil.ReadAll(resp.Body)
+		}()
+	}
+
+	wg.Wait()
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(float64(load*2*size*size) / time.Since(start).Seconds()), nil
 }
 
 func InternetSpeed() (hub.Bandwidth, error) {
@@ -202,19 +180,19 @@ func InternetSpeed() (hub.Bandwidth, error) {
 
 	var upload, download int64
 
-	for i := range servers {
+	for i := range servers[:8] {
 		upload, err = uploadSpeed(&servers[i], 8, 4000000)
 		if err == nil {
 			break
 		}
 	}
 
-	for i := range servers {
+	for i := range servers[:8] {
 		download, err = downloadSpeed(&servers[i], 8, 1500)
 		if err == nil {
 			break
 		}
 	}
 
-	return hub.NewBandwidthFromInt64(upload, download), nil
+	return hub.NewBandwidthFromInt64(upload, download), err
 }
