@@ -88,7 +88,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	if sub.NodeID != n.id {
+	if sub.NodeID.IsEqual(n.id) {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription does not belong to this node",
 			Info:    sub,
@@ -349,7 +349,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := vpn.NewBandwidthSignatureData(_session.ID, _session.Index, _session.Bandwidth)
+	data := hub.NewBandwidthSignatureData(_session.ID, _session.Index, _session.Bandwidth)
 	if !_sub.PubKey.VerifyBytes(data.Bytes(), signature) {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid bandwidth signature",
@@ -584,7 +584,7 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		return NewMsgError(3, "Invalid message")
 	}
 
-	data := vpn.NewBandwidthSignatureData(msg.ID, msg.Index, msg.Bandwidth).Bytes()
+	data := hub.NewBandwidthSignatureData(msg.ID, msg.Index, msg.Bandwidth).Bytes()
 	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
 		return NewMsgError(4, "Invalid node owner signature")
 	}

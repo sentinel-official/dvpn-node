@@ -21,6 +21,7 @@ var (
 chain_id = "{{ .ChainID }}"
 rpc_address = "{{ .RPCAddress }}"
 resolver_address = "{{ .ResolverAddress }}"
+resolver_acc_address = "{{ .ResolverAccAddress }}"
 vpn_type = "{{ .VPNType }}"
 api_port = {{ .APIPort }}
 
@@ -46,11 +47,12 @@ func init() {
 }
 
 type AppConfig struct {
-	ChainID         string `json:"chain_id"`
-	RPCAddress      string `json:"rpc_address"`
-	ResolverAddress string `json:"resolver_address"`
-	VPNType         string `json:"vpn_type"`
-	APIPort         uint16 `json:"api_port"`
+	ChainID            string `json:"chain_id"`
+	RPCAddress         string `json:"rpc_address"`
+	ResolverAddress    string `json:"resolver_address"`
+	ResolverAccAddress string `json:"resolver_acc_address"`
+	VPNType            string `json:"vpn_type"`
+	APIPort            uint16 `json:"api_port"`
 
 	Account struct {
 		Name string `json:"name"`
@@ -126,6 +128,9 @@ func (a *AppConfig) Validate() error {
 	}
 	if a.ResolverAddress == "" {
 		return errors.Errorf("Invalid resolver_address")
+	}
+	if a.ResolverAccAddress == "" {
+		return errors.Errorf("Invalid resolver_acc_address")
 	}
 	if a.VPNType == "" {
 		return errors.Errorf("Invalid vpn_type")

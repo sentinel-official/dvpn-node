@@ -68,7 +68,12 @@ func main() {
 		panic(err)
 	}
 
-	nodeInfo, err := utils.ProcessNode(cfg.Node.ID, cfg.Node.Moniker, cfg.Node.PricesPerGB, tx, vpn)
+	resolverAccAddress, err := sdk.AccAddressFromBech32(cfg.ResolverAccAddress)
+	if err != nil {
+		panic(err)
+	}
+	
+	nodeInfo, err := utils.ProcessNode(cfg.Node.ID, cfg.Node.Moniker, cfg.Node.PricesPerGB, tx, vpn,resolverAccAddress)
 	if err != nil {
 		panic(err)
 	}

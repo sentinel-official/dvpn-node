@@ -59,12 +59,6 @@ func (n *Node) Start(port uint16) error {
 	}()
 
 	go func() {
-		if err := n.updateNodeStatus(); err != nil {
-			panic(err)
-		}
-	}()
-
-	go func() {
 		if err := n.updateBandwidthInfos(); err != nil {
 			panic(err)
 		}
@@ -74,24 +68,6 @@ func (n *Node) Start(port uint16) error {
 
 	log.Printf("Listening the API server on address `%s`", addr)
 	return http.ListenAndServeTLS(addr, types.DefaultTLSCertFilePath, types.DefaultTLSKeyFilePath, n.Router())
-}
-
-func (n *Node) updateNodeStatus() error {
-	log.Printf("Starting update node status ticker with interval `%s`",
-		types.UpdateNodeStatusInterval.String())
-
-	t := time.NewTicker(types.UpdateNodeStatusInterval)
-	for ; ; <-t.C {
-		msg := vpn.NewMsgUpdateNodeStatus(n.address, n.id, vpn.StatusActive)
-
-		data, err := n.tx.CompleteAndSubscribeTx(msg)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("Node status updated at block height `%d`, tx hash `%s`",
-			data.Height, common.HexBytes(data.Tx.Hash()).String())
-	}
 }
 
 func (n *Node) updateBandwidthInfos() error {

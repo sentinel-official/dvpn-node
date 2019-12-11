@@ -3,41 +3,38 @@ package tx
 import (
 	"encoding/hex"
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	txBuilder "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/pkg/errors"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
 	"github.com/tendermint/tendermint/rpc/client"
 	core "github.com/tendermint/tendermint/rpc/core/types"
 
+	"github.com/sentinel-official/dvpn-node/cli"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Manager struct {
-	CLIContext context.CLIContext
-	TxBuilder  txBuilder.TxBuilder
-	password   string
-	mutex      *sync.Mutex
+	CLI       *cli.CLI
+	TxBuilder auth.TxBuilder
+	password  string
+	mutex     *sync.Mutex
 }
 
 // nolint: gocritic
-func NewManager(cliContext context.CLIContext, _txBuilder txBuilder.TxBuilder, password string) *Manager {
+func NewManager(cliContext *cli.CLI, _txBuilder auth.TxBuilder, password string) *Manager {
 	return &Manager{
-		CLIContext: cliContext,
-		TxBuilder:  _txBuilder,
-		password:   password,
-		mutex:      &sync.Mutex{},
+		CLI:       cliContext,
+		TxBuilder: _txBuilder,
+		password:  password,
+		mutex:     &sync.Mutex{},
 	}
 }
 
@@ -52,47 +49,39 @@ func NewManagerWithConfig(chainID, rpcAddress, password string, cdc *codec.Codec
 		return nil, err
 	}
 
-	cliContext := context.CLIContext{
-		Codec:         cdc,
-		Client:        _client,
-		Keybase:       kb,
-		Output:        os.Stdout,
-		OutputFormat:  "text",
-		NodeURI:       rpcAddress,
-		From:          keyInfo.GetName(),
-		AccountStore:  auth.StoreKey,
-		BroadcastMode: "sync",
-		Verifier:      verifier,
-		VerifierHome:  types.DefaultConfigDir,
-		FromAddress:   keyInfo.GetAddress(),
-		FromName:      keyInfo.GetName(),
-		SkipConfirm:   true,
-	}.WithAccountDecoder(cdc)
-
-	account, err := cliContext.GetAccount(keyInfo.GetAddress().Bytes())
+	_cli := cli.NewCLI(cdc, kb, rpcAddress, keyInfo)
+	client, verifier, err := cli.NewVerifier(types.DefaultConfigDir, chainID, rpcAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	_txBuilder := txBuilder.NewTxBuilder(utils.GetTxEncoder(cdc),
+	_cli.Client = client
+	_cli.Verifier = verifier
+
+	account, err := _cli.GetAccount(keyInfo.GetAddress().Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	_txBuilder := auth.NewTxBuilder(utils.GetTxEncoder(cdc),
 		account.GetAccountNumber(), account.GetSequence(), 1000000000,
 		1.0, false, chainID,
 		"", sdk.Coins{}, sdk.DecCoins{}).
 		WithKeybase(kb)
 
-	return NewManager(cliContext, _txBuilder, password), nil
+	return NewManager(_cli, _txBuilder, password), nil
 }
 
 func (m *Manager) CompleteAndBroadcastTxSync(messages []sdk.Msg) (*sdk.TxResponse, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	txBytes, err := m.TxBuilder.BuildAndSign(m.CLIContext.FromName, m.password, messages)
+	txBytes, err := m.TxBuilder.BuildAndSign(m.CLI.FromName, m.password, messages)
 	if err != nil {
 		return nil, err
 	}
 
-	node, err := m.CLIContext.GetNode()
+	node, err := m.CLI.GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -116,19 +105,19 @@ func (m *Manager) QueryTx(hash string) (*core.ResultTx, error) {
 		return nil, err
 	}
 
-	node, err := m.CLIContext.GetNode()
+	node, err := m.CLI.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("Querying the transaction with hash `%s`", hash)
-	res, err := node.Tx(_hash, !m.CLIContext.TrustNode)
+	res, err := node.Tx(_hash, !m.CLI.TrustNode)
 	if err != nil {
 		return nil, err
 	}
 
-	if !m.CLIContext.TrustNode {
-		if err := tx.ValidateTxResult(m.CLIContext, res); err != nil {
+	if !m.CLI.TrustNode {
+		if err := utils.ValidateTxResult(m.CLI.CLIContext, res); err != nil {
 			return nil, err
 		}
 	}

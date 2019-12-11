@@ -41,8 +41,13 @@ func (s *subscription) Subscription() (*types.Subscription, error) {
 		return nil, err
 	}
 
+	id, err := hub.NewSubscriptionIDFromString(s.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.Subscription{
-		ID:        hub.NewIDFromString(s.ID),
+		ID:        id,
 		TxHash:    s.TxHash,
 		Address:   address,
 		PubKey:    pubKey,

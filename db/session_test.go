@@ -12,7 +12,7 @@ import (
 
 var (
 	testSession = types.Session{
-		ID:        testIDZero,
+		ID:        testSubsIDZero,
 		Index:     0,
 		Bandwidth: testBandwidth1,
 		Signature: []byte("signature"),
@@ -165,7 +165,7 @@ func TestDB_SessionFindOneAndUpdate(t *testing.T) {
 	require.Nil(t, session0)
 
 	subscription0 := testSubscription
-	subscription0.ID = 1
+	subscription0.ID = testSubsIDOne
 	subscription0.TxHash = fmt.Sprintf("%d", 1)
 	err = db.SubscriptionSave(&subscription0)
 	require.Nil(t, err)
@@ -175,7 +175,7 @@ func TestDB_SessionFindOneAndUpdate(t *testing.T) {
 	require.Nil(t, err)
 
 	session1 := testSession
-	session1.ID = 1
+	session1.ID = testSubsIDOne
 	query, args = "_id = ?", []interface{}{"1"}
 	session0, err = db.SessionFindOne(query, args...)
 	require.Nil(t, err)
