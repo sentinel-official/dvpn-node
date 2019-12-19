@@ -10,7 +10,7 @@ import (
 )
 
 type Subscription struct {
-	ID        hub.SubscriptionID `json:"id"`
+	ID        hub.ID `json:"id"`
 	TxHash    string             `json:"tx_hash"`
 	Address   sdk.AccAddress     `json:"address"`
 	PubKey    crypto.PubKey      `json:"pub_key"`
