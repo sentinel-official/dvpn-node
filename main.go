@@ -68,13 +68,13 @@ func main() {
 		panic(err)
 	}
 
-	resolverAccAddress, err := sdk.AccAddressFromBech32(cfg.ResolverAccAddress)
+	resolverAccAddress, err := sdk.AccAddressFromBech32(cfg.Resolver.Address)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	nodeInfo, err := utils.ProcessNode(cfg.Node.ID, cfg.Node.Moniker, cfg.Node.PricesPerGB, tx,
-		vpn,resolverAccAddress,cfg.ResolverAddress,cfg.APIPort)
+		vpn, resolverAccAddress, cfg.Resolver.IP, cfg.APIPort)
 	if err != nil {
 		panic(err)
 	}

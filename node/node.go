@@ -49,20 +49,17 @@ func NewNode(id hub.ID, address sdk.AccAddress, pubKey crypto.PubKey,
 
 func (n *Node) Start(port uint16) error {
 	if err := n.vpn.Init(); err != nil {
-		fmt.Println("11111111111", err)
 		return err
 	}
 
 	go func() {
 		if err := n.vpn.Start(); err != nil {
-			fmt.Println("2222222222", err)
 			panic(err)
 		}
 	}()
 
 	go func() {
 		if err := n.updateBandwidthInfos(); err != nil {
-			fmt.Println("3333333333333", err)
 			panic(err)
 		}
 	}()

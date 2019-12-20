@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
+	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
@@ -79,31 +82,33 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 		return nil, errors.Errorf("Registered node owner address does not match with resolver address")
 	}
 
-	//ip, err := PublicIP()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//url := "http://" + resolverIP + "/node/register"
-	//message := map[string]interface{}{
-	//	"id":   id,
-	//	"ip":   ip,
-	//	"port": port,
-	//}
-	//
-	//bytesRepresentation, err := json.Marshal(message)
-	//if err != nil {
-	//	log.Fatalln(err)
-	//}
-	//
-	//resp, err := http.Post(url, "application/json", bytes.NewBuffer(bytesRepresentation))
-	//if err != nil {
-	//	log.Fatalln(err)
-	//}
-	//
-	//if resp.StatusCode != 200 {
-	//	log.Fatalln("Error while register on the resolver")
-	//}
+	ip, err := PublicIP()
+	if err != nil {
+		return nil, err
+	}
 
+	url := "http://" + resolverIP + "/node/register"
+	message := map[string]interface{}{
+		"id":   id,
+		"ip":   ip,
+		"port": port,
+	}
+
+	bytesRepresentation, err := json.Marshal(message)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(bytesRepresentation))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if resp.StatusCode != 200 {
+		log.Fatalln("Error while register on the resolver")
+	}
+
+	log.Fatalln("Register node on the resolver completed locally")
+	
 	return node, nil
 }
