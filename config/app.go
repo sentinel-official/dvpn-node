@@ -20,8 +20,6 @@ var (
 	defaultAppConfigTemplate = `
 chain_id = "{{ .ChainID }}"
 rpc_address = "{{ .RPCAddress }}"
-resolver_address = "{{ .ResolverAddress }}"
-resolver_acc_address = "{{ .ResolverAccAddress }}"
 vpn_type = "{{ .VPNType }}"
 api_port = {{ .APIPort }}
 
@@ -29,8 +27,8 @@ api_port = {{ .APIPort }}
 name = "{{ .Account.Name }}"
 
 [resolver]
-address = {{.Address}}
-ip = "{{.IP}}"
+address = "{{ .Resolver.Address }}"
+ip = "{{ .Resolver.IP }}"
 
 [node]
 id = "{{ .Node.ID }}"
