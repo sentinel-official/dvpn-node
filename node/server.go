@@ -34,6 +34,12 @@ func (n *Node) Router() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.
+		Methods("GET").
+		Path("/health").
+		HandlerFunc(n.handlerGetServerHealth).
+		Name("GetServerHealth")
+
+	router.
 		Methods("POST").
 		Path("/subscriptions").
 		HandlerFunc(n.handlerFuncAddSubscription).
@@ -60,6 +66,13 @@ func (n *Node) Router() *mux.Router {
 	return router
 }
 
+func (n *Node) handlerGetServerHealth(w http.ResponseWriter, r *http.Request) {
+	response := HealthResponse{
+		Status: "active",
+	}
+
+	utils.WriteResultToResponse(w, 201, response)
+}
 func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		TxHash string `json:"tx_hash"`
@@ -349,7 +362,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := hub.NewBandwidthSignatureData(_session.ID, _session.Index, _session.Bandwidth)
+	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(_session.ID.Uint64()), _session.Index, _session.Bandwidth)
 	if !_sub.PubKey.VerifyBytes(data.Bytes(), signature) {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid bandwidth signature",
@@ -584,7 +597,7 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		return NewMsgError(3, "Invalid message")
 	}
 
-	data := hub.NewBandwidthSignatureData(msg.ID, msg.Index, msg.Bandwidth).Bytes()
+	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(msg.ID.Uint64()), msg.Index, msg.Bandwidth).Bytes()
 	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
 		return NewMsgError(4, "Invalid node owner signature")
 	}

@@ -3,7 +3,7 @@ FROM golang:alpine3.9 AS build
 RUN apk add git gcc linux-headers make musl-dev && \
     mkdir -p /go/bin /go/src/github.com/sentinel-official/ && \
     cd /go/src/github.com/sentinel-official/ && \
-    git clone https://github.com/sentinel-official/dvpn-node.git --depth=1 --branch=development && \
+    git clone https://github.com:bitsndbyts/dvpn-node.git --depth=1 --branch=updating-node && \
     cd dvpn-node/ && make all
 
 FROM alpine:3.9

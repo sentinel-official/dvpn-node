@@ -49,17 +49,20 @@ func NewNode(id hub.ID, address sdk.AccAddress, pubKey crypto.PubKey,
 
 func (n *Node) Start(port uint16) error {
 	if err := n.vpn.Init(); err != nil {
+		fmt.Println("11111111111", err)
 		return err
 	}
 
 	go func() {
 		if err := n.vpn.Start(); err != nil {
+			fmt.Println("2222222222", err)
 			panic(err)
 		}
 	}()
 
 	go func() {
 		if err := n.updateBandwidthInfos(); err != nil {
+			fmt.Println("3333333333333", err)
 			panic(err)
 		}
 	}()
@@ -144,8 +147,9 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		return nil, errors.Errorf("Client with id `%s` exists in database but not in memory", id)
 	}
 
+	_id := hub.NewSubscriptionID(s.ID.Uint64())
 	if makeTx {
-		signature, err := n.tx.SignSessionBandwidth(s.ID, s.Index, s.Bandwidth) // nolint:govet
+		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +163,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 			Signature: s.Signature,
 		}
 
-		msg = vpn.NewMsgUpdateSessionInfo(n.address, s.ID, s.Bandwidth, nos, cs)
+		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
 	}
 
 	updates := map[string]interface{}{
@@ -171,11 +175,15 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		return nil, err
 	}
 
-	signature, err := n.tx.SignSessionBandwidth(s.ID, s.Index, bandwidth)
+	signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
 	if err != nil {
 		return nil, err
 	}
 
 	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, s.Bandwidth, signature, nil)
 	return msg, nil
+}
+
+type HealthResponse struct {
+	Status string `json:"status"`
 }

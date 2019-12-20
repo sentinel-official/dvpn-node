@@ -73,7 +73,8 @@ func main() {
 		panic(err)
 	}
 	
-	nodeInfo, err := utils.ProcessNode(cfg.Node.ID, cfg.Node.Moniker, cfg.Node.PricesPerGB, tx, vpn,resolverAccAddress)
+	nodeInfo, err := utils.ProcessNode(cfg.Node.ID, cfg.Node.Moniker, cfg.Node.PricesPerGB, tx,
+		vpn,resolverAccAddress,cfg.ResolverAddress,cfg.APIPort)
 	if err != nil {
 		panic(err)
 	}

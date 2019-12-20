@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-
 	hub "github.com/sentinel-official/hub/types"
 
 	"github.com/sentinel-official/dvpn-node/types"

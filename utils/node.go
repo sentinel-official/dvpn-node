@@ -12,9 +12,10 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVPN, resolver sdk.AccAddress) (*vpn.Node, error) {
-	from := tx.Manager.CLI.FromAddress
+func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVPN,
+	resolver sdk.AccAddress, resolverIP string, port uint16) (*vpn.Node, error) {
 
+	from := tx.Manager.CLI.FromAddress
 	if id == "" {
 		log.Println("Got an empty node ID, so registering the node")
 
@@ -36,7 +37,8 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 			return nil, err
 		}
 
-		id = data.Result.Events[1].String()
+		events := sdk.StringifyEvents(data.Result.Events)
+		id = events[1].Attributes[1].Value
 
 		log.Printf("Node registered at height `%d`, tx hash `%s`, node ID `%s`",
 			data.Height, common.HexBytes(data.Tx.Hash()).String(), id)
@@ -44,6 +46,7 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 
 	node, err := tx.QueryNode(id)
 	if err != nil {
+
 		return nil, err
 	}
 	if !node.Owner.Equals(from) {
@@ -66,8 +69,8 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 	}
 
 	isMatch := false
-	for _, resolver := range resolvers {
-		if node.Owner.Equals(resolver) {
+	for _, _resolver := range resolvers {
+		if resolver.Equals(_resolver) {
 			isMatch = true
 		}
 	}
@@ -75,6 +78,32 @@ func ProcessNode(id, moniker, _pricesPerGB string, tx *_tx.Tx, _vpn types.BaseVP
 	if !isMatch {
 		return nil, errors.Errorf("Registered node owner address does not match with resolver address")
 	}
+
+	//ip, err := PublicIP()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//url := "http://" + resolverIP + "/node/register"
+	//message := map[string]interface{}{
+	//	"id":   id,
+	//	"ip":   ip,
+	//	"port": port,
+	//}
+	//
+	//bytesRepresentation, err := json.Marshal(message)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	//resp, err := http.Post(url, "application/json", bytes.NewBuffer(bytesRepresentation))
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	//if resp.StatusCode != 200 {
+	//	log.Fatalln("Error while register on the resolver")
+	//}
 
 	return node, nil
 }

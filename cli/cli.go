@@ -28,7 +28,7 @@ func NewCLI(cdc *codec.Codec, kb keys.Keybase, rpcAddress string, keyInfo keys.I
 			OutputFormat:  "text",
 			NodeURI:       rpcAddress,
 			From:          keyInfo.GetName(),
-			BroadcastMode: "sync",
+			BroadcastMode: "block",
 			VerifierHome:  types.DefaultConfigDir,
 			FromAddress:   keyInfo.GetAddress(),
 			FromName:      keyInfo.GetName(),
