@@ -31,7 +31,7 @@ func (t Tx) QueryNode(id string) (*vpn.Node, error) {
 	return common.QueryNode(t.Manager.CLI.CLIContext, id)
 }
 
-func (t Tx) QueryResolver(id string) ([]hub.NodeID, error) {
+func (t Tx) QueryNodesOfResolver(id string) ([]hub.NodeID, error) {
 	return common.QueryNodesOfResolver(t.Manager.CLI.CLIContext, id)
 }
 

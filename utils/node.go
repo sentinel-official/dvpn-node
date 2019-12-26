@@ -65,17 +65,7 @@ func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.No
 		panic(err)
 	}
 	
-	_msg := vpn.NewMsgRegisterVPNOnResolver(from, node.ID, resolverId)
-	
-	data, err := tx.CompleteAndSubscribeTx(_msg)
-	if err != nil {
-		return nil, err
-	}
-	
-	log.Printf("Node registered on resolver at height `%d`, tx hash `%s`",
-		data.Height, common.HexBytes(data.Tx.Hash()).String())
-	
-	resolvers, err := tx.QueryResolver(cfg.Node.ID)
+	resolvers, err := tx.QueryNodesOfResolver(cfg.Resolver.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +78,17 @@ func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.No
 	}
 	
 	if !isMatch {
-		return nil, errors.Errorf("Registered node owner address does not match with resolver address")
+		log.Println("Node does not find at resolver, so registering the node on resolver")
+		
+		_msg := vpn.NewMsgRegisterVPNOnResolver(from, node.ID, resolverId)
+		
+		data, err := tx.CompleteAndSubscribeTx(_msg)
+		if err != nil {
+			return nil, err
+		}
+		
+		log.Printf("Node registered on resolver at height `%d`, tx hash `%s` resolver-id `%s`",
+			data.Height, common.HexBytes(data.Tx.Hash()).String(), resolverId)
 	}
 	
 	ip, err := PublicIP()
