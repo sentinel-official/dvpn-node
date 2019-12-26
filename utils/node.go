@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	
@@ -35,6 +36,8 @@ func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.No
 		
 		msg := vpn.NewMsgRegisterNode(from, _vpn.Type(), types.Version,
 			cfg.Node.Moniker, pricesPerGB, speed, _vpn.Encryption())
+		
+		fmt.Println(msg)
 		
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
