@@ -22,20 +22,19 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func ProcessNode(kb keys.Keybase, cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN, password string) (*vpn.Node, error) {
-	
+func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*config.AppConfig, *vpn.Node, error) {
 	from := tx.Manager.CLI.FromAddress
 	if cfg.Node.ID == "" {
 		log.Println("Got an empty node ID, so registering the node")
 		
 		pricesPerGB, err := sdk.ParseCoins(cfg.Node.PricesPerGB)
 		if err != nil {
-			return nil, err
+			return cfg, nil, err
 		}
 		
 		speed, err := InternetSpeed()
 		if err != nil {
-			return nil, err
+			return cfg, nil, err
 		}
 		
 		msg := vpn.NewMsgRegisterNode(from, _vpn.Type(), types.Version,
@@ -45,7 +44,7 @@ func ProcessNode(kb keys.Keybase, cfg *config.AppConfig, tx *_tx.Tx, _vpn types.
 		
 		data, err := tx.CompleteAndSubscribeTx(msg)
 		if err != nil {
-			return nil, err
+			return cfg, nil, err
 		}
 		
 		events := sdk.StringifyEvents(data.Result.Events)
@@ -57,13 +56,17 @@ func ProcessNode(kb keys.Keybase, cfg *config.AppConfig, tx *_tx.Tx, _vpn types.
 	
 	node, err := tx.QueryNode(cfg.Node.ID)
 	if err != nil {
-		
-		return nil, err
+		return cfg, nil, err
 	}
 	if !node.Owner.Equals(from) {
-		return nil, errors.Errorf("Registered node owner address does not match with current account address")
+		return cfg, nil, errors.Errorf("Registered node owner address does not match with current account address")
 	}
 	
+	return cfg, node, nil
+}
+
+func ProcessResolver(kb keys.Keybase, cfg *config.AppConfig, tx *_tx.Tx, nodeID hub.NodeID, password string) error {
+	from := tx.Manager.CLI.FromAddress
 	resolverId, err := hub.NewResolverIDFromString(cfg.Resolver.ID)
 	if err != nil {
 		panic(err)
@@ -71,74 +74,103 @@ func ProcessNode(kb keys.Keybase, cfg *config.AppConfig, tx *_tx.Tx, _vpn types.
 	
 	resolvers, err := tx.QueryNodesOfResolver(cfg.Resolver.ID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	
-	fmt.Println("nodes at resolver", resolvers)
-	isMatch := false
+	isRegister := false
 	for _, _resolver := range resolvers {
 		if cfg.Node.ID == _resolver.String() {
-			isMatch = true
+			isRegister = true
 		}
 	}
 	
-	fmt.Println("is match", isMatch)
-	if !isMatch {
-		log.Println("Node does not find at resolver, so registering the node on resolver")
+	if !isRegister {
+		log.Println("Node does not register at resolver, so registering the node at resolver")
 		
-		_msg := vpn.NewMsgRegisterVPNOnResolver(from, node.ID, resolverId)
+		_msg := vpn.NewMsgRegisterVPNOnResolver(from, nodeID, resolverId)
 		
 		data, err := tx.CompleteAndSubscribeTx(_msg)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		
 		log.Printf("Node registered on resolver at height `%d`, tx hash `%s` resolver-id `%s`",
 			data.Height, common.HexBytes(data.Tx.Hash()).String(), resolverId)
 	}
 	
-	ip, err := PublicIP()
+	url := "http://" + cfg.Resolver.IP + "/nodes/" + nodeID.String()
+	res, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	
-	sigBytes, pubKey, err := kb.Sign(cfg.Account.Name, password, []byte(nil))
-	
-	stdSignature := auth.StdSignature{
-		PubKey:    pubKey,
-		Signature: sigBytes,
-	}
-	
-	_bytes, err := tx.Manager.CLI.Codec.MarshalJSON(stdSignature)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	
-	url := "http://" + cfg.Resolver.IP + "/node/register"
-	strPort := strconv.FormatUint(uint64(cfg.APIPort), 10)
-	message := map[string]interface{}{
-		"id":        cfg.Node.ID,
-		"ip":        ip,
-		"port":      strPort,
-		"signature": string(_bytes),
-	}
-	
-	bytesRepresentation, err := json.Marshal(message)
+	var resp types.Response
+	err = json.Unmarshal(body, &resp)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 	
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(bytesRepresentation))
+	bz, err := json.Marshal(resp.Result)
 	if err != nil {
-		log.Fatalln(err)
-	}
-	b, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("respppppppppp", string(b))
-	if resp.StatusCode != 200 {
-		log.Fatalln("Error while register on the resolver")
+		return err
 	}
 	
-	log.Fatalln("Register node on the resolver completed locally")
+	var node types.Node
+	err = json.Unmarshal(bz, &node)
+	if err != nil {
+		return err
+	}
 	
-	return node, nil
+	if node.ID == "" {
+		log.Println("Node does not register at local resolver, so registering the node at local resolver")
+		
+		ip, err := PublicIP()
+		if err != nil {
+			return err
+		}
+		
+		sigBytes, pubKey, err := kb.Sign(cfg.Account.Name, password, []byte(nil))
+		
+		stdSignature := auth.StdSignature{
+			PubKey:    pubKey,
+			Signature: sigBytes,
+		}
+		
+		_bytes, err := tx.Manager.CLI.Codec.MarshalJSON(stdSignature)
+		if err != nil {
+			return err
+		}
+		
+		url := "http://" + cfg.Resolver.IP + "/node/register"
+		strPort := strconv.FormatUint(uint64(cfg.APIPort), 10)
+		
+		message := map[string]interface{}{
+			"id":        cfg.Node.ID,
+			"ip":        ip,
+			"port":      strPort,
+			"signature": string(_bytes),
+		}
+		
+		bz, err := json.Marshal(message)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(bz))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		
+		if resp.StatusCode != 200 {
+			log.Fatalln("Error while register on the local resolver")
+		}
+		
+		log.Fatalln("Register node on the local resolver completed")
+	}
+	
+	return nil
 }

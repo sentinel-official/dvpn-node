@@ -53,11 +53,12 @@ func (t Tx) QuerySubscriptionByTxHash(hash string) (*vpn.Subscription, error) {
 		return nil, err
 	}
 	
-	if len(stdTx.Msgs) != 1 || stdTx.Msgs[0].Type() != "MsgStartSubscription" {
+	if len(stdTx.Msgs) != 1 || stdTx.Msgs[0].Type() != "start_subscription" {
 		return nil, errors.Errorf("Invalid subscription transaction")
 	}
 	
-	id := string(res.TxResult.Events[2].String())
+	events := sdk.StringifyEvents(res.TxResult.Events)
+	id := events[1].Attributes[0].Value
 	return common.QuerySubscription(t.Manager.CLI.CLIContext, id)
 }
 
