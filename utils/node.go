@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 	hub "github.com/sentinel-official/hub/types"
 	vpn "github.com/sentinel-official/hub/x/vpn/types"
@@ -18,7 +22,7 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.Node, error) {
+func ProcessNode(kb keys.Keybase, cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN, password string) (*vpn.Node, error) {
 	
 	from := tx.Manager.CLI.FromAddress
 	if cfg.Node.ID == "" {
@@ -70,13 +74,15 @@ func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.No
 		return nil, err
 	}
 	
+	fmt.Println("nodes at resolver", resolvers)
 	isMatch := false
 	for _, _resolver := range resolvers {
-		if resolverId.IsEqual(_resolver) {
+		if cfg.Node.ID == _resolver.String() {
 			isMatch = true
 		}
 	}
 	
+	fmt.Println("is match", isMatch)
 	if !isMatch {
 		log.Println("Node does not find at resolver, so registering the node on resolver")
 		
@@ -96,11 +102,25 @@ func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.No
 		return nil, err
 	}
 	
+	sigBytes, pubKey, err := kb.Sign(cfg.Account.Name, password, []byte(nil))
+	
+	stdSignature := auth.StdSignature{
+		PubKey:    pubKey,
+		Signature: sigBytes,
+	}
+	
+	_bytes, err := tx.Manager.CLI.Codec.MarshalJSON(stdSignature)
+	if err != nil {
+		return nil, err
+	}
+	
 	url := "http://" + cfg.Resolver.IP + "/node/register"
+	strPort := strconv.FormatUint(uint64(cfg.APIPort), 10)
 	message := map[string]interface{}{
-		"id":   cfg.Node.ID,
-		"ip":   ip,
-		"port": cfg.APIPort,
+		"id":        cfg.Node.ID,
+		"ip":        ip,
+		"port":      strPort,
+		"signature": string(_bytes),
 	}
 	
 	bytesRepresentation, err := json.Marshal(message)
@@ -112,7 +132,8 @@ func ProcessNode(cfg *config.AppConfig, tx *_tx.Tx, _vpn types.BaseVPN) (*vpn.No
 	if err != nil {
 		log.Fatalln(err)
 	}
-	
+	b, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("respppppppppp", string(b))
 	if resp.StatusCode != 200 {
 		log.Fatalln("Error while register on the resolver")
 	}

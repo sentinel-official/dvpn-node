@@ -68,7 +68,7 @@ func main() {
 		panic(err)
 	}
 	
-	nodeInfo, err := utils.ProcessNode(cfg, tx, vpn)
+	nodeInfo, err := utils.ProcessNode(kb, cfg, tx, vpn,password)
 	if err != nil {
 		panic(err)
 	}
