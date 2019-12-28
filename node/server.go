@@ -4,7 +4,6 @@ package node
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 	
@@ -103,8 +102,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 	
-	fmt.Println("idssssssssssssssss",sub.NodeID.String(), n.id.String())
-	if sub.NodeID.IsEqual(n.id) {
+	if sub.NodeID.String() != n.id.String() {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription does not belong to this node",
 			Info:    sub,
@@ -142,13 +140,14 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 	}
 	
 	_sub = &types.Subscription{
-		ID:        sub.ID,
-		TxHash:    body.TxHash,
-		Address:   client.GetAddress(),
-		PubKey:    client.GetPubKey(),
-		Bandwidth: sub.RemainingBandwidth,
-		Status:    types.ACTIVE,
-		CreatedAt: time.Now().UTC(),
+		ID:         sub.ID,
+		ResolverID: sub.ResolverID,
+		TxHash:     body.TxHash,
+		Address:    client.GetAddress(),
+		PubKey:     client.GetPubKey(),
+		Bandwidth:  sub.RemainingBandwidth,
+		Status:     types.ACTIVE,
+		CreatedAt:  time.Now().UTC(),
 	}
 	
 	if err := n.db.SubscriptionSave(_sub); err != nil {
