@@ -15,4 +15,4 @@ require (
 	github.com/tendermint/tendermint v0.32.8
 )
 
-replace github.com/sentinel-official/hub v0.2.0 => github.com/bitsndbyts/hub v0.2.1-0.20191223114336-b6d29b99a54a
+replace github.com/sentinel-official/hub v0.2.0 => github.com/bitsndbyts/hub v0.2.1-0.20191226103641-58930d8aa800

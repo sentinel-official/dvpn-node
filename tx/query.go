@@ -1,6 +1,8 @@
 package tx
 
 import (
+	"fmt"
+	
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
@@ -58,6 +60,7 @@ func (t Tx) QuerySubscriptionByTxHash(hash string) (*vpn.Subscription, error) {
 	}
 	
 	events := sdk.StringifyEvents(res.TxResult.Events)
+	fmt.Println("Eventssss", events)
 	id := events[1].Attributes[0].Value
 	return common.QuerySubscription(t.Manager.CLI.CLIContext, id)
 }
