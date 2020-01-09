@@ -59,7 +59,7 @@ func (n *Node) Router() *mux.Router {
 		Name("InitSession")
 	
 	router.
-		Methods("POST").
+		Methods("GET").
 		Path("/subscriptions/{id}/websocket").
 		HandlerFunc(n.handlerFuncSubscriptionWebsocket).
 		Name("SubscriptionWebsocket")
