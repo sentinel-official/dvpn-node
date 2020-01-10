@@ -535,7 +535,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 	fmt.Println("ffffffffffffffffffff")
-	
+	r.Header.Add("upgrade", "webscocket")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println(err)
