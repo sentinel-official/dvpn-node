@@ -402,11 +402,13 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("11111111111111")
 	vars := mux.Vars(r)
 	
 	query, args := "_id = ?", []interface{}{
 		vars["id"],
 	}
+	fmt.Println("2222222")
 	
 	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
@@ -416,12 +418,16 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("3333333")
+	
 	if _sub == nil {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription does not exist in the database",
 		})
 		return
 	}
+	fmt.Println("4444444")
+	
 	if _sub.Status != types.ACTIVE {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid subscription status found in the database",
@@ -429,6 +435,8 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("555555")
+	
 	if !_sub.Bandwidth.AllPositive() {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid bandwidth found in the database",
@@ -436,6 +444,8 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	
+	fmt.Println("666666")
 	
 	sub, err := n.tx.QuerySubscription(vars["id"])
 	if err != nil {
@@ -445,6 +455,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("7777")
 	if sub.Status != vpn.StatusActive {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid subscription status found on the chain",
@@ -452,6 +463,8 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("8888888")
+	
 	if !sub.RemainingBandwidth.AllPositive() {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid remaining bandwidth found on the chain",
@@ -459,6 +472,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("9999999")
 	
 	index, err := n.tx.QuerySessionsCountOfSubscription(vars["id"])
 	if err != nil {
@@ -468,11 +482,13 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("1111000000")
 	
 	query, args = "_id = ? AND _index = ?", []interface{}{
 		vars["id"],
 		index,
 	}
+	fmt.Println("aaaaaaaaaaaaaaaa")
 	
 	_session, err := n.db.SessionFindOne(query, args...)
 	if err != nil {
@@ -481,12 +497,16 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			Info:    err.Error(),
 		})
 	}
+	fmt.Println("bbbbbbbb")
+	
 	if _session == nil {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Session does not exist in the database",
 		})
 		return
 	}
+	fmt.Println("cccccccccccccc")
+	
 	if _session.Status != types.INIT {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid session status found in the database",
@@ -494,12 +514,14 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("ddddddddddddd")
 	
 	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 		vars["id"],
 		index,
 		types.INIT,
 	}
+	fmt.Println("eeeeeeeeeeeeee")
 	
 	updates := map[string]interface{}{
 		"_status": types.ACTIVE,
@@ -512,28 +534,33 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+	fmt.Println("ffffffffffffffffffff")
 	
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		fmt.Println(err)
 		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			vars["id"],
 			index,
 			types.ACTIVE,
 		}
 		
+		fmt.Println(query, args)
 		updates = map[string]interface{}{
 			"_status": types.INIT,
 		}
-		
+		fmt.Println("updates", updates)
 		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
 		return
 	}
+	fmt.Println("gggggggggggggggg")
 	
 	n.clients[vars["id"]] = &client{
 		pubKey:      _sub.PubKey,
 		conn:        conn,
 		outMessages: make(chan *types.Msg),
 	}
+	fmt.Println("hhhhhhhhhhhhhhh")
 	
 	go n.readMessages(vars["id"], index)
 	go n.writeMessages(vars["id"])
