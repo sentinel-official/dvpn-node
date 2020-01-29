@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -28,6 +29,7 @@ type client struct {
 var (
 	upgrader = &websocket.Upgrader{
 		HandshakeTimeout: 45 * time.Second,
+		WriteBufferSize:  1024,
 	}
 )
 
@@ -590,7 +592,7 @@ func (n *Node) readMessages(id string, index uint64) {
 			continue
 		}
 
-		if errMsg := n.handleIncomingMessage(client.pubKey, &msg); errMsg != nil {
+		if errMsg := n.handleIncomingMessage(client.pubKey, msg); errMsg != nil {
 			client.outMessages <- errMsg
 			continue
 		}
@@ -600,7 +602,10 @@ func (n *Node) readMessages(id string, index uint64) {
 	}
 }
 
-func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg *types.Msg) *types.Msg {
+func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg types.Msg) *types.Msg {
+
+	fmt.Println(msg.Type, string(msg.Data))
+
 	switch msg.Type {
 	case "MsgBandwidthSignature":
 		return n.handleMsgBandwidthSignature(pubKey, msg.Data)
@@ -612,6 +617,7 @@ func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg *types.Msg) *type
 func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.RawMessage) *types.Msg {
 	var msg MsgBandwidthSignature
 	if err := json.Unmarshal(rawMsg, &msg); err != nil {
+		log.Println(err)
 		return NewMsgError(2, "Error occurred while decoding the raw message")
 	}
 	if err := msg.Validate(); err != nil {
