@@ -113,6 +113,7 @@ func (n *Node) updateBandwidthInfos() error {
 		wg.Wait()
 		if makeTx && len(messages) > 0 {
 			go func() {
+				log.Println("Broadcasting update-session-bandwidth transaction", messages)
 				data, err := n.tx.CompleteAndSubscribeTx(messages...)
 				if err != nil {
 					panic(err)
