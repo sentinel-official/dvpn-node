@@ -1,13 +1,11 @@
 package tx
 
 import (
-	"fmt"
-	
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/pkg/errors"
 	hub "github.com/sentinel-official/hub/types"
-	
+
 	"github.com/sentinel-official/hub/x/vpn"
 	"github.com/sentinel-official/hub/x/vpn/client/common"
 )
@@ -17,7 +15,7 @@ func (t Tx) QueryAccount(_address string) (auth.Account, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	account, err := t.Manager.CLI.GetAccount(address)
 	if err != nil {
 		return nil, err
@@ -25,7 +23,7 @@ func (t Tx) QueryAccount(_address string) (auth.Account, error) {
 	if account == nil {
 		return nil, errors.Errorf("no account found")
 	}
-	
+
 	return account, nil
 }
 
@@ -49,18 +47,17 @@ func (t Tx) QuerySubscriptionByTxHash(hash string) (*vpn.Subscription, error) {
 	if !res.TxResult.IsOK() {
 		return nil, errors.Errorf(res.TxResult.String())
 	}
-	
+
 	var stdTx auth.StdTx
 	if err := t.Manager.CLI.Codec.UnmarshalBinaryLengthPrefixed(res.Tx, &stdTx); err != nil {
 		return nil, err
 	}
-	
+
 	if len(stdTx.Msgs) != 1 || stdTx.Msgs[0].Type() != "start_subscription" {
 		return nil, errors.Errorf("Invalid subscription transaction")
 	}
-	
+
 	events := sdk.StringifyEvents(res.TxResult.Events)
-	fmt.Println("Eventssss", events)
 	id := events[1].Attributes[0].Value
 	return common.QuerySubscription(t.Manager.CLI.CLIContext, id)
 }

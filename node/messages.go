@@ -10,11 +10,11 @@ import (
 )
 
 type MsgBandwidthSignature struct {
-	ID                 hub.SubscriptionID        `json:"id"`
-	Index              uint64        `json:"index"`
-	Bandwidth          hub.Bandwidth `json:"bandwidth"`
-	NodeOwnerSignature []byte        `json:"node_owner_signature"`
-	ClientSignature    []byte        `json:"client_signature"`
+	ID                 hub.SubscriptionID `json:"id"`
+	Index              uint64             `json:"index"`
+	Bandwidth          hub.Bandwidth      `json:"bandwidth"`
+	NodeOwnerSignature []byte             `json:"node_owner_signature"`
+	ClientSignature    []byte             `json:"client_signature"`
 }
 
 func NewMsgBandwidthSignature(id hub.SubscriptionID, index uint64, bandwidth hub.Bandwidth,

@@ -98,7 +98,6 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	fmt.Println("After query transaction", sub, err)
 	if sub.Status != vpn.StatusActive {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid subscription status found on the chain",
@@ -119,7 +118,6 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		sub.ID.String(),
 	}
 
-	fmt.Println("Adding subscription")
 	_sub, err := n.db.SubscriptionFindOne(query, args...)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, &types.StdError{
@@ -128,7 +126,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	fmt.Println("after subscription", _sub, err)
+
 	if _sub != nil {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription is already exists in the database",
@@ -137,7 +135,6 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Println("Query Account")
 	client, err := n.tx.QueryAccount(sub.Client.String())
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, &types.StdError{
