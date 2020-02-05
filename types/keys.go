@@ -22,7 +22,7 @@ var (
 	DefaultOpenVPNConfigFilePath = filepath.Join(DefaultConfigDir, "open_vpn_config.toml")
 	DefaultTLSCertFilePath       = filepath.Join(DefaultConfigDir, "server.crt")
 	DefaultTLSKeyFilePath        = filepath.Join(DefaultConfigDir, "server.key")
-	ConnectionReadTimeout        = 30000000 * time.Second
-	RequestBandwidthSignInterval = 500000 * time.Second
-	UpdateBandwidthInfosInterval = 100000000 * time.Second
+	ConnectionReadTimeout        = 300 * time.Second
+	RequestBandwidthSignInterval = 5 * time.Second
+	UpdateBandwidthInfosInterval = 100 * time.Second
 )
