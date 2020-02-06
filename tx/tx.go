@@ -10,7 +10,6 @@ import (
 
 	"github.com/sentinel-official/hub/app"
 	hub "github.com/sentinel-official/hub/types"
-	"github.com/sentinel-official/hub/x/vpn"
 )
 
 type Tx struct {
@@ -71,9 +70,9 @@ func (t Tx) CompleteAndSubscribeTx(messages ...sdk.Msg) (*tm.EventDataTx, error)
 	return &data, nil
 }
 
-func (t Tx) SignSessionBandwidth(id hub.ID, index uint64, bandwidth hub.Bandwidth) ([]byte, error) {
-	signature, _, err := t.Manager.CLIContext.Keybase.Sign(t.Manager.CLIContext.FromName,
-		t.Manager.password, vpn.NewBandwidthSignatureData(id, index, bandwidth).Bytes())
+func (t Tx) SignSessionBandwidth(id hub.SubscriptionID, index uint64, bandwidth hub.Bandwidth) ([]byte, error) {
+	signature, _, err := t.Manager.CLI.Keybase.Sign(t.Manager.CLI.FromName,
+		t.Manager.password, hub.NewBandwidthSignatureData(id, index, bandwidth).Bytes())
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ package node
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -27,11 +28,18 @@ type client struct {
 var (
 	upgrader = &websocket.Upgrader{
 		HandshakeTimeout: 45 * time.Second,
+		WriteBufferSize:  1024,
 	}
 )
 
 func (n *Node) Router() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
+
+	router.
+		Methods("GET").
+		Path("/health").
+		HandlerFunc(n.handlerGetServerHealth).
+		Name("GetServerHealth")
 
 	router.
 		Methods("POST").
@@ -52,12 +60,18 @@ func (n *Node) Router() *mux.Router {
 		Name("InitSession")
 
 	router.
-		Methods("POST").
+		Methods("GET").
 		Path("/subscriptions/{id}/websocket").
 		HandlerFunc(n.handlerFuncSubscriptionWebsocket).
 		Name("SubscriptionWebsocket")
 
 	return router
+}
+
+func (n *Node) handlerGetServerHealth(w http.ResponseWriter, r *http.Request) {
+	utils.WriteResultToResponse(w, 201, HealthResponse{
+		Status: "active",
+	})
 }
 
 func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +102,8 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	if sub.NodeID != n.id {
+
+	if sub.NodeID.String() != n.id.String() {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription does not belong to this node",
 			Info:    sub,
@@ -108,6 +123,7 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
+
 	if _sub != nil {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription is already exists in the database",
@@ -126,13 +142,14 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 	}
 
 	_sub = &types.Subscription{
-		ID:        sub.ID,
-		TxHash:    body.TxHash,
-		Address:   client.GetAddress(),
-		PubKey:    client.GetPubKey(),
-		Bandwidth: sub.RemainingBandwidth,
-		Status:    types.ACTIVE,
-		CreatedAt: time.Now().UTC(),
+		ID:         sub.ID,
+		ResolverID: sub.ResolverID,
+		TxHash:     body.TxHash,
+		Address:    client.GetAddress(),
+		PubKey:     client.GetPubKey(),
+		Bandwidth:  sub.RemainingBandwidth,
+		Status:     types.ACTIVE,
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	if err := n.db.SubscriptionSave(_sub); err != nil {
@@ -349,7 +366,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := vpn.NewBandwidthSignatureData(_session.ID, _session.Index, _session.Bandwidth)
+	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(_session.ID.Uint64()), _session.Index, _session.Bandwidth)
 	if !_sub.PubKey.VerifyBytes(data.Bytes(), signature) {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid bandwidth signature",
@@ -395,12 +412,14 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+
 	if _sub == nil {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Subscription does not exist in the database",
 		})
 		return
 	}
+
 	if _sub.Status != types.ACTIVE {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid subscription status found in the database",
@@ -408,6 +427,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+
 	if !_sub.Bandwidth.AllPositive() {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid bandwidth found in the database",
@@ -424,6 +444,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+
 	if sub.Status != vpn.StatusActive {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid subscription status found on the chain",
@@ -431,6 +452,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		})
 		return
 	}
+
 	if !sub.RemainingBandwidth.AllPositive() {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid remaining bandwidth found on the chain",
@@ -460,12 +482,14 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			Info:    err.Error(),
 		})
 	}
+
 	if _session == nil {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Session does not exist in the database",
 		})
 		return
 	}
+
 	if _session.Status != types.INIT {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid session status found in the database",
@@ -494,6 +518,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		fmt.Println(err)
 		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			vars["id"],
 			index,
@@ -556,7 +581,7 @@ func (n *Node) readMessages(id string, index uint64) {
 			continue
 		}
 
-		if errMsg := n.handleIncomingMessage(client.pubKey, &msg); errMsg != nil {
+		if errMsg := n.handleIncomingMessage(client.pubKey, msg); errMsg != nil {
 			client.outMessages <- errMsg
 			continue
 		}
@@ -566,7 +591,7 @@ func (n *Node) readMessages(id string, index uint64) {
 	}
 }
 
-func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg *types.Msg) *types.Msg {
+func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg types.Msg) *types.Msg {
 	switch msg.Type {
 	case "MsgBandwidthSignature":
 		return n.handleMsgBandwidthSignature(pubKey, msg.Data)
@@ -580,16 +605,28 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 	if err := json.Unmarshal(rawMsg, &msg); err != nil {
 		return NewMsgError(2, "Error occurred while decoding the raw message")
 	}
+
 	if err := msg.Validate(); err != nil {
-		return NewMsgError(3, "Invalid message")
+		return NewMsgError(2, "Invalid message")
 	}
 
-	data := vpn.NewBandwidthSignatureData(msg.ID, msg.Index, msg.Bandwidth).Bytes()
+	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(msg.ID.Uint64()), msg.Index, msg.Bandwidth).Bytes()
+
 	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
-		return NewMsgError(4, "Invalid node owner signature")
+		return NewMsgError(5, "Invalid node owner signature")
 	}
 	if !pubKey.VerifyBytes(data, msg.ClientSignature) {
 		return NewMsgError(5, "Invalid client signature")
+	}
+
+	sub, err := n.tx.QuerySubscription(msg.ID.String())
+	if err != nil {
+		return NewMsgError(5, "Invalid client signature")
+	}
+
+	if !msg.Bandwidth.AllLTE(sub.RemainingBandwidth) {
+		n.clients[msg.ID.String()].conn.Close()
+		return NewMsgError(5, "Invalid bandwidth")
 	}
 
 	query, args := "_id = ? AND _index = ? AND _status = ? AND _upload <= ? AND _download <= ?", []interface{}{

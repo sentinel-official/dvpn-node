@@ -29,8 +29,13 @@ func (session) TableName() string {
 }
 
 func (s *session) Session() (*types.Session, error) {
+	id, err := hub.NewSubscriptionIDFromString(s.ID)
+	if err != nil {
+		return &types.Session{}, err
+	}
+
 	return &types.Session{
-		ID:        hub.NewIDFromString(s.ID),
+		ID:        id,
 		Index:     s.Index,
 		Bandwidth: hub.NewBandwidthFromInt64(s.Upload, s.Download),
 		Signature: s.Signature,

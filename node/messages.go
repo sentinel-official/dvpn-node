@@ -4,21 +4,20 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-
 	hub "github.com/sentinel-official/hub/types"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type MsgBandwidthSignature struct {
-	ID                 hub.ID        `json:"id"`
-	Index              uint64        `json:"index"`
-	Bandwidth          hub.Bandwidth `json:"bandwidth"`
-	NodeOwnerSignature []byte        `json:"node_owner_signature"`
-	ClientSignature    []byte        `json:"client_signature"`
+	ID                 hub.SubscriptionID `json:"id"`
+	Index              uint64             `json:"index"`
+	Bandwidth          hub.Bandwidth      `json:"bandwidth"`
+	NodeOwnerSignature []byte             `json:"node_owner_signature"`
+	ClientSignature    []byte             `json:"client_signature"`
 }
 
-func NewMsgBandwidthSignature(id hub.ID, index uint64, bandwidth hub.Bandwidth,
+func NewMsgBandwidthSignature(id hub.SubscriptionID, index uint64, bandwidth hub.Bandwidth,
 	nodeOwnerSignature, clientSignature []byte) *types.Msg {
 
 	msg := MsgBandwidthSignature{

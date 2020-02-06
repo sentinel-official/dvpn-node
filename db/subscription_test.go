@@ -21,8 +21,10 @@ var (
 	testPubKey          = ed25519.GenPrivKey().PubKey()
 	testBech32PubKey, _ = sdk.Bech32ifyAccPub(testPubKey)
 	testAddress         = sdk.AccAddress(testPubKey.Address())
-	testIDZero          = hub.NewIDFromUInt64(0)
-	testIDPos           = hub.NewIDFromUInt64(1)
+	testSessIDZero, _   = hub.NewSessionIDFromString("sess0")
+	testSessIDOne, _    = hub.NewSessionIDFromString("sess1")
+	testSubsIDZero, _   = hub.NewSubscriptionIDFromString("subs0")
+	testSubsIDOne, _    = hub.NewSubscriptionIDFromString("subs1")
 	testBandwidth1      = hub.NewBandwidthFromInt64(1024, 1024)
 	testBandwidth2      = hub.NewBandwidthFromInt64(2048, 2048)
 	testTime            = time.Now().UTC()
@@ -30,7 +32,7 @@ var (
 
 var (
 	testSubscription = types.Subscription{
-		ID:        testIDZero,
+		ID:        testSubsIDZero,
 		TxHash:    fmt.Sprintf("%d", 0),
 		Address:   testAddress,
 		PubKey:    testPubKey,
@@ -119,7 +121,7 @@ func TestDB_SubscriptionSave(t *testing.T) {
 	require.NotNil(t, err)
 
 	subscription1 := testSubscription
-	subscription1.ID = testIDPos
+	subscription1.ID = testSubsIDOne
 	subscription1.TxHash = fmt.Sprintf("%d", 1)
 	err = db.SubscriptionSave(&subscription1)
 	require.Nil(t, err)

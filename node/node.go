@@ -59,12 +59,6 @@ func (n *Node) Start(port uint16) error {
 	}()
 
 	go func() {
-		if err := n.updateNodeStatus(); err != nil {
-			panic(err)
-		}
-	}()
-
-	go func() {
 		if err := n.updateBandwidthInfos(); err != nil {
 			panic(err)
 		}
@@ -74,24 +68,6 @@ func (n *Node) Start(port uint16) error {
 
 	log.Printf("Listening the API server on address `%s`", addr)
 	return http.ListenAndServeTLS(addr, types.DefaultTLSCertFilePath, types.DefaultTLSKeyFilePath, n.Router())
-}
-
-func (n *Node) updateNodeStatus() error {
-	log.Printf("Starting update node status ticker with interval `%s`",
-		types.UpdateNodeStatusInterval.String())
-
-	t := time.NewTicker(types.UpdateNodeStatusInterval)
-	for ; ; <-t.C {
-		msg := vpn.NewMsgUpdateNodeStatus(n.address, n.id, vpn.StatusActive)
-
-		data, err := n.tx.CompleteAndSubscribeTx(msg)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("Node status updated at block height `%d`, tx hash `%s`",
-			data.Height, common.HexBytes(data.Tx.Hash()).String())
-	}
 }
 
 func (n *Node) updateBandwidthInfos() error {
@@ -168,8 +144,9 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		return nil, errors.Errorf("Client with id `%s` exists in database but not in memory", id)
 	}
 
+	_id := hub.NewSubscriptionID(s.ID.Uint64())
 	if makeTx {
-		signature, err := n.tx.SignSessionBandwidth(s.ID, s.Index, s.Bandwidth) // nolint:govet
+		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
 		if err != nil {
 			return nil, err
 		}
@@ -183,23 +160,18 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 			Signature: s.Signature,
 		}
 
-		msg = vpn.NewMsgUpdateSessionInfo(n.address, s.ID, s.Bandwidth, nos, cs)
+		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
 	}
 
-	updates := map[string]interface{}{
-		"_upload":   bandwidth.Upload.Int64(),
-		"_download": bandwidth.Download.Int64(),
-	}
-
-	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil { // nolint:gocritic
-		return nil, err
-	}
-
-	signature, err := n.tx.SignSessionBandwidth(s.ID, s.Index, bandwidth)
+	signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
 	if err != nil {
 		return nil, err
 	}
 
-	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, s.Bandwidth, signature, nil)
+	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
 	return msg, nil
+}
+
+type HealthResponse struct {
+	Status string `json:"status"`
 }

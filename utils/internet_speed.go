@@ -181,7 +181,7 @@ func InternetSpeed() (hub.Bandwidth, error) {
 	var upload, download int64
 
 	for i := range servers[:8] {
-		upload, err = uploadSpeed(&servers[i], 8, 4000000)
+		upload, err = uploadSpeed(&servers[i], 8, 1500)
 		if err == nil {
 			break
 		}

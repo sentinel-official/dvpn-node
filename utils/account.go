@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -18,7 +19,8 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 	var name string
 
 	fmt.Printf("Enter a new account name: ")
-	name, err := client.BufferStdin().ReadString('\n')
+
+	name, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +36,13 @@ func createAccount(kb keys.Keybase) (keys.Info, error) {
 
 	password, err := client.GetCheckPassword(
 		"Enter a passphrase to encrypt your key to disk: ",
-		"Repeat the passphrase: ", client.BufferStdin())
+		"Repeat the passphrase: ", bufio.NewReader(os.Stdin))
 	if err != nil {
 		return nil, err
 	}
 
 	prompt := "Enter your bip39 mnemonic, or hit enter to generate one."
-	mnemonic, err := client.GetString(prompt, client.BufferStdin())
+	mnemonic, err := client.GetString(prompt, bufio.NewReader(os.Stdin))
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +100,7 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 	fmt.Printf("\n")
 
 	prompt := "Enter a account name from above list, or hit enter to create a new account."
-	name, err = client.GetString(prompt, client.BufferStdin())
+	name, err = client.GetString(prompt, bufio.NewReader(os.Stdin))
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +113,7 @@ func ProcessAccount(kb keys.Keybase, name string) (keys.Info, error) {
 
 func ProcessAccountPassword(kb keys.Keybase, name string) (string, error) {
 	prompt := fmt.Sprintf("Enter the password of the account with name `%s`: ", name)
-	password, err := client.GetPassword(prompt, client.BufferStdin())
+	password, err := client.GetPassword(prompt, bufio.NewReader(os.Stdin))
 	if err != nil {
 		return "", err
 	}
