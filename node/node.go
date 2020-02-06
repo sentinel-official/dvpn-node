@@ -113,7 +113,6 @@ func (n *Node) updateBandwidthInfos() error {
 		wg.Wait()
 		if makeTx && len(messages) > 0 {
 			go func() {
-				log.Println("Broadcasting update-session-bandwidth transaction", string(messages[0].GetSignBytes()))
 				data, err := n.tx.CompleteAndSubscribeTx(messages...)
 				if err != nil {
 					panic(err)
@@ -147,7 +146,6 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 
 	_id := hub.NewSubscriptionID(s.ID.Uint64())
 	if makeTx {
-		log.Println("Query session for updating sign...........", s.Bandwidth, string(s.Signature))
 		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
 		if err != nil {
 			return nil, err
@@ -164,15 +162,6 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 
 		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
 	}
-
-	//updates := map[string]interface{}{
-	//	"_upload":   bandwidth.Upload.Int64(),
-	//	"_download": bandwidth.Download.Int64(),
-	//}
-	//
-	//if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil { // nolint:gocritic
-	//	return nil, err
-	//}
 
 	signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
 	if err != nil {
