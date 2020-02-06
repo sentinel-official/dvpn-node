@@ -4,7 +4,6 @@ package node
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -69,12 +68,11 @@ func (n *Node) Router() *mux.Router {
 }
 
 func (n *Node) handlerGetServerHealth(w http.ResponseWriter, r *http.Request) {
-	response := HealthResponse{
+	utils.WriteResultToResponse(w, 201, HealthResponse{
 		Status: "active",
-	}
-
-	utils.WriteResultToResponse(w, 201, response)
+	})
 }
+
 func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		TxHash string `json:"tx_hash"`
@@ -88,7 +86,6 @@ func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Println("Query transaction")
 	sub, err := n.tx.QuerySubscriptionByTxHash(body.TxHash)
 	if err != nil {
 		utils.WriteErrorToResponse(w, 500, &types.StdError{
@@ -518,24 +515,18 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	r.Header.Add("upgrade", "websocket")
-	r.Header.Add("Sec-Websocket-Version", "13")
-	r.Header.Add("Sec-WebSocket-Key", "12345")
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println(err)
 		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			vars["id"],
 			index,
 			types.ACTIVE,
 		}
 
-		fmt.Println(query, args)
 		updates = map[string]interface{}{
 			"_status": types.INIT,
 		}
-		fmt.Println("updates", updates)
+
 		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
 		return
 	}
@@ -613,10 +604,27 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		return NewMsgError(2, "Error occurred while decoding the raw message")
 	}
 
+	if err := msg.Validate(); err != nil {
+		return NewMsgError(2, "Invalid message")
+	}
+
 	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(msg.ID.Uint64()), msg.Index, msg.Bandwidth).Bytes()
 
+	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
+		return NewMsgError(5, "Invalid node owner signature")
+	}
 	if !pubKey.VerifyBytes(data, msg.ClientSignature) {
 		return NewMsgError(5, "Invalid client signature")
+	}
+
+	sub, err := n.tx.QuerySubscription(msg.ID.String())
+	if err != nil {
+		return NewMsgError(5, "Invalid client signature")
+	}
+
+	if !msg.Bandwidth.AllLTE(sub.RemainingBandwidth) {
+		n.clients[msg.ID.String()].conn.Close()
+		return NewMsgError(5, "Invalid bandwidth")
 	}
 
 	query, args := "_id = ? AND _index = ? AND _status = ? AND _upload <= ? AND _download <= ?", []interface{}{
@@ -633,23 +641,9 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		"_signature": msg.ClientSignature,
 	}
 
-	fmt.Println("Updating client signature ", updates)
 	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 		return NewMsgError(6, "Error occurred while updating the session in database")
 	}
-
-	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
-		msg.ID.String(),
-		msg.Index,
-		types.ACTIVE,
-	}
-
-	_sess, err := n.db.SessionFindOne(query, args...)
-	if err != nil {
-		return NewMsgError(6, "Error occurred while querying session from db")
-	}
-
-	fmt.Println("Updated client signature", _sess.Bandwidth, _sess.Signature)
 
 	return nil
 }

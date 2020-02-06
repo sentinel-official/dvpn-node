@@ -12,7 +12,7 @@ import (
 	"net"
 	"os"
 	"time"
-	
+
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
@@ -31,14 +31,14 @@ func pemBlockForPrivateKey(pk interface{}) *pem.Block {
 	switch pk := pk.(type) {
 	case *rsa.PrivateKey:
 		b := x509.MarshalPKCS1PrivateKey(pk)
-		
+
 		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: b}
 	case *ecdsa.PrivateKey:
 		b, err := x509.MarshalECPrivateKey(pk)
 		if err != nil {
 			panic(err)
 		}
-		
+
 		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
 	default:
 		return nil
@@ -51,12 +51,12 @@ func NewTLSKey(ip net.IP) error {
 	if err != nil {
 		return err
 	}
-	
+
 	number, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		return err
 	}
-	
+
 	now := time.Now()
 	certificate := &x509.Certificate{
 		SerialNumber: number,
@@ -70,12 +70,12 @@ func NewTLSKey(ip net.IP) error {
 		BasicConstraintsValid: true,
 		IPAddresses:           []net.IP{ip},
 	}
-	
+
 	cert, err := x509.CreateCertificate(rand.Reader, certificate, certificate, publicKey(pk), pk)
 	if err != nil {
 		return err
 	}
-	
+
 	file, err := os.Create(types.DefaultTLSCertFilePath)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func NewTLSKey(ip net.IP) error {
 	if err = file.Close(); err != nil { // nolint:gocritic
 		return err
 	}
-	
+
 	file, err = os.OpenFile(types.DefaultTLSKeyFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
@@ -97,6 +97,6 @@ func NewTLSKey(ip net.IP) error {
 	if err = file.Close(); err != nil { // nolint:gocritic
 		return err
 	}
-	
+
 	return nil
 }
