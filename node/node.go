@@ -147,6 +147,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 
 	_id := hub.NewSubscriptionID(s.ID.Uint64())
 	if makeTx {
+		log.Println("Query session for updating sign...........", s.Bandwidth, string(s.Signature))
 		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
 		if err != nil {
 			return nil, err

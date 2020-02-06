@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -600,9 +599,6 @@ func (n *Node) readMessages(id string, index uint64) {
 }
 
 func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg types.Msg) *types.Msg {
-
-	fmt.Println(msg.Type, string(msg.Data))
-
 	switch msg.Type {
 	case "MsgBandwidthSignature":
 		return n.handleMsgBandwidthSignature(pubKey, msg.Data)
@@ -614,7 +610,6 @@ func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg types.Msg) *types
 func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.RawMessage) *types.Msg {
 	var msg MsgBandwidthSignature
 	if err := json.Unmarshal(rawMsg, &msg); err != nil {
-		log.Println(err)
 		return NewMsgError(2, "Error occurred while decoding the raw message")
 	}
 
@@ -638,9 +633,23 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		"_signature": msg.ClientSignature,
 	}
 
+	fmt.Println("Updating client signature ", updates)
 	if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 		return NewMsgError(6, "Error occurred while updating the session in database")
 	}
+
+	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
+		msg.ID.String(),
+		msg.Index,
+		types.ACTIVE,
+	}
+
+	_sess, err := n.db.SessionFindOne(query, args...)
+	if err != nil {
+		return NewMsgError(6, "Error occurred while querying session from db")
+	}
+
+	fmt.Println("Updated client signature", _sess.Bandwidth, _sess.Signature)
 
 	return nil
 }
