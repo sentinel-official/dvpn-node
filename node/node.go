@@ -165,21 +165,21 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
 	}
 
-	updates := map[string]interface{}{
-		"_upload":   bandwidth.Upload.Int64(),
-		"_download": bandwidth.Download.Int64(),
-	}
-
-	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil { // nolint:gocritic
-		return nil, err
-	}
+	//updates := map[string]interface{}{
+	//	"_upload":   bandwidth.Upload.Int64(),
+	//	"_download": bandwidth.Download.Int64(),
+	//}
+	//
+	//if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil { // nolint:gocritic
+	//	return nil, err
+	//}
 
 	signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
 	if err != nil {
 		return nil, err
 	}
 
-	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, s.Bandwidth, signature, nil)
+	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
 	return msg, nil
 }
 
