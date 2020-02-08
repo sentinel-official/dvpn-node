@@ -96,8 +96,18 @@ func (n *Node) updateBandwidthInfos() error {
 		}
 
 		var messages []sdk.Msg
+		var ids []string
 		for id, bandwidth := range clients {
 			wg.Add(1)
+
+			subs, err := n.tx.QuerySubscription(id)
+			if err != nil {
+				panic(err)
+			}
+
+			if subs.RemainingBandwidth.AllEqual(bandwidth) {
+				ids = append(ids, id)
+			}
 
 			go func(id string, bandwidth hub.Bandwidth, makeTx bool) {
 				message, err := n.requestBandwidthSign(id, bandwidth, makeTx)
@@ -113,10 +123,14 @@ func (n *Node) updateBandwidthInfos() error {
 		wg.Wait()
 		if makeTx && len(messages) > 0 {
 			go func() {
-				log.Println("Broadcasting update-session-bandwidth transaction", string(messages[0].GetSignBytes()))
 				data, err := n.tx.CompleteAndSubscribeTx(messages...)
 				if err != nil {
 					panic(err)
+				}
+
+				for _, id := range ids {
+					n.clients[id].conn.Close()
+					delete(n.clients, id)
 				}
 
 				log.Printf("Bandwidth infos updated at block height `%d`, tx hash `%s`",
@@ -147,7 +161,6 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 
 	_id := hub.NewSubscriptionID(s.ID.Uint64())
 	if makeTx {
-		log.Println("Query session for updating sign...........", s.Bandwidth, string(s.Signature))
 		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
 		if err != nil {
 			return nil, err
