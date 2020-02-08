@@ -546,8 +546,6 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 }
 
 func (n *Node) readMessages(id string, index uint64) {
-	client := n.clients[id]
-
 	defer func() {
 		query, args := "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			id,
@@ -563,34 +561,41 @@ func (n *Node) readMessages(id string, index uint64) {
 			panic(err)
 		}
 
-		if err := client.conn.Close(); err != nil {
-			panic(err)
+		if n.clients[id] != nil && n.clients[id].conn != nil {
+			if err := n.clients[id].conn.Close(); err != nil {
+			}
 		}
+
 	}()
 
-	_ = client.conn.SetReadDeadline(
+	_ = n.clients[id].conn.SetReadDeadline(
 		time.Now().Add(types.ConnectionReadTimeout))
 
 	for {
-		_, p, err := client.conn.ReadMessage()
-		if err != nil {
-			return
-		}
+		client := n.clients[id]
 
-		var msg types.Msg
-		if err := json.Unmarshal(p, &msg); err != nil {
-			client.outMessages <- NewMsgError(1, "Error occurred while decoding the message")
-			continue
-		}
+		if client != nil && client.conn != nil {
+			_, p, err := client.conn.ReadMessage()
+			if err != nil {
+				return
+			}
 
-		if errMsg := n.handleIncomingMessage(client.pubKey, msg); errMsg != nil {
-			client.outMessages <- errMsg
-			continue
-		}
+			var msg types.Msg
+			if err := json.Unmarshal(p, &msg); err != nil {
+				client.outMessages <- NewMsgError(1, "Error occurred while decoding the message")
+				continue
+			}
 
-		_ = client.conn.SetReadDeadline(
-			time.Now().Add(types.ConnectionReadTimeout))
+			if errMsg := n.handleIncomingMessage(client.pubKey, msg); errMsg != nil {
+				client.outMessages <- errMsg
+				continue
+			}
+
+			_ = client.conn.SetReadDeadline(
+				time.Now().Add(types.ConnectionReadTimeout))
+		}
 	}
+
 }
 
 func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg types.Msg) *types.Msg {

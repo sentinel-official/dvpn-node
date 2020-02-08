@@ -105,7 +105,8 @@ func (n *Node) updateBandwidthInfos() error {
 				panic(err)
 			}
 
-			if subs.RemainingBandwidth.AllEqual(bandwidth) {
+			fmt.Println("bandwithsssss", subs.RemainingBandwidth, bandwidth)
+			if !bandwidth.AllLTE(subs.RemainingBandwidth) {
 				ids = append(ids, id)
 			}
 
@@ -128,6 +129,7 @@ func (n *Node) updateBandwidthInfos() error {
 					panic(err)
 				}
 
+				fmt.Println(ids)
 				for _, id := range ids {
 					n.clients[id].conn.Close()
 					delete(n.clients, id)
