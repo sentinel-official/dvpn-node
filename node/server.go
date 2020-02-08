@@ -608,8 +608,15 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 		return NewMsgError(2, "Error occurred while decoding the raw message")
 	}
 
+	if err := msg.Validate(); err != nil {
+		return NewMsgError(2, "Invalid message")
+	}
+	
 	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(msg.ID.Uint64()), msg.Index, msg.Bandwidth).Bytes()
 
+	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
+		return NewMsgError(5, "Invalid node owner signature")
+	}
 	if !pubKey.VerifyBytes(data, msg.ClientSignature) {
 		return NewMsgError(5, "Invalid client signature")
 	}

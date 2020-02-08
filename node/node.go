@@ -164,7 +164,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 
 		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
 	}
-	
+
 	subs, err := n.tx.QuerySubscription(s.ID.String())
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		return nil, err
 	}
 
-	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, s.Bandwidth, signature, nil)
+	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
 	return msg, nil
 }
 
