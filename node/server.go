@@ -521,7 +521,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if _session.Status != types.INIT && _session.Status != types.ACTIVE {
+	if _session.Status == types.INACTIVE {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid session status found in the database",
 			Info:    _session,
@@ -584,7 +584,6 @@ func (n *Node) readMessages(id string) {
 		if n.clients[id] != nil && n.clients[id].conn != nil {
 			if err := n.clients[id].conn.Close(); err != nil {
 			}
-			delete(n.clients, id)
 		}
 
 	}()

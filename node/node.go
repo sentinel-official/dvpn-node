@@ -9,7 +9,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
@@ -155,44 +154,44 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		return nil, n.vpn.DisconnectClient(id)
 	}
 
-	client, ok := n.clients[id]
-	if !ok {
-		return nil, errors.Errorf("Client with id `%s` exists in database but not in memory", id)
-	}
-
+	client := n.clients[id]
 	_id := hub.NewSubscriptionID(s.ID.Uint64())
-	if makeTx {
-		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
+	if client != nil {
+		if makeTx {
+			signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
+			if err != nil {
+				return nil, err
+			}
+
+			nos := auth.StdSignature{
+				PubKey:    n.pubKey,
+				Signature: signature,
+			}
+			cs := auth.StdSignature{
+				PubKey:    client.pubKey,
+				Signature: s.Signature,
+			}
+
+			msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+		}
+
+		subs, err := n.tx.QuerySubscription(s.ID.String())
+		if err != nil {
+			return nil, err
+		}
+		if !bandwidth.AllLTE(subs.RemainingBandwidth) {
+			bandwidth = subs.RemainingBandwidth
+		}
+
+		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
 		if err != nil {
 			return nil, err
 		}
 
-		nos := auth.StdSignature{
-			PubKey:    n.pubKey,
-			Signature: signature,
+		if client.conn != nil {
+			client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
 		}
-		cs := auth.StdSignature{
-			PubKey:    client.pubKey,
-			Signature: s.Signature,
-		}
-
-		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
 	}
-
-	subs, err := n.tx.QuerySubscription(s.ID.String())
-	if err != nil {
-		return nil, err
-	}
-	if !bandwidth.AllLTE(subs.RemainingBandwidth) {
-		bandwidth = subs.RemainingBandwidth
-	}
-
-	signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
-	if err != nil {
-		return nil, err
-	}
-
-	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
 	return msg, nil
 }
 
