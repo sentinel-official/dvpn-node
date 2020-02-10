@@ -105,7 +105,6 @@ func (n *Node) updateBandwidthInfos() error {
 				panic(err)
 			}
 
-			fmt.Println("bandwithsssss", subs.RemainingBandwidth, bandwidth)
 			if !bandwidth.AllLTE(subs.RemainingBandwidth) {
 				ids = append(ids, id)
 			}

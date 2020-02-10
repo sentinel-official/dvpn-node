@@ -360,7 +360,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sess, _ := n.tx.QuerySessionOfSubscription(_sub.ID.String(), index)
-	
+
 	if sess != nil && sess.Status == vpn.StatusInactive && _session.Status == types.ACTIVE {
 		query, args = "_id = ? AND _index = ?", []interface{}{
 			vars["id"],
@@ -521,7 +521,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if _session.Status != types.INIT {
+	if _session.Status != types.INIT && _session.Status != types.ACTIVE {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
 			Message: "Invalid session status found in the database",
 			Info:    _session,
@@ -529,27 +529,33 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
-		vars["id"],
-		index,
-		types.INIT,
-	}
+	if _session.Status == types.INIT {
+		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
+			vars["id"],
+			index,
+			types.INIT,
+		}
 
-	updates := map[string]interface{}{
-		"_status": types.ACTIVE,
-	}
+		updates := map[string]interface{}{
+			"_status": types.ACTIVE,
+		}
 
-	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-		utils.WriteErrorToResponse(w, 500, &types.StdError{
-			Message: "Error occurred while updating the session in database",
-			Info:    err.Error(),
-		})
-		return
+		if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+			utils.WriteErrorToResponse(w, 500, &types.StdError{
+				Message: "Error occurred while updating the session in database",
+				Info:    err.Error(),
+			})
+			return
+		}
 	}
 
 	r.Header.Add("upgrade", "websocket")
 	r.Header.Add("Sec-Websocket-Version", "13")
 	r.Header.Add("Sec-WebSocket-Key", "12345")
+
+	updates := map[string]interface{}{
+		"_status": _session.Status,
+	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -559,9 +565,6 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			types.ACTIVE,
 		}
 
-		updates = map[string]interface{}{
-			"_status": types.INIT,
-		}
 		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
 		return
 	}
@@ -578,20 +581,6 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 
 func (n *Node) readMessages(id string) {
 	defer func() {
-		//query, args := "_id = ? AND _index = ? AND _status = ?", []interface{}{
-		//	id,
-		//	index,
-		//	types.ACTIVE,
-		//}
-		//
-		//updates := map[string]interface{}{
-		//	"_status": types.INACTIVE,
-		//}
-		//
-		//if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-		//	panic(err)
-		//}
-
 		if n.clients[id] != nil && n.clients[id].conn != nil {
 			if err := n.clients[id].conn.Close(); err != nil {
 			}
