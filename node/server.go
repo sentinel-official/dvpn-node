@@ -584,6 +584,7 @@ func (n *Node) readMessages(id string) {
 		if n.clients[id] != nil && n.clients[id].conn != nil {
 			if err := n.clients[id].conn.Close(); err != nil {
 			}
+			delete(n.clients, id)
 		}
 
 	}()
