@@ -360,6 +360,7 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sess, _ := n.tx.QuerySessionOfSubscription(_sub.ID.String(), index)
+	
 	if sess != nil && sess.Status == vpn.StatusInactive && _session.Status == types.ACTIVE {
 		query, args = "_id = ? AND _index = ?", []interface{}{
 			vars["id"],
