@@ -358,12 +358,42 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		utils.WriteResultToResponse(w, 201, _session)
 		return
 	}
-	if _session.Status == types.ACTIVE {
-		utils.WriteErrorToResponse(w, 400, &types.StdError{
-			Message: "Session status is active in the database",
-			Info:    _session,
-		})
-		return
+
+	sess, _ := n.tx.QuerySessionOfSubscription(_sub.ID.String(), index)
+	if sess != nil && sess.Status == vpn.StatusInactive && _session.Status == types.ACTIVE {
+		query, args = "_id = ? AND _index = ?", []interface{}{
+			vars["id"],
+			index,
+		}
+
+		updates := map[string]interface{}{
+			"_status": types.INACTIVE,
+		}
+
+		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+			utils.WriteErrorToResponse(w, 500, &types.StdError{
+				Message: "Error occurred while updating the session in database",
+				Info:    err.Error(),
+			})
+			return
+		}
+
+		_session = &types.Session{
+			ID:        sub.ID,
+			Index:     index + 1,
+			Bandwidth: hub.NewBandwidthFromInt64(0, 0),
+			Signature: nil,
+			Status:    types.INIT,
+			CreatedAt: time.Now().UTC(),
+		}
+
+		if err = n.db.SessionSave(_session); err != nil {
+			utils.WriteErrorToResponse(w, 500, &types.StdError{
+				Message: "Error occurred while adding the session to database",
+				Info:    err.Error(),
+			})
+			return
+		}
 	}
 
 	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(_session.ID.Uint64()), _session.Index, _session.Bandwidth)
@@ -541,25 +571,25 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		outMessages: make(chan *types.Msg),
 	}
 
-	go n.readMessages(vars["id"], index)
+	go n.readMessages(vars["id"])
 	go n.writeMessages(vars["id"])
 }
 
-func (n *Node) readMessages(id string, index uint64) {
+func (n *Node) readMessages(id string) {
 	defer func() {
-		query, args := "_id = ? AND _index = ? AND _status = ?", []interface{}{
-			id,
-			index,
-			types.ACTIVE,
-		}
-
-		updates := map[string]interface{}{
-			"_status": types.INACTIVE,
-		}
-
-		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-			panic(err)
-		}
+		//query, args := "_id = ? AND _index = ? AND _status = ?", []interface{}{
+		//	id,
+		//	index,
+		//	types.ACTIVE,
+		//}
+		//
+		//updates := map[string]interface{}{
+		//	"_status": types.INACTIVE,
+		//}
+		//
+		//if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+		//	panic(err)
+		//}
 
 		if n.clients[id] != nil && n.clients[id].conn != nil {
 			if err := n.clients[id].conn.Close(); err != nil {
