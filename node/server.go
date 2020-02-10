@@ -4,6 +4,7 @@ package node
 import (
 	"encoding/base64"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -521,19 +522,10 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if _session.Status == types.INACTIVE {
-		utils.WriteErrorToResponse(w, 400, &types.StdError{
-			Message: "Invalid session status found in the database",
-			Info:    _session,
-		})
-		return
-	}
-
-	if _session.Status == types.INIT {
-		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
+	if _session.Status == types.INIT || _session.Status == types.INACTIVE {
+		query, args = "_id = ? AND _index = ?", []interface{}{
 			vars["id"],
 			index,
-			types.INIT,
 		}
 
 		updates := map[string]interface{}{
@@ -575,15 +567,30 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		outMessages: make(chan *types.Msg),
 	}
 
-	go n.readMessages(vars["id"])
+	go n.readMessages(vars["id"], index)
 	go n.writeMessages(vars["id"])
 }
 
-func (n *Node) readMessages(id string) {
+func (n *Node) readMessages(id string, index uint64) {
+	client := n.clients[id]
+
 	defer func() {
-		if n.clients[id] != nil && n.clients[id].conn != nil {
-			if err := n.clients[id].conn.Close(); err != nil {
-			}
+		query, args := "_id = ? AND _index = ? AND _status = ?", []interface{}{
+			id,
+			index,
+			types.ACTIVE,
+		}
+
+		updates := map[string]interface{}{
+			"_status": types.INACTIVE,
+		}
+
+		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+			panic(err)
+		}
+
+		if err := client.conn.Close(); err != nil {
+			log.Println(err)
 		}
 
 	}()
