@@ -69,6 +69,8 @@ func (n *Node) Start(port uint16) error {
 	return http.ListenAndServeTLS(addr, types.DefaultTLSCertFilePath, types.DefaultTLSKeyFilePath, n.Router())
 }
 
+var wg sync.WaitGroup
+
 func (n *Node) updateBandwidthInfos() error {
 	log.Printf("Starting update bandwidth infos ticker with interval `%s`",
 		types.UpdateBandwidthInfosInterval.String())
@@ -79,7 +81,6 @@ func (n *Node) updateBandwidthInfos() error {
 	t2 := time.NewTicker(types.RequestBandwidthSignInterval)
 
 	var makeTx bool
-	var wg sync.WaitGroup
 
 	for ; ; <-t2.C {
 		select {

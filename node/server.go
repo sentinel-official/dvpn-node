@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/libs/common"
 
 	hub "github.com/sentinel-official/hub/types"
 	"github.com/sentinel-official/hub/x/vpn"
@@ -589,14 +592,44 @@ func (n *Node) readMessages(id string, index uint64) {
 			types.ACTIVE,
 		}
 
-		updates := map[string]interface{}{
-			"_status": types.INACTIVE,
+		s, err := n.db.SessionFindOne(query, args...)
+		if err != nil {
+			log.Println(err)
 		}
 
-		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-			panic(err)
+		signature, err := n.tx.SignSessionBandwidth(s.ID, s.Index, s.Bandwidth)
+		nos := auth.StdSignature{
+			PubKey:    n.pubKey,
+			Signature: signature,
 		}
-		
+		cs := auth.StdSignature{
+			PubKey:    client.pubKey,
+			Signature: s.Signature,
+		}
+
+		if s.Bandwidth.AllPositive() {
+			msgUpdateBandwdth := vpn.NewMsgUpdateSessionInfo(n.address, s.ID, s.Bandwidth, nos, cs)
+			msgEndSession := vpn.NewMsgEndSession(n.address, s.ID)
+
+			data, err := n.tx.CompleteAndSubscribeTx([]sdk.Msg{msgUpdateBandwdth, msgEndSession}...)
+			if err != nil {
+				log.Println(err)
+			}
+
+			log.Printf("Bandwidth infos updated and session ended at block height `%d`, tx hash `%s`",
+				data.Height, common.HexBytes(data.Tx.Hash()).String())
+
+			updates := map[string]interface{}{
+				"_status": types.INACTIVE,
+			}
+
+			wg.Add(1)
+			if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+				panic(err)
+			}
+			wg.Done()
+		}
+
 		if err := client.conn.Close(); err != nil {
 			log.Println(err)
 		}
