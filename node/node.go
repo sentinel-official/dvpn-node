@@ -113,8 +113,10 @@ func (n *Node) updateBandwidthInfos() error {
 				if err != nil {
 					panic(err)
 				}
+				if message != nil {
+					messages = append(messages, message)
+				}
 
-				messages = append(messages, message)
 				wg.Done()
 			}(id, bandwidth, makeTx)
 		}
@@ -127,10 +129,11 @@ func (n *Node) updateBandwidthInfos() error {
 					panic(err)
 				}
 
-				fmt.Println(ids)
 				for _, id := range ids {
-					n.clients[id].conn.Close()
-					delete(n.clients, id)
+					if n.clients[id] != nil && n.clients[id].conn != nil {
+						n.clients[id].conn.Close()
+						delete(n.clients, id)
+					}
 				}
 
 				log.Printf("Bandwidth infos updated at block height `%d`, tx hash `%s`",
@@ -156,13 +159,13 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 
 	client := n.clients[id]
 	_id := hub.NewSubscriptionID(s.ID.Uint64())
+
 	if client != nil {
 		if makeTx {
 			signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
 			if err != nil {
 				return nil, err
 			}
-
 			nos := auth.StdSignature{
 				PubKey:    n.pubKey,
 				Signature: signature,
@@ -172,13 +175,16 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 				Signature: s.Signature,
 			}
 
-			msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+			if s.Bandwidth.AllPositive() {
+				msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+			}
 		}
 
 		subs, err := n.tx.QuerySubscription(s.ID.String())
 		if err != nil {
 			return nil, err
 		}
+
 		if !bandwidth.AllLTE(subs.RemainingBandwidth) {
 			bandwidth = subs.RemainingBandwidth
 		}
@@ -189,7 +195,7 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		}
 
 		if client.conn != nil {
-			client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
+			client.outMessages <- NewMsgBandwidthSignature(_id, s.Index, bandwidth, signature, nil)
 		}
 	}
 

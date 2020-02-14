@@ -513,6 +513,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			Message: "Error occurred while querying the session from database",
 			Info:    err.Error(),
 		})
+		return
 	}
 
 	if _session == nil {
@@ -522,7 +523,14 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if _session.Status == types.INIT || _session.Status == types.INACTIVE {
+	if _session.Status == types.INACTIVE {
+		utils.WriteErrorToResponse(w, 400, &types.StdError{
+			Message: "Session is not ACTIVE",
+		})
+		return
+	}
+
+	if _session.Status == types.INIT {
 		query, args = "_id = ? AND _index = ?", []interface{}{
 			vars["id"],
 			index,
@@ -545,16 +553,16 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 	r.Header.Add("Sec-Websocket-Version", "13")
 	r.Header.Add("Sec-WebSocket-Key", "12345")
 
-	updates := map[string]interface{}{
-		"_status": _session.Status,
-	}
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
 			vars["id"],
 			index,
 			types.ACTIVE,
+		}
+
+		updates := map[string]interface{}{
+			"_status": types.INIT,
 		}
 
 		_ = n.db.SessionFindOneAndUpdate(updates, query, args...)
@@ -588,11 +596,10 @@ func (n *Node) readMessages(id string, index uint64) {
 		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 			panic(err)
 		}
-
+		
 		if err := client.conn.Close(); err != nil {
 			log.Println(err)
 		}
-
 	}()
 
 	_ = n.clients[id].conn.SetReadDeadline(
