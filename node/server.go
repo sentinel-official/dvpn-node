@@ -72,12 +72,11 @@ func (n *Node) Router() *mux.Router {
 }
 
 func (n *Node) handlerGetServerHealth(w http.ResponseWriter, r *http.Request) {
-	response := HealthResponse{
+	utils.WriteResultToResponse(w, 201, HealthResponse{
 		Status: "active",
-	}
-
-	utils.WriteResultToResponse(w, 201, response)
+	})
 }
+
 func (n *Node) handlerFuncAddSubscription(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		TxHash string `json:"tx_hash"`
@@ -552,10 +551,6 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	r.Header.Add("upgrade", "websocket")
-	r.Header.Add("Sec-Websocket-Version", "13")
-	r.Header.Add("Sec-WebSocket-Key", "12345")
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
@@ -697,6 +692,16 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 	}
 	if !pubKey.VerifyBytes(data, msg.ClientSignature) {
 		return NewMsgError(5, "Invalid client signature")
+	}
+
+	sub, err := n.tx.QuerySubscription(msg.ID.String())
+	if err != nil {
+		return NewMsgError(5, "Invalid client signature")
+	}
+
+	if !msg.Bandwidth.AllLTE(sub.RemainingBandwidth) {
+		n.clients[msg.ID.String()].conn.Close()
+		return NewMsgError(5, "Invalid bandwidth")
 	}
 
 	query, args := "_id = ? AND _index = ? AND _status = ? AND _upload <= ? AND _download <= ?", []interface{}{
