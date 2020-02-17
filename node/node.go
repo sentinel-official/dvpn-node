@@ -9,7 +9,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 
@@ -80,7 +79,6 @@ func (n *Node) updateBandwidthInfos() error {
 	t2 := time.NewTicker(types.RequestBandwidthSignInterval)
 
 	var makeTx bool
-	var wg sync.WaitGroup
 
 	for ; ; <-t2.C {
 		select {
@@ -96,16 +94,29 @@ func (n *Node) updateBandwidthInfos() error {
 		}
 
 		var messages []sdk.Msg
+		var ids []string
+		var wg sync.WaitGroup
 		for id, bandwidth := range clients {
 			wg.Add(1)
+
+			subs, err := n.tx.QuerySubscription(id)
+			if err != nil {
+				panic(err)
+			}
+
+			if !bandwidth.AllLTE(subs.RemainingBandwidth) {
+				ids = append(ids, id)
+			}
 
 			go func(id string, bandwidth hub.Bandwidth, makeTx bool) {
 				message, err := n.requestBandwidthSign(id, bandwidth, makeTx)
 				if err != nil {
 					panic(err)
 				}
+				if message != nil {
+					messages = append(messages, message)
+				}
 
-				messages = append(messages, message)
 				wg.Done()
 			}(id, bandwidth, makeTx)
 		}
@@ -115,7 +126,14 @@ func (n *Node) updateBandwidthInfos() error {
 			go func() {
 				data, err := n.tx.CompleteAndSubscribeTx(messages...)
 				if err != nil {
-					panic(err)
+					log.Println(err)
+				}
+
+				for _, id := range ids {
+					if n.clients[id] != nil && n.clients[id].conn != nil {
+						n.clients[id].conn.Close()
+						delete(n.clients, id)
+					}
 				}
 
 				log.Printf("Bandwidth infos updated at block height `%d`, tx hash `%s`",
@@ -139,36 +157,49 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 		return nil, n.vpn.DisconnectClient(id)
 	}
 
-	client, ok := n.clients[id]
-	if !ok {
-		return nil, errors.Errorf("Client with id `%s` exists in database but not in memory", id)
-	}
-
+	client := n.clients[id]
 	_id := hub.NewSubscriptionID(s.ID.Uint64())
-	if makeTx {
-		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
+
+	if client != nil {
+		if makeTx {
+			signature, err := n.tx.SignSessionBandwidth(_id, s.Index, s.Bandwidth) // nolint:govet
+			if err != nil {
+				return nil, err
+			}
+			nos := auth.StdSignature{
+				PubKey:    n.pubKey,
+				Signature: signature,
+			}
+			cs := auth.StdSignature{
+				PubKey:    client.pubKey,
+				Signature: s.Signature,
+			}
+
+			_msg := vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+			if _msg.ValidateBasic() == nil {
+				msg = _msg
+			}
+		}
+
+		subs, err := n.tx.QuerySubscription(s.ID.String())
 		if err != nil {
 			return nil, err
 		}
 
-		nos := auth.StdSignature{
-			PubKey:    n.pubKey,
-			Signature: signature,
-		}
-		cs := auth.StdSignature{
-			PubKey:    client.pubKey,
-			Signature: s.Signature,
+		if !bandwidth.AllLTE(subs.RemainingBandwidth) {
+			bandwidth = subs.RemainingBandwidth
 		}
 
-		msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+		signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
+		if err != nil {
+			return nil, err
+		}
+
+		if client.conn != nil {
+			client.outMessages <- NewMsgBandwidthSignature(_id, s.Index, bandwidth, signature, nil)
+		}
 	}
 
-	signature, err := n.tx.SignSessionBandwidth(_id, s.Index, bandwidth)
-	if err != nil {
-		return nil, err
-	}
-
-	client.outMessages <- NewMsgBandwidthSignature(s.ID, s.Index, bandwidth, signature, nil)
 	return msg, nil
 }
 

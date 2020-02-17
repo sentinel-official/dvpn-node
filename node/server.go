@@ -4,12 +4,16 @@ package node
 import (
 	"encoding/base64"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/libs/common"
 
 	hub "github.com/sentinel-official/hub/types"
 	"github.com/sentinel-official/hub/x/vpn"
@@ -357,12 +361,43 @@ func (n *Node) handlerFuncInitSession(w http.ResponseWriter, r *http.Request) {
 		utils.WriteResultToResponse(w, 201, _session)
 		return
 	}
-	if _session.Status == types.ACTIVE {
-		utils.WriteErrorToResponse(w, 400, &types.StdError{
-			Message: "Session status is active in the database",
-			Info:    _session,
-		})
-		return
+
+	sess, _ := n.tx.QuerySessionOfSubscription(_sub.ID.String(), index)
+
+	if sess != nil && sess.Status == vpn.StatusInactive && _session.Status == types.ACTIVE {
+		query, args = "_id = ? AND _index = ?", []interface{}{
+			vars["id"],
+			index,
+		}
+
+		updates := map[string]interface{}{
+			"_status": types.INACTIVE,
+		}
+
+		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+			utils.WriteErrorToResponse(w, 500, &types.StdError{
+				Message: "Error occurred while updating the session in database",
+				Info:    err.Error(),
+			})
+			return
+		}
+
+		_session = &types.Session{
+			ID:        sub.ID,
+			Index:     index + 1,
+			Bandwidth: hub.NewBandwidthFromInt64(0, 0),
+			Signature: nil,
+			Status:    types.INIT,
+			CreatedAt: time.Now().UTC(),
+		}
+
+		if err = n.db.SessionSave(_session); err != nil {
+			utils.WriteErrorToResponse(w, 500, &types.StdError{
+				Message: "Error occurred while adding the session to database",
+				Info:    err.Error(),
+			})
+			return
+		}
 	}
 
 	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(_session.ID.Uint64()), _session.Index, _session.Bandwidth)
@@ -480,6 +515,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			Message: "Error occurred while querying the session from database",
 			Info:    err.Error(),
 		})
+		return
 	}
 
 	if _session == nil {
@@ -489,30 +525,30 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if _session.Status != types.INIT {
+	if _session.Status == types.INACTIVE {
 		utils.WriteErrorToResponse(w, 400, &types.StdError{
-			Message: "Invalid session status found in the database",
-			Info:    _session,
+			Message: "Session is not ACTIVE",
 		})
 		return
 	}
 
-	query, args = "_id = ? AND _index = ? AND _status = ?", []interface{}{
-		vars["id"],
-		index,
-		types.INIT,
-	}
+	if _session.Status == types.INIT {
+		query, args = "_id = ? AND _index = ?", []interface{}{
+			vars["id"],
+			index,
+		}
 
-	updates := map[string]interface{}{
-		"_status": types.ACTIVE,
-	}
+		updates := map[string]interface{}{
+			"_status": types.ACTIVE,
+		}
 
-	if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-		utils.WriteErrorToResponse(w, 500, &types.StdError{
-			Message: "Error occurred while updating the session in database",
-			Info:    err.Error(),
-		})
-		return
+		if err = n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+			utils.WriteErrorToResponse(w, 500, &types.StdError{
+				Message: "Error occurred while updating the session in database",
+				Info:    err.Error(),
+			})
+			return
+		}
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -523,7 +559,7 @@ func (n *Node) handlerFuncSubscriptionWebsocket(w http.ResponseWriter, r *http.R
 			types.ACTIVE,
 		}
 
-		updates = map[string]interface{}{
+		updates := map[string]interface{}{
 			"_status": types.INIT,
 		}
 
@@ -551,42 +587,83 @@ func (n *Node) readMessages(id string, index uint64) {
 			types.ACTIVE,
 		}
 
-		updates := map[string]interface{}{
-			"_status": types.INACTIVE,
+		s, err := n.db.SessionFindOne(query, args...)
+		if err != nil {
+			log.Println(err)
 		}
 
-		if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
-			panic(err)
+		signature, err := n.tx.SignSessionBandwidth(s.ID, s.Index, s.Bandwidth)
+		nos := auth.StdSignature{
+			PubKey:    n.pubKey,
+			Signature: signature,
+		}
+		cs := auth.StdSignature{
+			PubKey:    client.pubKey,
+			Signature: s.Signature,
+		}
+
+		if s.Bandwidth.AllPositive() {
+			msgUpdateBandwdth := vpn.NewMsgUpdateSessionInfo(n.address, s.ID, s.Bandwidth, nos, cs)
+			msgEndSession := vpn.NewMsgEndSession(n.address, s.ID)
+
+			for {
+				data, err := n.tx.CompleteAndSubscribeTx([]sdk.Msg{msgUpdateBandwdth, msgEndSession}...)
+				if err == nil {
+					log.Printf("Bandwidth infos updated and session ended at block height `%d`, tx hash `%s`",
+						data.Height, common.HexBytes(data.Tx.Hash()).String())
+					break
+				}
+				if err.Error() == "couldn't create db: Error initializing DB: resource temporarily unavailable" {
+					continue
+				} else {
+					err.Error()
+					log.Println(err)
+					break
+				}
+			}
+
+			updates := map[string]interface{}{
+				"_status": types.INACTIVE,
+			}
+
+			if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
+				panic(err)
+			}
 		}
 
 		if err := client.conn.Close(); err != nil {
-			panic(err)
+			log.Println(err)
 		}
 	}()
 
-	_ = client.conn.SetReadDeadline(
+	_ = n.clients[id].conn.SetReadDeadline(
 		time.Now().Add(types.ConnectionReadTimeout))
 
 	for {
-		_, p, err := client.conn.ReadMessage()
-		if err != nil {
-			return
-		}
+		client := n.clients[id]
 
-		var msg types.Msg
-		if err := json.Unmarshal(p, &msg); err != nil {
-			client.outMessages <- NewMsgError(1, "Error occurred while decoding the message")
-			continue
-		}
+		if client != nil && client.conn != nil {
+			_, p, err := client.conn.ReadMessage()
+			if err != nil {
+				return
+			}
 
-		if errMsg := n.handleIncomingMessage(client.pubKey, msg); errMsg != nil {
-			client.outMessages <- errMsg
-			continue
-		}
+			var msg types.Msg
+			if err := json.Unmarshal(p, &msg); err != nil {
+				client.outMessages <- NewMsgError(1, "Error occurred while decoding the message")
+				continue
+			}
 
-		_ = client.conn.SetReadDeadline(
-			time.Now().Add(types.ConnectionReadTimeout))
+			if errMsg := n.handleIncomingMessage(client.pubKey, msg); errMsg != nil {
+				client.outMessages <- errMsg
+				continue
+			}
+
+			_ = client.conn.SetReadDeadline(
+				time.Now().Add(types.ConnectionReadTimeout))
+		}
 	}
+
 }
 
 func (n *Node) handleIncomingMessage(pubKey crypto.PubKey, msg types.Msg) *types.Msg {
@@ -605,13 +682,13 @@ func (n *Node) handleMsgBandwidthSignature(pubKey crypto.PubKey, rawMsg json.Raw
 	}
 
 	if err := msg.Validate(); err != nil {
-		return NewMsgError(2, "Invalid message")
+		return NewMsgError(3, "Invalid message")
 	}
 
 	data := hub.NewBandwidthSignatureData(hub.NewSubscriptionID(msg.ID.Uint64()), msg.Index, msg.Bandwidth).Bytes()
 
 	if !n.pubKey.VerifyBytes(data, msg.NodeOwnerSignature) {
-		return NewMsgError(5, "Invalid node owner signature")
+		return NewMsgError(4, "Invalid node owner signature")
 	}
 	if !pubKey.VerifyBytes(data, msg.ClientSignature) {
 		return NewMsgError(5, "Invalid client signature")
