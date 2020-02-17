@@ -611,23 +611,29 @@ func (n *Node) readMessages(id string, index uint64) {
 			msgUpdateBandwdth := vpn.NewMsgUpdateSessionInfo(n.address, s.ID, s.Bandwidth, nos, cs)
 			msgEndSession := vpn.NewMsgEndSession(n.address, s.ID)
 
-			data, err := n.tx.CompleteAndSubscribeTx([]sdk.Msg{msgUpdateBandwdth, msgEndSession}...)
-			if err != nil {
-				log.Println(err)
+			for {
+				data, err := n.tx.CompleteAndSubscribeTx([]sdk.Msg{msgUpdateBandwdth, msgEndSession}...)
+				if err == nil {
+					log.Printf("Bandwidth infos updated and session ended at block height `%d`, tx hash `%s`",
+						data.Height, common.HexBytes(data.Tx.Hash()).String())
+					break
+				}
+				if err.Error() == "couldn't create db: Error initializing DB: resource temporarily unavailable" {
+					continue
+				} else {
+					err.Error()
+					log.Println(err)
+					break
+				}
 			}
-
-			log.Printf("Bandwidth infos updated and session ended at block height `%d`, tx hash `%s`",
-				data.Height, common.HexBytes(data.Tx.Hash()).String())
 
 			updates := map[string]interface{}{
 				"_status": types.INACTIVE,
 			}
 
-			wg.Add(1)
 			if err := n.db.SessionFindOneAndUpdate(updates, query, args...); err != nil {
 				panic(err)
 			}
-			wg.Done()
 		}
 
 		if err := client.conn.Close(); err != nil {

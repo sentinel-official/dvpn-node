@@ -69,8 +69,6 @@ func (n *Node) Start(port uint16) error {
 	return http.ListenAndServeTLS(addr, types.DefaultTLSCertFilePath, types.DefaultTLSKeyFilePath, n.Router())
 }
 
-var wg sync.WaitGroup
-
 func (n *Node) updateBandwidthInfos() error {
 	log.Printf("Starting update bandwidth infos ticker with interval `%s`",
 		types.UpdateBandwidthInfosInterval.String())
@@ -97,6 +95,7 @@ func (n *Node) updateBandwidthInfos() error {
 
 		var messages []sdk.Msg
 		var ids []string
+		var wg sync.WaitGroup
 		for id, bandwidth := range clients {
 			wg.Add(1)
 
@@ -127,7 +126,7 @@ func (n *Node) updateBandwidthInfos() error {
 			go func() {
 				data, err := n.tx.CompleteAndSubscribeTx(messages...)
 				if err != nil {
-					panic(err)
+					log.Println(err)
 				}
 
 				for _, id := range ids {
@@ -176,8 +175,9 @@ func (n *Node) requestBandwidthSign(id string, bandwidth hub.Bandwidth, makeTx b
 				Signature: s.Signature,
 			}
 
-			if s.Bandwidth.AllPositive() {
-				msg = vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+			_msg := vpn.NewMsgUpdateSessionInfo(n.address, _id, s.Bandwidth, nos, cs)
+			if _msg.ValidateBasic() == nil {
+				msg = _msg
 			}
 		}
 
