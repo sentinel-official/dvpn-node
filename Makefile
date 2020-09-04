@@ -1,8 +1,6 @@
 PACKAGES := $(shell go list ./...)
 VERSION := $(shell git rev-parse --short HEAD)
 
-export GO111MODULE=on
-
 BUILD_TAGS := netgo
 BUILD_TAGS := $(strip ${BUILD_TAGS})
 
