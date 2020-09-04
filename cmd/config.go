@@ -52,8 +52,8 @@ func configInit() *cobra.Command {
 				return err
 			}
 
-			config := types.NewConfig().WithDefaultValues()
-			return config.SaveToPath(path)
+			cfg := types.NewConfig().WithDefaultValues()
+			return cfg.SaveToPath(path)
 		},
 	}
 
@@ -77,12 +77,12 @@ func configShow() *cobra.Command {
 				return fmt.Errorf("config file does not exist at path '%s'", path)
 			}
 
-			config := types.NewConfig()
-			if err := config.LoadFromPath(path); err != nil {
+			cfg := types.NewConfig()
+			if err := cfg.LoadFromPath(path); err != nil {
 				return err
 			}
 
-			fmt.Println(config)
+			fmt.Println(cfg)
 			return nil
 		},
 	}

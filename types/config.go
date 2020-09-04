@@ -84,8 +84,8 @@ func (c *Config) WithDefaultValues() *Config {
 
 func (c *Config) LoadFromPath(path string) error {
 	if _, err := os.Stat(path); err != nil {
-		config := NewConfig().WithDefaultValues()
-		if err = config.SaveToPath(path); err != nil {
+		cfg := NewConfig().WithDefaultValues()
+		if err = cfg.SaveToPath(path); err != nil {
 			return err
 		}
 	}
