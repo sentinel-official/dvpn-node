@@ -9,13 +9,10 @@ LD_FLAGS := -s -w \
 
 BUILD_FLAGS := -tags "${BUILD_TAGS}" -ldflags "${LD_FLAGS}"
 
-all: install test
+all: mod_verify test benchmark install
 
-build: dep_verify
-	go build -mod=readonly ${BUILD_FLAGS} -o bin/sentinel-dvpn-node main.go
-
-install: build
-	mkdir -p ${GOPATH}/bin/ && mv bin/sentinel-dvpn-node ${GOPATH}/bin/
+install: mod_verify
+	go build -mod=readonly ${BUILD_FLAGS} -o ${GOPATH}/bin/sentinel-dvpn-node main.go
 
 test:
 	@go test -mod=readonly -cover ${PACKAGES}
@@ -23,8 +20,8 @@ test:
 benchmark:
 	@go test -mod=readonly -bench=. ${PACKAGES}
 
-dep_verify:
-	@echo "--> Ensure dependencies have not been modified"
+mod_verify:
+	@echo "Ensure dependencies have not been modified"
 	@go mod verify
 
-.PHONY: all build install test benchmark dep_verify
+.PHONY: all install test benchmark mod_verify

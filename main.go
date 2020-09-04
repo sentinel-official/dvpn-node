@@ -20,6 +20,7 @@ func main() {
 
 	root.AddCommand(
 		cmd.ConfigCommand(),
+		cmd.KeysCommand(),
 	)
 
 	root.PersistentFlags().String(types.FlagHome, types.DefaultHomeDirectory, "home")
