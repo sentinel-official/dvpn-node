@@ -25,7 +25,6 @@ gas_prices = "{{ .Chain.GasPrices }}"
 
 [node]
 from = "{{ .Node.From }}"
-address = "{{ .Node.Address }}"
 provider = "{{ .Node.Provider }}"
 price = "{{ .Node.Price }}"
 listen_on = "{{ .Node.ListenOn }}"
@@ -54,7 +53,6 @@ type Config struct {
 	} `json:"chain"`
 	Node struct {
 		From     string `json:"from"`
-		Address  string `json:"address"`
 		Provider string `json:"provider"`
 		Price    string `json:"price"`
 		ListenOn string `json:"listen_on"`
@@ -67,20 +65,19 @@ func NewConfig() *Config {
 }
 
 func (c *Config) WithDefaultValues() *Config {
-	c.Chain.ID = "hub"
+	c.Chain.ID = "sentinel-turing-3"
 	c.Chain.RPCAddress = "http://127.0.0.1:26657"
 	c.Chain.TrustNode = false
-	c.Chain.Gas = 100000
+	c.Chain.Gas = 1e5
 	c.Chain.GasAdjustment = 0
 	c.Chain.Fees = ""
-	c.Chain.GasPrices = "0.0001sent"
+	c.Chain.GasPrices = "0.001utsent"
 
 	c.Node.From = ""
-	c.Node.Address = ""
 	c.Node.Provider = ""
-	c.Node.Price = "10sent"
-	c.Node.ListenOn = ""
-	c.Node.Category = ""
+	c.Node.Price = "50utsent"
+	c.Node.ListenOn = "0.0.0.0:9656"
+	c.Node.Category = "OpenVPN"
 
 	return c
 }
