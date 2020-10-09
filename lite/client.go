@@ -1,10 +1,10 @@
-package client
+package lite
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -12,7 +12,6 @@ import (
 	crypto "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite"
@@ -23,8 +22,9 @@ import (
 )
 
 type Client struct {
-	ctx context.CLIContext
-	txb auth.TxBuilder
+	ctx   context.CLIContext
+	txb   auth.TxBuilder
+	mutex sync.Mutex
 }
 
 func NewClient() *Client {
@@ -67,6 +67,7 @@ func NewClientFromConfig(cfg *types.Config) (*Client, error) {
 	}
 
 	return NewClient().
+		WithGasAdjustment(cfg.Chain.GasAdjustment).
 		WithNode(node).
 		WithKeybase(kb).
 		WithNodeURI(cfg.Chain.RPCAddress).
@@ -77,7 +78,6 @@ func NewClientFromConfig(cfg *types.Config) (*Client, error) {
 		WithFromAddress(info.GetAddress()).
 		WithFromName(cfg.Node.From).
 		WithGas(cfg.Chain.Gas).
-		WithGasAdjustment(cfg.Chain.GasAdjustment).
 		WithChainID(cfg.Chain.ID).
 		WithFees(cfg.Chain.Fees).
 		WithGasPrices(cfg.Chain.GasPrices), nil
@@ -85,7 +85,6 @@ func NewClientFromConfig(cfg *types.Config) (*Client, error) {
 
 func (c *Client) WithCodec(v *codec.Codec) *Client         { c.ctx.Codec = v; return c }
 func (c *Client) WithNode(v client.Client) *Client         { c.ctx.Client = v; return c }
-func (c *Client) WithKeybase(v crypto.Keybase) *Client     { c.ctx.Keybase = v; return c }
 func (c *Client) WithOutput(v io.Writer) *Client           { c.ctx.Output = v; return c }
 func (c *Client) WithOutputFormat(s string) *Client        { c.ctx.OutputFormat = s; return c }
 func (c *Client) WithHeight(s int64) *Client               { c.ctx.Height = s; return c }
@@ -110,6 +109,13 @@ func (c *Client) WithFees(s string) *Client                { c.txb = c.txb.WithF
 func (c *Client) WithGasPrices(s string) *Client           { c.txb = c.txb.WithGasPrices(s); return c }
 func (c *Client) WithTxEncoder(v sdk.TxEncoder) *Client    { c.txb = c.txb.WithTxEncoder(v); return c }
 func (c *Client) WithAccountNumber(i uint64) *Client       { c.txb = c.txb.WithAccountNumber(i); return c }
+
+func (c *Client) WithKeybase(v crypto.Keybase) *Client {
+	c.ctx.Keybase = v
+	c.txb = c.txb.WithKeybase(v)
+
+	return c
+}
 
 func (c *Client) WithGasAdjustment(i float64) *Client {
 	c.txb = auth.NewTxBuilder(
@@ -144,43 +150,3 @@ func (c *Client) WithSimulateAndExecute(t bool) *Client {
 }
 
 func (c *Client) FromAddress() sdk.AccAddress { return c.ctx.FromAddress }
-
-func (c *Client) SignAndBroadcastTxCommit(messages []sdk.Msg) (sdk.TxResponse, error) {
-	account, err := c.QueryAccount(c.ctx.FromAddress)
-	if err != nil {
-		return sdk.TxResponse{}, err
-	}
-
-	txb := c.txb.WithAccountNumber(account.GetAccountNumber()).
-		WithSequence(account.GetSequence())
-
-	if txb.GasAdjustment() > 0 {
-		txb, err = utils.EnrichWithGas(txb, c.ctx, messages)
-		if err != nil {
-			return sdk.TxResponse{}, err
-		}
-	}
-
-	bytes, err := txb.BuildAndSign(c.ctx.From, types.DefaultPassword, messages)
-	if err != nil {
-		return sdk.TxResponse{}, err
-	}
-
-	node, err := c.ctx.GetNode()
-	if err != nil {
-		return sdk.TxResponse{}, err
-	}
-
-	result, err := node.BroadcastTxCommit(bytes)
-	if err != nil {
-		return sdk.TxResponse{}, err
-	}
-	if !result.CheckTx.IsOK() {
-		return sdk.TxResponse{}, fmt.Errorf(result.CheckTx.Log)
-	}
-	if !result.DeliverTx.IsOK() {
-		return sdk.TxResponse{}, fmt.Errorf(result.DeliverTx.Log)
-	}
-
-	return sdk.NewResponseFormatBroadcastTxCommit(result), nil
-}
