@@ -10,7 +10,7 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func ConfigCommand() *cobra.Command {
+func ConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Configuration sub-commands",
@@ -27,7 +27,7 @@ func ConfigCommand() *cobra.Command {
 func configInit() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Init",
+		Short: "Initialize the configuration with default values",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := cmd.Flags().GetString(types.FlagHome)
 			if err != nil {
@@ -48,7 +48,7 @@ func configInit() *cobra.Command {
 				}
 			}
 
-			if err = os.MkdirAll(home, 0700); err != nil {
+			if err := os.MkdirAll(home, 0700); err != nil {
 				return err
 			}
 
@@ -65,7 +65,7 @@ func configInit() *cobra.Command {
 func configShow() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show",
-		Short: "Show",
+		Short: "Show the configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := cmd.Flags().GetString(types.FlagHome)
 			if err != nil {

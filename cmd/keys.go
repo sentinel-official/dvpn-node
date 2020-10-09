@@ -8,12 +8,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/go-bip39"
+	hub "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func KeysCommand() *cobra.Command {
+func KeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keys",
 		Short: "Keys sub-commands",
@@ -80,8 +81,9 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("%s\n", info.GetAddress())
-			fmt.Println(mnemonic)
+			fmt.Printf("Address:  %s\n", hub.NodeAddress(info.GetAddress().Bytes()))
+			fmt.Printf("Operator: %s\n", info.GetAddress())
+			fmt.Printf("Mnemonic: %s\n", mnemonic)
 
 			return nil
 		},
@@ -113,7 +115,9 @@ func keysShow() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("%s\n", info.GetAddress())
+			fmt.Printf("Address:  %s\n", hub.NodeAddress(info.GetAddress().Bytes()))
+			fmt.Printf("Operator: %s\n", info.GetAddress())
+
 			return nil
 		},
 	}
@@ -142,7 +146,8 @@ func keysList() *cobra.Command {
 			}
 
 			for _, info := range list {
-				fmt.Printf("%s | %s\n", info.GetName(), info.GetAddress())
+				fmt.Printf("%s | %s | %s\n",
+					info.GetName(), hub.NodeAddress(info.GetAddress().Bytes()), info.GetAddress())
 			}
 
 			return nil
