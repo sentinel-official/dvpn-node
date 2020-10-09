@@ -1,0 +1,22 @@
+package types
+
+import (
+	"github.com/sentinel-official/hub/x/node"
+)
+
+type Service interface {
+	Type() node.Category
+	Initialize(home string) error
+	Start() error
+	Stop() error
+	AddPeer(keys ...string) error
+	RemovePeer(keys ...string) error
+	Peers() ([]Peer, error)
+	PeersCount() int64
+}
+
+type Peer struct {
+	Identity string `json:"identity"`
+	Upload   int64  `json:"upload"`
+	Download int64  `json:"download"`
+}
