@@ -27,22 +27,22 @@ linters:
     - deadcode
     - depguard
     - dogsled
-    #- dupl
+    - dupl
     - errcheck
     - funlen
-    #- gochecknoglobals
-    #- gochecknoinits
-    #- gocognit
-    #- goconst
-    #- gocritic
-    #- gocyclo
+    # - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
     - godot
     - godox
-    #- goerr113
+    # - goerr113
     - gofmt
     - goimports
     - golint
-    #- gomnd
+    # - gomnd
     - gomodguard
     - goprintffuncname
     - gosec
@@ -54,8 +54,8 @@ linters:
     - maligned
     - misspell
     - nakedret
-    #- nestif
-    #- nolintlint
+    - nestif
+    - nolintlint
     - prealloc
     - rowserrcheck
     - scopelint
@@ -69,4 +69,4 @@ linters:
     - unused
     - varcheck
     - whitespace
-    #- wsl
+    # - wsl
