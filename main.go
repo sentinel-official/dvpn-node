@@ -1,15 +1,20 @@
 package main
 
 import (
+	"math/rand"
+	"time"
+
 	sent "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/cmd"
+	wireguard "github.com/sentinel-official/dvpn-node/services/wireguard/cli"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	sent.GetConfig().Seal()
 	cobra.EnableCommandSorting = false
 
@@ -19,8 +24,12 @@ func main() {
 	}
 
 	root.AddCommand(
-		cmd.ConfigCommand(),
-		cmd.KeysCommand(),
+		cmd.ConfigCmd(),
+		cmd.KeysCmd(),
+		types.LineBreakCmd,
+		wireguard.Command(),
+		types.LineBreakCmd,
+		cmd.StartCmd(),
 	)
 
 	root.PersistentFlags().String(types.FlagHome, types.DefaultHomeDirectory, "home")
