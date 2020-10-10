@@ -23,6 +23,7 @@ type Context struct {
 	config    *types.Config
 	router    *mux.Router
 	sessions  *types.Sessions
+	location  *types.GeoIPLocation
 	bandwidth hub.Bandwidth
 }
 
@@ -32,15 +33,16 @@ func NewContext() *Context {
 	}
 }
 
-func (c *Context) WithBandwidth(v hub.Bandwidth) *Context  { c.bandwidth = v; return c }
-func (c *Context) WithClient(v *lite.Client) *Context      { c.client = v; return c }
-func (c *Context) WithConfig(v *types.Config) *Context     { c.config = v; return c }
-func (c *Context) WithContext(v context.Context) *Context  { c.ctx = v; return c }
-func (c *Context) WithHome(v string) *Context              { c.home = v; return c }
-func (c *Context) WithLogger(v log.Logger) *Context        { c.logger = v; return c }
-func (c *Context) WithRouter(v *mux.Router) *Context       { c.router = v; return c }
-func (c *Context) WithService(v types.Service) *Context    { c.service = v; return c }
-func (c *Context) WithSessions(v *types.Sessions) *Context { c.sessions = v; return c }
+func (c *Context) WithBandwidth(v hub.Bandwidth) *Context       { c.bandwidth = v; return c }
+func (c *Context) WithClient(v *lite.Client) *Context           { c.client = v; return c }
+func (c *Context) WithConfig(v *types.Config) *Context          { c.config = v; return c }
+func (c *Context) WithContext(v context.Context) *Context       { c.ctx = v; return c }
+func (c *Context) WithHome(v string) *Context                   { c.home = v; return c }
+func (c *Context) WithLocation(v *types.GeoIPLocation) *Context { c.location = v; return c }
+func (c *Context) WithLogger(v log.Logger) *Context             { c.logger = v; return c }
+func (c *Context) WithRouter(v *mux.Router) *Context            { c.router = v; return c }
+func (c *Context) WithService(v types.Service) *Context         { c.service = v; return c }
+func (c *Context) WithSessions(v *types.Sessions) *Context      { c.sessions = v; return c }
 
 func (c *Context) WithValue(key, value interface{}) *Context {
 	c.WithContext(context.WithValue(c.ctx, key, value))
@@ -55,6 +57,7 @@ func (c *Context) Config() *types.Config             { return c.config }
 func (c *Context) Context() context.Context          { return c.ctx }
 func (c *Context) Home() string                      { return c.home }
 func (c *Context) ListenOn() string                  { return c.Config().Node.ListenOn }
+func (c *Context) Location() *types.GeoIPLocation    { return c.location }
 func (c *Context) Logger() log.Logger                { return c.logger }
 func (c *Context) Moniker() string                   { return c.Config().Node.Moniker }
 func (c *Context) Operator() sdk.AccAddress          { return c.client.FromAddress() }

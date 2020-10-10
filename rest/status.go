@@ -17,8 +17,8 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 		Location struct {
 			City      string  `json:"city"`
 			Country   string  `json:"country"`
-			Latitude  float32 `json:"latitude"`
-			Longitude float32 `json:"longitude"`
+			Latitude  float64 `json:"latitude"`
+			Longitude float64 `json:"longitude"`
 		}
 		Response struct {
 			Address          string        `json:"address"`
@@ -41,15 +41,15 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 			Address: ctx.Address().String(),
 			Bandwidth: Bandwidth{
 				Upload:   ctx.Bandwidth().Upload.Int64(),
-				Download: ctx.Bandwidth().Upload.Int64(),
+				Download: ctx.Bandwidth().Download.Int64(),
 			},
 			IntervalSessions: ctx.IntervalSessions(),
 			IntervalStatus:   ctx.IntervalStatus(),
 			Location: Location{
-				City:      "",
-				Country:   "",
-				Latitude:  0,
-				Longitude: 0,
+				City:      ctx.Location().City,
+				Country:   ctx.Location().Country,
+				Latitude:  ctx.Location().Latitude,
+				Longitude: ctx.Location().Longitude,
 			},
 			Moniker:  ctx.Moniker(),
 			Operator: ctx.Operator().String(),
