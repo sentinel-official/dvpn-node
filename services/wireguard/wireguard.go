@@ -73,7 +73,7 @@ func (w *WireGuard) AddPeer(keys ...string) error {
 		return err
 	}
 
-	w.peers = w.peers + 1
+	w.peers++
 	return nil
 }
 
@@ -84,7 +84,7 @@ func (w *WireGuard) RemovePeer(keys ...string) error {
 		return err
 	}
 
-	w.peers = w.peers - 1
+	w.peers--
 	return nil
 }
 
@@ -95,6 +95,7 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 		return nil, err
 	}
 
+	// nolint: prealloc
 	var (
 		lines = strings.Split(string(output), "\n")
 		items []types.Peer

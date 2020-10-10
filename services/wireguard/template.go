@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// nolint:lll
 var (
 	serverConfigTemplate = strings.TrimSpace(`
 [Interface]

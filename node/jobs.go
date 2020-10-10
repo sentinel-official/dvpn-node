@@ -66,9 +66,9 @@ func (n *Node) jobUpdateSessions() error {
 		for _, item := range items {
 			session := n.Sessions().Get(item.Identity)
 
-			session.Upload = session.Upload + item.Upload
-			session.Download = session.Download + item.Download
-			session.Duration = session.Duration + item.Duration
+			session.Upload += item.Upload
+			session.Download += item.Download
+			session.Duration += item.Duration
 			n.Sessions().Set(session)
 		}
 	}
