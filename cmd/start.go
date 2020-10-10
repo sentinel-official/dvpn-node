@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	clientutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/gorilla/mux"
 	"github.com/sentinel-official/hub"
 	sent "github.com/sentinel-official/hub/types"
@@ -20,6 +20,7 @@ import (
 	"github.com/sentinel-official/dvpn-node/rest"
 	"github.com/sentinel-official/dvpn-node/services/wireguard"
 	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 func StartCmd() *cobra.Command {
@@ -58,7 +59,7 @@ func StartCmd() *cobra.Command {
 			}
 
 			client = client.WithCodec(cdc).
-				WithTxEncoder(utils.GetTxEncoder(cdc))
+				WithTxEncoder(clientutils.GetTxEncoder(cdc))
 
 			account, err := client.QueryAccount(client.FromAddress())
 			if err != nil {
@@ -90,6 +91,18 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
+			logger.Info("Fetching the GeoIP location")
+			location, err := utils.FetchGeoIPLocation()
+			if err != nil {
+				return err
+			}
+
+			logger.Info("Calculating the bandwidth")
+			upload, download, err := utils.Bandwidth()
+			if err != nil {
+				return err
+			}
+
 			var (
 				ctx    = context.NewContext()
 				router = mux.NewRouter()
@@ -104,7 +117,8 @@ func StartCmd() *cobra.Command {
 				WithConfig(cfg).
 				WithClient(client).
 				WithHome(home).
-				WithBandwidth(sent.NewBandwidthFromInt64(1e6, 1e6))
+				WithLocation(location).
+				WithBandwidth(sent.NewBandwidthFromInt64(upload, download))
 
 			n := node.NewNode(ctx)
 			if err := n.Initialize(); err != nil {
