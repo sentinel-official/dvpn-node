@@ -11,4 +11,5 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/tendermint/tendermint v0.32.13
+	golang.org/x/sync v0.0.0-20201008141435-b3e1573b7520
 )
