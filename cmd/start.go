@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	clientutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
@@ -103,6 +105,12 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
+			if cfg.Handshake.Enable {
+				if err := runHandshakeDaemon(cfg.Handshake.Peers); err != nil {
+					return err
+				}
+			}
+
 			var (
 				ctx    = context.NewContext()
 				router = mux.NewRouter()
@@ -130,4 +138,12 @@ func StartCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func runHandshakeDaemon(peers uint64) error {
+	return exec.Command("hnsd",
+		strings.Split(fmt.Sprintf("--daemon "+
+			"--log-file /dev/null "+
+			"--pool-size %d "+
+			"--rs-host 0.0.0.0:53", peers), " ")...).Run()
 }

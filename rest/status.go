@@ -14,6 +14,10 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 			Download int64 `json:"download"`
 			Upload   int64 `json:"upload"`
 		}
+		Handshake struct {
+			Enable bool   `json:"enable"`
+			Peers  uint64 `json:"peers"`
+		}
 		Location struct {
 			City      string  `json:"city"`
 			Country   string  `json:"country"`
@@ -23,6 +27,7 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 		Response struct {
 			Address          string        `json:"address"`
 			Bandwidth        Bandwidth     `json:"bandwidth"`
+			Handshake        Handshake     `json:"handshake"`
 			IntervalSessions time.Duration `json:"interval_sessions"`
 			IntervalStatus   time.Duration `json:"interval_status"`
 			Location         Location      `json:"location"`
@@ -42,6 +47,10 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 			Bandwidth: Bandwidth{
 				Upload:   ctx.Bandwidth().Upload.Int64(),
 				Download: ctx.Bandwidth().Download.Int64(),
+			},
+			Handshake: Handshake{
+				Enable: ctx.Config().Handshake.Enable,
+				Peers:  ctx.Config().Handshake.Peers,
 			},
 			IntervalSessions: ctx.IntervalSessions(),
 			IntervalStatus:   ctx.IntervalStatus(),

@@ -25,6 +25,10 @@ id = "{{ .Chain.ID }}"
 rpc_address = "{{ .Chain.RPCAddress }}"
 trust_node = {{ .Chain.TrustNode }}
 
+[handshake]
+enable = {{ .Handshake.Enable }}
+peers = {{ .Handshake.Peers }}
+
 [node]
 from = "{{ .Node.From }}"
 interval_sessions = {{ .Node.IntervalSessions }}
@@ -57,6 +61,10 @@ type Config struct {
 		RPCAddress    string  `json:"rpc_address"`
 		TrustNode     bool    `json:"trust_node"`
 	} `json:"chain"`
+	Handshake struct {
+		Enable bool   `json:"enable"`
+		Peers  uint64 `json:"peers"`
+	}
 	Node struct {
 		From             string `json:"from"`
 		IntervalSessions int64  `json:"interval_sessions"`
@@ -82,6 +90,8 @@ func (c *Config) WithDefaultValues() *Config {
 	c.Chain.ID = "sentinel-turing-3a"
 	c.Chain.RPCAddress = "https://rpc.turing.sentinel.co:443"
 	c.Chain.TrustNode = false
+	c.Handshake.Enable = true
+	c.Handshake.Peers = 8
 	c.Node.From = ""
 	c.Node.IntervalSessions = 8 * time.Minute.Nanoseconds()
 	c.Node.IntervalStatus = 4 * time.Minute.Nanoseconds()
@@ -150,6 +160,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Chain.RPCAddress == "" {
 		return fmt.Errorf("invalid chain.rpc_address")
+	}
+	if c.Handshake.Peers == 0 {
+		return fmt.Errorf("invalid handshake.peers")
 	}
 	if c.Node.From == "" {
 		return fmt.Errorf("invalid node.from")
