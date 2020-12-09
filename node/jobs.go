@@ -35,10 +35,11 @@ func (n *Node) jobUpdateSessions() error {
 		for _, peer := range peers {
 			item := n.Sessions().Get(peer.Identity)
 			if item.Identity == "" || peer.Download == item.Download {
-				if err := n.Service().RemovePeer(peer.Identity); err != nil {
+				if err := n.Service().RemovePeer([]byte(peer.Identity)); err != nil {
 					return err
 				}
 
+				n.Sessions().Delete(peer.Identity)
 				continue
 			}
 
@@ -53,9 +54,11 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			if quota.Consumed.AddRaw(item.Upload + item.Download).GT(quota.Allocated) {
-				if err := n.Service().RemovePeer(peer.Identity); err != nil {
+				if err := n.Service().RemovePeer([]byte(peer.Identity)); err != nil {
 					return err
 				}
+
+				n.Sessions().Delete(peer.Identity)
 			}
 		}
 

@@ -12,4 +12,10 @@ func RegisterRoutes(ctx *context.Context, router *mux.Router) {
 		Methods("GET").
 		Path("/status").
 		HandlerFunc(getStatus(ctx))
+
+	router.
+		Name("AddSession").
+		Methods("POST").
+		Path("/sessions").
+		HandlerFunc(addSession(ctx))
 }

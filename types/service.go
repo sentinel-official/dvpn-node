@@ -9,10 +9,10 @@ type Service interface {
 	Initialize(home string) error
 	Start() error
 	Stop() error
-	AddPeer(keys ...string) error
-	RemovePeer(keys ...string) error
+	AddPeer([]byte) ([]byte, error)
+	RemovePeer([]byte) error
 	Peers() ([]Peer, error)
-	PeersCount() int64
+	PeersCount() (int, error)
 }
 
 type Peer struct {

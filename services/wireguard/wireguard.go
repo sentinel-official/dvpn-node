@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -18,12 +19,14 @@ import (
 var _ types.Service = (*WireGuard)(nil)
 
 type WireGuard struct {
-	cfg   *Config
-	peers int64
+	cfg *Config
+	ipp *types.IPPool
 }
 
-func NewWireGuard() types.Service {
-	return &WireGuard{}
+func NewWireGuard(ipp *types.IPPool) types.Service {
+	return &WireGuard{
+		ipp: ipp,
+	}
 }
 
 func (w *WireGuard) Type() node.Category {
@@ -57,7 +60,6 @@ func (w *WireGuard) Start() error {
 		return err
 	}
 
-	w.peers = 0
 	return nil
 }
 
@@ -66,25 +68,31 @@ func (w *WireGuard) Stop() error {
 		fmt.Sprintf("down %s", w.cfg.Device), " ")...).Run()
 }
 
-func (w *WireGuard) AddPeer(keys ...string) error {
-	err := exec.Command("wg", strings.Split(
-		fmt.Sprintf("set %s peer %s allowed-ips %s", w.cfg.Device, keys[0], keys[1]), " ")...).Run()
+func (w *WireGuard) AddPeer(key []byte) (data []byte, err error) {
+	v4, v6, err := w.ipp.Get()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	w.peers++
-	return nil
+	err = exec.Command("wg", strings.Split(
+		fmt.Sprintf(`set %s peer "%s" allowed-ips %s/32,%s/128`, w.cfg.Device, key, v4.IP(), v6.IP()), " ")...).Run()
+	if err != nil {
+		return nil, err
+	}
+
+	data = append(data, v4.Bytes()...)
+	data = append(data, v6.Bytes()...)
+
+	return data, nil
 }
 
-func (w *WireGuard) RemovePeer(keys ...string) error {
+func (w *WireGuard) RemovePeer(data []byte) error {
 	err := exec.Command("wg", strings.Split(
-		fmt.Sprintf("set %s peer %s remove", w.cfg.Device, keys[0]), " ")...).Run()
+		fmt.Sprintf(`set %s peer "%s" remove`, w.cfg.Device, base64.StdEncoding.EncodeToString(data)), " ")...).Run()
 	if err != nil {
 		return err
 	}
 
-	w.peers--
 	return nil
 }
 
@@ -127,6 +135,13 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 	return items, nil
 }
 
-func (w *WireGuard) PeersCount() int64 {
-	return w.peers
+func (w *WireGuard) PeersCount() (int, error) {
+	output, err := exec.Command("wg",
+		strings.Split(fmt.Sprintf("show %s transfer", w.cfg.Device), " ")...).Output()
+	if err != nil {
+		return 0, err
+	}
+
+	count := len(strings.Split(string(output), "\n"))
+	return count, nil
 }

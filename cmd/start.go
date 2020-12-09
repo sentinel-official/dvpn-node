@@ -40,12 +40,22 @@ func StartCmd() *cobra.Command {
 				return fmt.Errorf("config file does not exist at path '%s'", cfgFilePath)
 			}
 
+			ipv4Pool, err := types.NewIPv4PoolFromCIDR("10.8.0.1/24")
+			if err != nil {
+				return err
+			}
+
+			ipv6Pool, err := types.NewIPv6PoolFromCIDR("fd86:ea04:1115::1/120")
+			if err != nil {
+				return err
+			}
+
 			var (
 				cfg       = types.NewConfig()
 				cdc       = hub.MakeCodec()
 				interrupt = make(chan os.Signal)
 				logger    = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-				service   = wireguard.NewWireGuard()
+				service   = wireguard.NewWireGuard(types.NewIPPool(ipv4Pool, ipv6Pool))
 			)
 
 			if err := cfg.LoadFromPath(cfgFilePath); err != nil {
@@ -126,6 +136,7 @@ func StartCmd() *cobra.Command {
 				WithClient(client).
 				WithHome(home).
 				WithLocation(location).
+				WithSessions(types.NewSessions()).
 				WithBandwidth(sent.NewBandwidthFromInt64(upload, download))
 
 			n := node.NewNode(ctx)
