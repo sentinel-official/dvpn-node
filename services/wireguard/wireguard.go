@@ -68,15 +68,15 @@ func (w *WireGuard) Stop() error {
 		fmt.Sprintf("down %s", w.cfg.Device), " ")...).Run()
 }
 
-func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
+func (w *WireGuard) AddPeer(key []byte) (result []byte, err error) {
 	v4, v6, err := w.ipp.Get()
 	if err != nil {
 		return nil, err
 	}
 
 	err = exec.Command("wg", strings.Split(
-		fmt.Sprintf(`set %s peer "%s" allowed-ips %s/32,%s/128`,
-			w.cfg.Device, base64.StdEncoding.EncodeToString(data), v4.IP(), v6.IP()), " ")...).Run()
+		fmt.Sprintf(`set %s peer %s allowed-ips %s/32,%s/128`,
+			w.cfg.Device, base64.StdEncoding.EncodeToString(key), v4.IP(), v6.IP()), " ")...).Run()
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +87,10 @@ func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 	return result, nil
 }
 
-func (w *WireGuard) RemovePeer(data []byte) error {
+func (w *WireGuard) RemovePeer(key []byte) error {
 	err := exec.Command("wg", strings.Split(
-		fmt.Sprintf(`set %s peer "%s" remove`,
-			w.cfg.Device, base64.StdEncoding.EncodeToString(data)), " ")...).Run()
+		fmt.Sprintf(`set %s peer %s remove`,
+			w.cfg.Device, base64.StdEncoding.EncodeToString(key)), " ")...).Run()
 	if err != nil {
 		return err
 	}

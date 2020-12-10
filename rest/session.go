@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -37,7 +37,7 @@ func addSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		key, err := hex.DecodeString(body.Key)
+		key, err := base64.StdEncoding.DecodeString(body.Key)
 		if err != nil {
 			utils.WriteErrorToResponse(w, http.StatusBadRequest, 3, err.Error())
 			return
