@@ -42,12 +42,6 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 	)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		peers, err := ctx.Service().PeersCount()
-		if err != nil {
-			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 1, "")
-			return
-		}
-
 		utils.WriteResultToResponse(w, http.StatusOK, Response{
 			Address: ctx.Address().String(),
 			Bandwidth: Bandwidth{
@@ -68,7 +62,7 @@ func getStatus(ctx *context.Context) http.HandlerFunc {
 			},
 			Moniker:  ctx.Moniker(),
 			Operator: ctx.Operator().String(),
-			Peers:    peers,
+			Peers:    ctx.Service().PeersCount(),
 			Price:    ctx.Price().String(),
 			Provider: ctx.Provider().String(),
 			Type:     ctx.Type().String(),
