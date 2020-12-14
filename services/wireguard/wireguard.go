@@ -18,14 +18,21 @@ import (
 
 var _ types.Service = (*WireGuard)(nil)
 
+type Peer struct {
+	IPv4 types.IPv4
+	IPv6 types.IPv6
+}
+
 type WireGuard struct {
-	cfg *Config
-	ipp *types.IPPool
+	cfg   *Config
+	ipp   *types.IPPool
+	peers map[string]Peer
 }
 
 func NewWireGuard(ipp *types.IPPool) types.Service {
 	return &WireGuard{
-		ipp: ipp,
+		ipp:   ipp,
+		peers: make(map[string]Peer),
 	}
 }
 
@@ -54,8 +61,8 @@ func (w *WireGuard) Initialize(home string) error {
 }
 
 func (w *WireGuard) Start() error {
-	err := exec.Command("wg-quick",
-		strings.Split(fmt.Sprintf("up %s", w.cfg.Device), " ")...).Run()
+	err := exec.Command("wg-quick", strings.Split(
+		fmt.Sprintf("up %s", w.cfg.Device), " ")...).Run()
 	if err != nil {
 		return err
 	}
@@ -68,37 +75,57 @@ func (w *WireGuard) Stop() error {
 		fmt.Sprintf("down %s", w.cfg.Device), " ")...).Run()
 }
 
-func (w *WireGuard) AddPeer(key []byte) (data []byte, err error) {
+func (w *WireGuard) AddPeer(key []byte) (result []byte, err error) {
+	publicKey := base64.StdEncoding.EncodeToString(key)
+
 	v4, v6, err := w.ipp.Get()
 	if err != nil {
 		return nil, err
 	}
 
 	err = exec.Command("wg", strings.Split(
-		fmt.Sprintf(`set %s peer "%s" allowed-ips %s/32,%s/128`, w.cfg.Device, key, v4.IP(), v6.IP()), " ")...).Run()
+		fmt.Sprintf(`set %s peer %s allowed-ips %s/32,%s/128`,
+			w.cfg.Device, publicKey, v4.IP(), v6.IP()), " ")...).Run()
 	if err != nil {
+		w.ipp.Release(v4, v6)
 		return nil, err
 	}
 
-	data = append(data, v4.Bytes()...)
-	data = append(data, v6.Bytes()...)
+	peer, ok := w.peers[publicKey]
+	if ok {
+		delete(w.peers, publicKey)
+		w.ipp.Release(peer.IPv4, peer.IPv6)
+	}
 
-	return data, nil
+	w.peers[publicKey] = Peer{v4, v6}
+
+	result = append(result, v4.Bytes()...)
+	result = append(result, v6.Bytes()...)
+	return result, nil
 }
 
-func (w *WireGuard) RemovePeer(data []byte) error {
+func (w *WireGuard) RemovePeer(key []byte) error {
+	publicKey := base64.StdEncoding.EncodeToString(key)
+
 	err := exec.Command("wg", strings.Split(
-		fmt.Sprintf(`set %s peer "%s" remove`, w.cfg.Device, base64.StdEncoding.EncodeToString(data)), " ")...).Run()
+		fmt.Sprintf(`set %s peer %s remove`,
+			w.cfg.Device, publicKey), " ")...).Run()
 	if err != nil {
 		return err
+	}
+
+	peer, ok := w.peers[publicKey]
+	if ok {
+		delete(w.peers, publicKey)
+		w.ipp.Release(peer.IPv4, peer.IPv6)
 	}
 
 	return nil
 }
 
 func (w *WireGuard) Peers() ([]types.Peer, error) {
-	output, err := exec.Command("wg",
-		strings.Split(fmt.Sprintf("show %s transfer", w.cfg.Device), " ")...).Output()
+	output, err := exec.Command("wg", strings.Split(
+		fmt.Sprintf("show %s transfer", w.cfg.Device), " ")...).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +162,6 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 	return items, nil
 }
 
-func (w *WireGuard) PeersCount() (int, error) {
-	output, err := exec.Command("wg",
-		strings.Split(fmt.Sprintf("show %s transfer", w.cfg.Device), " ")...).Output()
-	if err != nil {
-		return 0, err
-	}
-
-	count := len(strings.Split(string(output), "\n"))
-	return count, nil
+func (w *WireGuard) PeersCount() int {
+	return len(w.peers)
 }

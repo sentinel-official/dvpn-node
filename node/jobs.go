@@ -1,6 +1,7 @@
 package node
 
 import (
+	"encoding/base64"
 	"time"
 
 	"github.com/sentinel-official/dvpn-node/types"
@@ -33,9 +34,14 @@ func (n *Node) jobUpdateSessions() error {
 		}
 
 		for _, peer := range peers {
+			key, err := base64.StdEncoding.DecodeString(peer.Identity)
+			if err != nil {
+				return err
+			}
+
 			item := n.Sessions().Get(peer.Identity)
 			if item.Identity == "" || peer.Download == item.Download {
-				if err := n.Service().RemovePeer([]byte(peer.Identity)); err != nil {
+				if err := n.Service().RemovePeer(key); err != nil {
 					return err
 				}
 
@@ -54,7 +60,7 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			if quota.Consumed.AddRaw(item.Upload + item.Download).GT(quota.Allocated) {
-				if err := n.Service().RemovePeer([]byte(peer.Identity)); err != nil {
+				if err := n.Service().RemovePeer(key); err != nil {
 					return err
 				}
 

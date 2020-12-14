@@ -40,12 +40,12 @@ func StartCmd() *cobra.Command {
 				return fmt.Errorf("config file does not exist at path '%s'", cfgFilePath)
 			}
 
-			ipv4Pool, err := types.NewIPv4PoolFromCIDR("10.8.0.1/24")
+			ipv4Pool, err := types.NewIPv4PoolFromCIDR("10.8.0.2/24")
 			if err != nil {
 				return err
 			}
 
-			ipv6Pool, err := types.NewIPv6PoolFromCIDR("fd86:ea04:1115::1/120")
+			ipv6Pool, err := types.NewIPv6PoolFromCIDR("fd86:ea04:1115::2/120")
 			if err != nil {
 				return err
 			}
@@ -156,5 +156,5 @@ func runHandshakeDaemon(peers uint64) error {
 		strings.Split(fmt.Sprintf("--daemon "+
 			"--log-file /dev/null "+
 			"--pool-size %d "+
-			"--rs-host 0.0.0.0:53", peers), " ")...).Run()
+			"--rs-host 0.0.0.0:53", peers), " ")...).Start()
 }
