@@ -91,6 +91,12 @@ func (w *WireGuard) AddPeer(key []byte) (result []byte, err error) {
 		return nil, err
 	}
 
+	peer, ok := w.peers[publicKey]
+	if ok {
+		delete(w.peers, publicKey)
+		w.ipp.Release(peer.IPv4, peer.IPv6)
+	}
+
 	w.peers[publicKey] = Peer{v4, v6}
 
 	result = append(result, v4.Bytes()...)
