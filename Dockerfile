@@ -4,7 +4,7 @@ COPY . /go/src/github.com/sentinel-official/dvpn-node/
 
 RUN apk add git gcc linux-headers make musl-dev && \
     cd /go/src/github.com/sentinel-official/dvpn-node/ && \
-    make all --jobs=$(nproc)
+    make install --jobs=$(nproc)
 
 RUN cd /root/ && \
     apk add autoconf automake g++ git libtool make unbound-dev && \
@@ -14,8 +14,8 @@ RUN cd /root/ && \
 
 FROM alpine:3.12
 
-COPY --from=build /go/bin/sentinel-dvpn-node /usr/local/bin/
-COPY --from=build /root/hnsd/hnsd /usr/local/bin/
+COPY --from=build /go/bin/sentinel-dvpn-node /usr/local/bin/run
+COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
 
 RUN apk add --no-cache easy-rsa ip6tables openvpn unbound-dev wireguard-tools && \
     rm -rf /tmp/* /var/tmp/*
