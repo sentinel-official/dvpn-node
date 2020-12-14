@@ -82,7 +82,7 @@ func (n *Node) update() error {
 			n.Address(),
 			n.Moniker(),
 			n.Provider(),
-			n.Price(),
+			nil,
 			n.Bandwidth(),
 			n.RemoteURL(),
 			n.Version(),
