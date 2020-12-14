@@ -1,1 +1,1 @@
-# Sentinel-dVPN-Node
+# Sentinel dVPN Node
