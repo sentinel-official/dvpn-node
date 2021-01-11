@@ -1,12 +1,9 @@
 package types
 
-import (
-	"github.com/sentinel-official/hub/x/node"
-)
-
 type Service interface {
-	Type() node.Category
-	Initialize(home string) error
+	Type() uint64
+	Info() []byte
+	Initialize(string) error
 	Start() error
 	Stop() error
 	AddPeer([]byte) ([]byte, error)

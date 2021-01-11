@@ -14,9 +14,9 @@ type IPv4Pool struct {
 	mutex     *sync.Mutex
 }
 
-func NewIPv4Pool(ip net.IP, _net *net.IPNet) *IPv4Pool {
+func NewIPv4Pool(ip net.IP, net *net.IPNet) *IPv4Pool {
 	return &IPv4Pool{
-		Net:      _net,
+		Net:      net,
 		current:  NewIPv4FromIP(ip),
 		reserved: make(map[IPv4]bool),
 		mutex:    &sync.Mutex{},
@@ -28,6 +28,9 @@ func (p *IPv4Pool) Get() (ip IPv4, err error) {
 	defer p.mutex.Unlock()
 
 	if len(p.available) == 0 {
+		if p.current[3] == 0x00 || p.current[3] == 0xff {
+			p.current = p.current.Next()
+		}
 		if !p.Net.Contains(p.current.IP()) {
 			return ip, fmt.Errorf("ipv4 pool is pull")
 		}
@@ -68,9 +71,9 @@ type IPv6Pool struct {
 	mutex     *sync.Mutex
 }
 
-func NewIPv6Pool(ip net.IP, _net *net.IPNet) *IPv6Pool {
+func NewIPv6Pool(ip net.IP, net *net.IPNet) *IPv6Pool {
 	return &IPv6Pool{
-		Net:      _net,
+		Net:      net,
 		current:  NewIPv6FromIP(ip),
 		reserved: make(map[IPv6]bool),
 		mutex:    &sync.Mutex{},
@@ -115,26 +118,26 @@ func NewIPv6PoolFromCIDR(s string) (*IPv6Pool, error) {
 }
 
 type IPPool struct {
-	ipv4 *IPv4Pool
-	ipv6 *IPv6Pool
+	V4 *IPv4Pool
+	V6 *IPv6Pool
 }
 
 func NewIPPool(v4 *IPv4Pool, v6 *IPv6Pool) *IPPool {
 	return &IPPool{
-		ipv4: v4,
-		ipv6: v6,
+		V4: v4,
+		V6: v6,
 	}
 }
 
 func (p *IPPool) Get() (IPv4, IPv6, error) {
-	v4, err := p.ipv4.Get()
+	v4, err := p.V4.Get()
 	if err != nil {
 		return IPv4{}, IPv6{}, err
 	}
 
-	v6, err := p.ipv6.Get()
+	v6, err := p.V6.Get()
 	if err != nil {
-		p.ipv4.Release(v4)
+		p.V4.Release(v4)
 		return IPv4{}, IPv6{}, err
 	}
 
@@ -142,6 +145,6 @@ func (p *IPPool) Get() (IPv4, IPv6, error) {
 }
 
 func (p *IPPool) Release(v4 IPv4, v6 IPv6) {
-	p.ipv4.Release(v4)
-	p.ipv6.Release(v6)
+	p.V4.Release(v4)
+	p.V6.Release(v6)
 }

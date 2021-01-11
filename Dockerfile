@@ -17,5 +17,7 @@ FROM alpine:3.12
 COPY --from=build /go/bin/sentinel-dvpn-node /usr/local/bin/run
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
 
-RUN apk add --no-cache easy-rsa ip6tables openvpn unbound-dev wireguard-tools && \
+RUN apk add --no-cache ip6tables unbound-dev wireguard-tools && \
     rm -rf /tmp/* /var/tmp/*
+
+CMD ["run"]

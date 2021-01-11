@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/keys"
+	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/go-bip39"
 	hub "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
@@ -66,7 +67,7 @@ func keysAdd() *cobra.Command {
 			}
 
 			if recovery {
-				mnemonic, err = client.GetString("Enter your bip39 mnemonic.", bufio.NewReader(os.Stdin))
+				mnemonic, err = input.GetString("Enter your bip39 mnemonic.", bufio.NewReader(os.Stdin))
 				if err != nil {
 					return err
 				}
@@ -76,7 +77,8 @@ func keysAdd() *cobra.Command {
 				}
 			}
 
-			info, err := kb.CreateAccount(args[0], mnemonic, "", types.DefaultPassword, 0, 0)
+			info, err := kb.CreateAccount(args[0], mnemonic, "", types.DefaultPassword,
+				ckeys.CreateHDPath(0, 0).String(), ckeys.Secp256k1)
 			if err != nil {
 				return err
 			}

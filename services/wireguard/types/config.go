@@ -1,13 +1,12 @@
-package wireguard
+package types
 
 import (
 	"bytes"
 	crand "crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
+	"math/big"
 	"os"
 	"strings"
 	"text/template"
@@ -17,13 +16,13 @@ import (
 
 var (
 	ct = strings.TrimSpace(`
-device = "{{ .Device }}"
+interface = "{{ .Interface }}"
 listen_port = {{ .ListenPort }}
 private_key = "{{ .PrivateKey }}"
 	`)
 
 	t = func() *template.Template {
-		t, err := template.New("config").Parse(ct)
+		t, err := template.New("").Parse(ct)
 		if err != nil {
 			panic(err)
 		}
@@ -33,7 +32,7 @@ private_key = "{{ .PrivateKey }}"
 )
 
 type Config struct {
-	Device     string `json:"device"`
+	Interface  string `json:"interface"`
 	ListenPort uint16 `json:"listen_port"`
 	PrivateKey string `json:"private_key"`
 }
@@ -43,15 +42,17 @@ func NewConfig() *Config {
 }
 
 func (c *Config) WithDefaultValues() *Config {
-	c.Device = "wg0"
-	c.ListenPort = uint16(rand.Int31n(1<<16-1<<10) + 1<<10)
+	c.Interface = "wg0"
 
-	key := make([]byte, 32)
-	if _, err := crand.Read(key); err != nil {
+	n, _ := crand.Int(crand.Reader, big.NewInt(1<<16-1<<10))
+	c.ListenPort = uint16(n.Int64() + 1<<10)
+
+	key, err := NewPrivateKey()
+	if err != nil {
 		panic(err)
 	}
 
-	c.PrivateKey = base64.StdEncoding.EncodeToString(key)
+	c.PrivateKey = key.String()
 
 	return c
 }
@@ -106,14 +107,14 @@ func (c *Config) String() string {
 }
 
 func (c *Config) Validate() error {
-	if c.Device == "" {
-		return fmt.Errorf("device is empty")
+	if c.Interface == "" {
+		return fmt.Errorf("invalid interface")
 	}
 	if c.ListenPort == 0 {
-		return fmt.Errorf("listen_port is zero")
+		return fmt.Errorf("invalid listen_port")
 	}
 	if c.PrivateKey == "" {
-		return fmt.Errorf("private_key is empty")
+		return fmt.Errorf("invalid private_key")
 	}
 
 	return nil

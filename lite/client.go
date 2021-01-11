@@ -2,8 +2,8 @@ package lite
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -17,6 +17,7 @@ import (
 	"github.com/tendermint/tendermint/lite"
 	"github.com/tendermint/tendermint/lite/proxy"
 	"github.com/tendermint/tendermint/rpc/client"
+	"github.com/tendermint/tendermint/rpc/client/http"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -46,8 +47,12 @@ func NewClientFromConfig(cfg *types.Config) (*Client, error) {
 	var (
 		verifier lite.Verifier
 		home     = viper.GetString(types.FlagHome)
-		node     = client.NewHTTP(cfg.Chain.RPCAddress, "/websocket")
 	)
+
+	node, err := http.New(cfg.Chain.RPCAddress, "/websocket")
+	if err != nil {
+		return nil, err
+	}
 
 	kb, err := keys.NewKeyBaseFromDir(home)
 	if err != nil {
@@ -60,7 +65,12 @@ func NewClientFromConfig(cfg *types.Config) (*Client, error) {
 	}
 
 	if !cfg.Chain.TrustNode {
-		verifier, err = proxy.NewVerifier(cfg.Chain.ID, filepath.Join(home, "lite"), node, log.NewNopLogger(), 16)
+		verifierDir, err := ioutil.TempDir(os.TempDir(), "verifier-*")
+		if err != nil {
+			return nil, err
+		}
+
+		verifier, err = proxy.NewVerifier(cfg.Chain.ID, verifierDir, node, log.NewNopLogger(), 16)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +84,6 @@ func NewClientFromConfig(cfg *types.Config) (*Client, error) {
 		WithFrom(cfg.Node.From).
 		WithTrustNode(cfg.Chain.TrustNode).
 		WithVerifier(verifier).
-		WithVerifierHome(filepath.Join(home, "lite")).
 		WithFromAddress(info.GetAddress()).
 		WithFromName(cfg.Node.From).
 		WithGas(cfg.Chain.Gas).
@@ -94,7 +103,6 @@ func (c *Client) WithTrustNode(t bool) *Client             { c.ctx.TrustNode = t
 func (c *Client) WithUseLedger(t bool) *Client             { c.ctx.UseLedger = t; return c }
 func (c *Client) WithBroadcastMode(s string) *Client       { c.ctx.BroadcastMode = s; return c }
 func (c *Client) WithVerifier(v lite.Verifier) *Client     { c.ctx.Verifier = v; return c }
-func (c *Client) WithVerifierHome(s string) *Client        { c.ctx.VerifierHome = s; return c }
 func (c *Client) WithSimulate(t bool) *Client              { c.ctx.Simulate = t; return c }
 func (c *Client) WithGenerateOnly(t bool) *Client          { c.ctx.GenerateOnly = t; return c }
 func (c *Client) WithFromName(s string) *Client            { c.ctx.FromName = s; return c }

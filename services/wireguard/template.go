@@ -6,7 +6,7 @@ import (
 
 // nolint:lll
 var (
-	serverConfigTemplate = strings.TrimSpace(`
+	configTemplate = strings.TrimSpace(`
 [Interface]
 Address = 10.8.0.1/24,fd86:ea04:1115::1/120
 ListenPort = {{ .ListenPort }}

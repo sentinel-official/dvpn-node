@@ -1,9 +1,6 @@
 package main
 
 import (
-	"math/rand"
-	"time"
-
 	sent "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,7 +11,6 @@ import (
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	sent.GetConfig().Seal()
 	cobra.EnableCommandSorting = false
 

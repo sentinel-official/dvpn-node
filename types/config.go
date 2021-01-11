@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml"
-	"github.com/sentinel-official/hub/x/node/types"
+
+	wgt "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 )
 
 var (
@@ -38,11 +39,11 @@ moniker = "{{ .Node.Moniker }}"
 price = "{{ .Node.Price }}"
 provider = "{{ .Node.Provider }}"
 remote_url = "{{ .Node.RemoteURL }}"
-type = "{{ .Node.Type }}"
+type = {{ .Node.Type }}
 	`)
 
 	t = func() *template.Template {
-		t, err := template.New("config").Parse(ct)
+		t, err := template.New("").Parse(ct)
 		if err != nil {
 			panic(err)
 		}
@@ -74,7 +75,7 @@ type Config struct {
 		Price            string `json:"price"`
 		Provider         string `json:"provider"`
 		RemoteURL        string `json:"remote_url"`
-		Type             string `json:"type"`
+		Type             uint64 `json:"type"`
 	} `json:"node"`
 }
 
@@ -90,17 +91,19 @@ func (c *Config) WithDefaultValues() *Config {
 	c.Chain.ID = "sentinel-turing-3a"
 	c.Chain.RPCAddress = "https://rpc.turing.sentinel.co:443"
 	c.Chain.TrustNode = false
+
 	c.Handshake.Enable = true
 	c.Handshake.Peers = 8
+
 	c.Node.From = ""
 	c.Node.IntervalSessions = 8 * time.Minute.Nanoseconds()
 	c.Node.IntervalStatus = 4 * time.Minute.Nanoseconds()
-	c.Node.ListenOn = "127.0.0.1:8585"
+	c.Node.ListenOn = "0.0.0.0:8585"
 	c.Node.Moniker = ""
 	c.Node.Price = "50tsent"
 	c.Node.Provider = ""
 	c.Node.RemoteURL = ""
-	c.Node.Type = types.CategoryWireGuard.String()
+	c.Node.Type = wgt.Type
 
 	return c
 }
@@ -156,35 +159,37 @@ func (c *Config) String() string {
 
 func (c *Config) Validate() error {
 	if c.Chain.ID == "" {
-		return fmt.Errorf("invalid chain.id")
+		return fmt.Errorf("invalid [chain]id")
 	}
 	if c.Chain.RPCAddress == "" {
-		return fmt.Errorf("invalid chain.rpc_address")
+		return fmt.Errorf("invalid [chain]rpc_address")
 	}
+
 	if c.Handshake.Peers == 0 {
-		return fmt.Errorf("invalid handshake.peers")
+		return fmt.Errorf("invalid [handshake]peers")
 	}
+
 	if c.Node.From == "" {
-		return fmt.Errorf("invalid node.from")
+		return fmt.Errorf("invalid [node]from")
 	}
 	if c.Node.IntervalSessions <= 0 {
-		return fmt.Errorf("invalid node.interval_sessions")
+		return fmt.Errorf("invalid [node]interval_sessions")
 	}
 	if c.Node.IntervalStatus <= 0 {
-		return fmt.Errorf("invalid node.interval_status")
+		return fmt.Errorf("invalid [node]interval_status")
 	}
 	if c.Node.ListenOn == "" {
-		return fmt.Errorf("invalid node.listen_on")
+		return fmt.Errorf("invalid [node]listen_on")
 	}
 	if (c.Node.Provider != "" && c.Node.Price != "") ||
 		(c.Node.Provider == "" && c.Node.Price == "") {
-		return fmt.Errorf("invalid node.provider or node.price")
+		return fmt.Errorf("invalid [node]provider or [node]price")
 	}
 	if c.Node.RemoteURL == "" {
-		return fmt.Errorf("invalid node.remote_url")
+		return fmt.Errorf("invalid [node]remote_url")
 	}
-	if c.Node.Type == "" {
-		return fmt.Errorf("invalid node.type")
+	if c.Node.Type == 0 {
+		return fmt.Errorf("invalid [node]type")
 	}
 
 	return nil

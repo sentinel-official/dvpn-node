@@ -7,6 +7,7 @@ import (
 
 const (
 	DefaultPassword = "0123456789"
+	ConfigFileName  = "config.toml"
 )
 
 var (

@@ -36,10 +36,10 @@ func distance(lat1, lon1, lat2, lon2 float64) float64 {
 }
 
 type server struct {
-	URL      string  `xml:"url,attr"`
-	Lat      float64 `xml:"lat,attr"`
-	Lon      float64 `xml:"lon,attr"`
-	distance float64
+	URL       string  `xml:"url,attr"`
+	Latitude  float64 `xml:"lat,attr"`
+	Longitude float64 `xml:"lon,attr"`
+	distance  float64
 }
 
 func fetchServers() ([]server, error) {
@@ -151,7 +151,10 @@ func Bandwidth() (upload, download int64, err error) {
 	}
 
 	for i := 0; i < len(servers); i++ {
-		servers[i].distance = distance(location.Latitude, location.Longitude, servers[i].Lat, servers[i].Lon)
+		servers[i].distance = distance(
+			location.Latitude, location.Longitude,
+			servers[i].Latitude, servers[i].Longitude,
+		)
 	}
 
 	sort.Slice(servers, func(i, j int) bool {

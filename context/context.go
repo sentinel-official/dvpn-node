@@ -7,7 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 	hub "github.com/sentinel-official/hub/types"
-	"github.com/sentinel-official/hub/x/node"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/sentinel-official/dvpn-node/lite"
@@ -51,7 +50,7 @@ func (c *Context) WithValue(key, value interface{}) *Context {
 
 func (c *Context) Address() hub.NodeAddress          { return c.Operator().Bytes() }
 func (c *Context) Bandwidth() hub.Bandwidth          { return c.bandwidth }
-func (c *Context) Type() node.Category               { return c.service.Type() }
+func (c *Context) Type() uint64                      { return c.service.Type() }
 func (c *Context) Client() *lite.Client              { return c.client }
 func (c *Context) Config() *types.Config             { return c.config }
 func (c *Context) Context() context.Context          { return c.ctx }

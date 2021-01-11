@@ -4,18 +4,11 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/sentinel-official/dvpn-node/context"
+	"github.com/sentinel-official/dvpn-node/rest/session"
+	"github.com/sentinel-official/dvpn-node/rest/status"
 )
 
-func RegisterRoutes(ctx *context.Context, router *mux.Router) {
-	router.
-		Name("GetStatus").
-		Methods("GET").
-		Path("/status").
-		HandlerFunc(getStatus(ctx))
-
-	router.
-		Name("AddSession").
-		Methods("POST").
-		Path("/sessions").
-		HandlerFunc(addSession(ctx))
+func RegisterRoutes(ctx *context.Context, r *mux.Router) {
+	session.RegisterRoutes(ctx, r)
+	status.RegisterRoutes(ctx, r)
 }

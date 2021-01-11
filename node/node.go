@@ -59,13 +59,9 @@ func (n *Node) register() error {
 	res, err := n.Client().SignAndBroadcastTxCommit(
 		node.NewMsgRegister(
 			n.Operator(),
-			n.Moniker(),
 			n.Provider(),
 			n.Price(),
-			n.Bandwidth(),
 			n.RemoteURL(),
-			n.Version(),
-			n.Type(),
 		),
 	)
 	if err != nil {
@@ -80,13 +76,9 @@ func (n *Node) update() error {
 	res, err := n.Client().SignAndBroadcastTxCommit(
 		node.NewMsgUpdate(
 			n.Address(),
-			n.Moniker(),
 			n.Provider(),
-			nil,
-			n.Bandwidth(),
+			n.Price(),
 			n.RemoteURL(),
-			n.Version(),
-			n.Type(),
 		),
 	)
 	if err != nil {

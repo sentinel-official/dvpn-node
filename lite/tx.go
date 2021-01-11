@@ -9,13 +9,13 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func (c *Client) SignAndBroadcastTxCommit(messages ...sdk.Msg) (sdk.TxResponse, error) {
+func (c *Client) SignAndBroadcastTxCommit(messages ...sdk.Msg) (*sdk.TxResponse, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	account, err := c.QueryAccount(c.ctx.FromAddress)
 	if err != nil {
-		return sdk.TxResponse{}, err
+		return nil, err
 	}
 
 	txb := c.txb.WithAccountNumber(account.GetAccountNumber()).
@@ -24,30 +24,31 @@ func (c *Client) SignAndBroadcastTxCommit(messages ...sdk.Msg) (sdk.TxResponse, 
 	if txb.GasAdjustment() > 0 {
 		txb, err = utils.EnrichWithGas(txb, c.ctx, messages)
 		if err != nil {
-			return sdk.TxResponse{}, err
+			return nil, err
 		}
 	}
 
 	bytes, err := txb.BuildAndSign(c.ctx.From, types.DefaultPassword, messages)
 	if err != nil {
-		return sdk.TxResponse{}, err
+		return nil, err
 	}
 
 	node, err := c.ctx.GetNode()
 	if err != nil {
-		return sdk.TxResponse{}, err
+		return nil, err
 	}
 
 	result, err := node.BroadcastTxCommit(bytes)
 	if err != nil {
-		return sdk.TxResponse{}, err
+		return nil, err
 	}
 	if !result.CheckTx.IsOK() {
-		return sdk.TxResponse{}, fmt.Errorf(result.CheckTx.Log)
+		return nil, fmt.Errorf(result.CheckTx.Log)
 	}
 	if !result.DeliverTx.IsOK() {
-		return sdk.TxResponse{}, fmt.Errorf(result.DeliverTx.Log)
+		return nil, fmt.Errorf(result.DeliverTx.Log)
 	}
 
-	return sdk.NewResponseFormatBroadcastTxCommit(result), nil
+	response := sdk.NewResponseFormatBroadcastTxCommit(result)
+	return &response, nil
 }

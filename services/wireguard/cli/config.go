@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sentinel-official/dvpn-node/services/wireguard"
+	wgt "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
@@ -40,7 +40,7 @@ func configInitCmd() *cobra.Command {
 				return err
 			}
 
-			configPath := filepath.Join(home, "wireguard.toml")
+			configPath := filepath.Join(home, wgt.ConfigFileName)
 
 			if !force {
 				_, err = os.Stat(configPath)
@@ -53,7 +53,7 @@ func configInitCmd() *cobra.Command {
 				return err
 			}
 
-			config := wireguard.NewConfig().WithDefaultValues()
+			config := wgt.NewConfig().WithDefaultValues()
 			return config.SaveToPath(configPath)
 		},
 	}
@@ -73,8 +73,8 @@ func configShowCmd() *cobra.Command {
 				return err
 			}
 
-			config := wireguard.NewConfig()
-			if err := config.LoadFromPath(filepath.Join(home, "wireguard.toml")); err != nil {
+			config := wgt.NewConfig()
+			if err := config.LoadFromPath(filepath.Join(home, wgt.ConfigFileName)); err != nil {
 				return err
 			}
 

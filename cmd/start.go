@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 
-	clientutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	cutils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/gorilla/mux"
 	"github.com/sentinel-official/hub"
 	sent "github.com/sentinel-official/hub/types"
@@ -21,6 +19,7 @@ import (
 	"github.com/sentinel-official/dvpn-node/node"
 	"github.com/sentinel-official/dvpn-node/rest"
 	"github.com/sentinel-official/dvpn-node/services/wireguard"
+	wgt "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 	"github.com/sentinel-official/dvpn-node/utils"
 )
@@ -35,27 +34,26 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			cfgFilePath := filepath.Join(home, "config.toml")
+			cfgFilePath := filepath.Join(home, types.ConfigFileName)
 			if _, err := os.Stat(cfgFilePath); err != nil {
 				return fmt.Errorf("config file does not exist at path '%s'", cfgFilePath)
 			}
 
-			ipv4Pool, err := types.NewIPv4PoolFromCIDR("10.8.0.2/24")
+			ipv4Pool, err := wgt.NewIPv4PoolFromCIDR("10.8.0.2/24")
 			if err != nil {
 				return err
 			}
 
-			ipv6Pool, err := types.NewIPv6PoolFromCIDR("fd86:ea04:1115::2/120")
+			ipv6Pool, err := wgt.NewIPv6PoolFromCIDR("fd86:ea04:1115::2/120")
 			if err != nil {
 				return err
 			}
 
 			var (
-				cfg       = types.NewConfig()
-				cdc       = hub.MakeCodec()
-				interrupt = make(chan os.Signal)
-				logger    = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-				service   = wireguard.NewWireGuard(types.NewIPPool(ipv4Pool, ipv6Pool))
+				cfg     = types.NewConfig()
+				cdc     = hub.MakeCodec()
+				logger  = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+				service = wireguard.NewWireGuard(wgt.NewIPPool(ipv4Pool, ipv6Pool))
 			)
 
 			if err := cfg.LoadFromPath(cfgFilePath); err != nil {
@@ -71,7 +69,7 @@ func StartCmd() *cobra.Command {
 			}
 
 			client = client.WithCodec(cdc).
-				WithTxEncoder(clientutils.GetTxEncoder(cdc))
+				WithTxEncoder(cutils.GetTxEncoder(cdc))
 
 			account, err := client.QueryAccount(client.FromAddress())
 			if err != nil {
@@ -80,18 +78,6 @@ func StartCmd() *cobra.Command {
 			if account == nil {
 				return fmt.Errorf("account does not exist with address '%s'", client.FromAddress())
 			}
-
-			signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-			go func() {
-				<-interrupt
-
-				fmt.Println("\r")
-				if err := service.Stop(); err != nil {
-					panic(err)
-				}
-
-				os.Exit(0)
-			}()
 
 			logger.Info("Initializing the service", "type", service.Type())
 			if err := service.Initialize(home); err != nil {
