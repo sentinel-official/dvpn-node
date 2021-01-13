@@ -7,7 +7,7 @@ RUN apk add git gcc linux-headers make musl-dev && \
     make install --jobs=$(nproc)
 
 RUN cd /root/ && \
-    apk add autoconf automake g++ git libtool make unbound-dev && \
+    apk add autoconf automake file g++ git libtool make unbound-dev && \
     git clone https://github.com/handshake-org/hnsd.git --branch=v1.0.0 --depth=1 && \
     cd /root/hnsd/ && \
     bash autogen.sh && sh configure && make --jobs=$(nproc)

@@ -111,7 +111,7 @@ func HandlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		result = append(result, net.ParseIP(ctx.Location().IP)...)
+		result = append(result, net.ParseIP(ctx.Location().IP).To4()...)
 		result = append(result, ctx.Service().Info()...)
 		utils.WriteResultToResponse(w, http.StatusCreated, result)
 	}

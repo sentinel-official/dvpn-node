@@ -13,21 +13,21 @@ import (
 	"github.com/sentinel-official/hub/x/vpn"
 )
 
-func (c *Client) Query(path string, params, result interface{}) error {
+func (c *Client) Query(path string, params, result interface{}) (bool, error) {
 	bytes, err := c.ctx.Codec.MarshalJSON(params)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	res, _, err := c.ctx.QueryWithData(path, bytes)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if res == nil {
-		return nil
+		return false, nil
 	}
 
-	return c.ctx.Codec.UnmarshalJSON(res, result)
+	return true, c.ctx.Codec.UnmarshalJSON(res, result)
 }
 
 func (c *Client) QueryAccount(address sdk.AccAddress) (exported.Account, error) {
@@ -36,7 +36,7 @@ func (c *Client) QueryAccount(address sdk.AccAddress) (exported.Account, error) 
 		path   = fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount)
 	)
 
-	if err := c.Query(path, auth.NewQueryAccountParams(address), &result); err != nil {
+	if ok, err := c.Query(path, auth.NewQueryAccountParams(address), &result); !ok {
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func (c *Client) QueryNode(address hub.NodeAddress) (*node.Node, error) {
 		path   = fmt.Sprintf("custom/%s/%s/%s", vpn.StoreKey, node.QuerierRoute, node.QueryNode)
 	)
 
-	if err := c.Query(path, node.NewQueryNodeParams(address), &result); err != nil {
+	if ok, err := c.Query(path, node.NewQueryNodeParams(address), &result); !ok {
 		return nil, err
 	}
 
@@ -62,7 +62,7 @@ func (c *Client) QuerySubscription(id uint64) (*subscription.Subscription, error
 		path   = fmt.Sprintf("custom/%s/%s/%s", vpn.StoreKey, subscription.QuerierRoute, subscription.QuerySubscription)
 	)
 
-	if err := c.Query(path, subscription.NewQuerySubscriptionParams(id), &result); err != nil {
+	if ok, err := c.Query(path, subscription.NewQuerySubscriptionParams(id), &result); !ok {
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscription.Qu
 		path   = fmt.Sprintf("custom/%s/%s/%s", vpn.StoreKey, subscription.QuerierRoute, subscription.QueryQuota)
 	)
 
-	if err := c.Query(path, subscription.NewQueryQuotaParams(id, address), &result); err != nil {
+	if ok, err := c.Query(path, subscription.NewQueryQuotaParams(id, address), &result); !ok {
 		return nil, err
 	}
 
@@ -83,7 +83,8 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscription.Qu
 }
 
 func (c *Client) HasNodeForPlan(id uint64, address hub.NodeAddress) (bool, error) {
-	res, _, err := c.ctx.QueryStore(plan.NodeForPlanKey(id, address), vpn.ModuleName)
+	res, _, err := c.ctx.QueryStore(plan.NodeForPlanKey(id, address),
+		fmt.Sprintf("%s/%s", vpn.ModuleName, plan.ModuleName))
 	if err != nil {
 		return false, err
 	}
