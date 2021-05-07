@@ -3,11 +3,11 @@ package types
 type Service interface {
 	Type() uint64
 	Info() []byte
-	Initialize(string) error
+	Init(home string) error
 	Start() error
 	Stop() error
-	AddPeer([]byte) ([]byte, error)
-	RemovePeer([]byte) error
+	AddPeer(data []byte) ([]byte, error)
+	RemovePeer(data []byte) error
 	Peers() ([]Peer, error)
 	PeersCount() int
 }

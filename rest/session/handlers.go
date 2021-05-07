@@ -63,7 +63,7 @@ func HandlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		if subscription.Plan == 0 {
-			if !subscription.Node.Equals(ctx.Address()) {
+			if subscription.Node != ctx.Address().String() {
 				utils.WriteErrorToResponse(w, http.StatusBadRequest, 4, "")
 				return
 			}
@@ -98,7 +98,7 @@ func HandlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		ctx.Sessions().Set(types.Session{
+		ctx.Sessions().Put(types.Session{
 			Address:      address,
 			ConnectedAt:  time.Now(),
 			Identity:     body.Key,

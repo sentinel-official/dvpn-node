@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/template"
 
-	wgt "github.com/sentinel-official/dvpn-node/services/wireguard/types"
+	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
@@ -21,30 +21,32 @@ const (
 	InfoLen = 2 + 32
 )
 
-var _ types.Service = (*WireGuard)(nil)
+var (
+	_ types.Service = (*WireGuard)(nil)
+)
 
 type WireGuard struct {
-	cfg   *wgt.Config
 	info  []byte
-	peers *wgt.Peers
-	pool  *wgt.IPPool
+	cfg   *wgtypes.Config
+	peers *wgtypes.Peers
+	pool  *wgtypes.IPPool
 }
 
-func NewWireGuard(pool *wgt.IPPool) types.Service {
+func NewWireGuard(pool *wgtypes.IPPool) types.Service {
 	return &WireGuard{
 		pool:  pool,
-		cfg:   wgt.NewConfig(),
+		cfg:   wgtypes.NewConfig(),
 		info:  make([]byte, InfoLen),
-		peers: wgt.NewPeers(),
+		peers: wgtypes.NewPeers(),
 	}
 }
 
 func (w *WireGuard) Type() uint64 {
-	return wgt.Type
+	return wgtypes.Type
 }
 
-func (w *WireGuard) Initialize(home string) error {
-	configFilePath := filepath.Join(home, wgt.ConfigFileName)
+func (w *WireGuard) Init(home string) error {
+	configFilePath := filepath.Join(home, wgtypes.ConfigFileName)
 	if err := w.cfg.LoadFromPath(configFilePath); err != nil {
 		return err
 	}
@@ -64,7 +66,7 @@ func (w *WireGuard) Initialize(home string) error {
 		return err
 	}
 
-	key, err := wgt.KeyFromString(w.cfg.PrivateKey)
+	key, err := wgtypes.KeyFromString(w.cfg.PrivateKey)
 	if err != nil {
 		return err
 	}
@@ -111,7 +113,7 @@ func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		w.pool.Release(v4, v6)
 		return nil, err
 	}
@@ -121,7 +123,7 @@ func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 		w.pool.Release(peer.IPv4, peer.IPv6)
 	}
 
-	w.peers.Put(wgt.Peer{
+	w.peers.Put(wgtypes.Peer{
 		Identity: identity,
 		IPv4:     v4,
 		IPv6:     v6,

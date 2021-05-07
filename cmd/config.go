@@ -27,7 +27,7 @@ func ConfigCmd() *cobra.Command {
 func configInit() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize the configuration with default values",
+		Short: "Initialize the default configuration file",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := cmd.Flags().GetString(types.FlagHome)
 			if err != nil {

@@ -22,7 +22,7 @@ func NewRequestAddSession(r *http.Request) (*RequestAddSession, error) {
 
 func (r *RequestAddSession) Validate() error {
 	if r.Key == "" {
-		return fmt.Errorf(`invalid field "key"`)
+		return fmt.Errorf(`invalid field key; expected non-empty value`)
 	}
 
 	return nil

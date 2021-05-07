@@ -6,11 +6,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
-	hub "github.com/sentinel-official/hub/types"
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/types"
+	hubtypes "github.com/sentinel-official/hub/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Context struct {
@@ -23,7 +22,7 @@ type Context struct {
 	router    *mux.Router
 	sessions  *types.Sessions
 	location  *types.GeoIPLocation
-	bandwidth hub.Bandwidth
+	bandwidth hubtypes.Bandwidth
 }
 
 func NewContext() *Context {
@@ -32,7 +31,7 @@ func NewContext() *Context {
 	}
 }
 
-func (c *Context) WithBandwidth(v hub.Bandwidth) *Context       { c.bandwidth = v; return c }
+func (c *Context) WithBandwidth(v hubtypes.Bandwidth) *Context  { c.bandwidth = v; return c }
 func (c *Context) WithClient(v *lite.Client) *Context           { c.client = v; return c }
 func (c *Context) WithConfig(v *types.Config) *Context          { c.config = v; return c }
 func (c *Context) WithContext(v context.Context) *Context       { c.ctx = v; return c }
@@ -48,8 +47,8 @@ func (c *Context) WithValue(key, value interface{}) *Context {
 	return c
 }
 
-func (c *Context) Address() hub.NodeAddress          { return c.Operator().Bytes() }
-func (c *Context) Bandwidth() hub.Bandwidth          { return c.bandwidth }
+func (c *Context) Address() hubtypes.NodeAddress     { return c.Operator().Bytes() }
+func (c *Context) Bandwidth() hubtypes.Bandwidth     { return c.bandwidth }
 func (c *Context) Type() uint64                      { return c.service.Type() }
 func (c *Context) Client() *lite.Client              { return c.client }
 func (c *Context) Config() *types.Config             { return c.config }
@@ -67,12 +66,12 @@ func (c *Context) Sessions() *types.Sessions         { return c.sessions }
 func (c *Context) Value(key interface{}) interface{} { return c.ctx.Value(key) }
 func (c *Context) Version() string                   { return types.Version }
 
-func (c *Context) Provider() hub.ProvAddress {
+func (c *Context) Provider() hubtypes.ProvAddress {
 	if c.Config().Node.Provider == "" {
 		return nil
 	}
 
-	address, err := hub.ProvAddressFromBech32(c.Config().Node.Provider)
+	address, err := hubtypes.ProvAddressFromBech32(c.Config().Node.Provider)
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +84,7 @@ func (c *Context) Price() sdk.Coins {
 		return nil
 	}
 
-	coins, err := sdk.ParseCoins(c.Config().Node.Price)
+	coins, err := sdk.ParseCoinsNormalized(c.Config().Node.Price)
 	if err != nil {
 		panic(err)
 	}

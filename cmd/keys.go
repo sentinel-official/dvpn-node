@@ -6,10 +6,11 @@ import (
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/input"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
-	hub "github.com/sentinel-official/hub/types"
+	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 
 	"github.com/sentinel-official/dvpn-node/types"
@@ -47,12 +48,16 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			kb, err := keys.NewKeyBaseFromDir(home)
+			var (
+				reader = bufio.NewReader(cmd.InOrStdin())
+			)
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
 			if err != nil {
 				return err
 			}
 
-			if _, err = kb.Get(args[0]); err == nil {
+			if _, err = kr.Key(args[0]); err == nil {
 				return fmt.Errorf("key already exists with name '%s'", args[0])
 			}
 
@@ -77,13 +82,22 @@ func keysAdd() *cobra.Command {
 				}
 			}
 
-			info, err := kb.CreateAccount(args[0], mnemonic, "", types.DefaultPassword,
-				ckeys.CreateHDPath(0, 0).String(), ckeys.Secp256k1)
+			var (
+				hdPath                 = hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
+				supportedAlgorithms, _ = kr.SupportedAlgorithms()
+			)
+
+			signingAlgorithm, err := keyring.NewSigningAlgoFromString(string(hd.Secp256k1Type), supportedAlgorithms)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("Address:  %s\n", hub.NodeAddress(info.GetAddress().Bytes()))
+			info, err := kr.NewAccount(args[0], mnemonic, "", hdPath.String(), signingAlgorithm)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Address:  %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
 			fmt.Printf("Operator: %s\n", info.GetAddress())
 			fmt.Printf("Mnemonic: %s\n", mnemonic)
 
@@ -107,17 +121,21 @@ func keysShow() *cobra.Command {
 				return err
 			}
 
-			kb, err := keys.NewKeyBaseFromDir(home)
+			var (
+				reader = bufio.NewReader(cmd.InOrStdin())
+			)
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
 			if err != nil {
 				return err
 			}
 
-			info, err := kb.Get(args[0])
+			info, err := kr.Key(args[0])
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("Address:  %s\n", hub.NodeAddress(info.GetAddress().Bytes()))
+			fmt.Printf("Address:  %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
 			fmt.Printf("Operator: %s\n", info.GetAddress())
 
 			return nil
@@ -137,19 +155,23 @@ func keysList() *cobra.Command {
 				return err
 			}
 
-			kb, err := keys.NewKeyBaseFromDir(home)
+			var (
+				reader = bufio.NewReader(cmd.InOrStdin())
+			)
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
 			if err != nil {
 				return err
 			}
 
-			list, err := kb.List()
+			list, err := kr.List()
 			if err != nil {
 				return err
 			}
 
 			for _, info := range list {
 				fmt.Printf("%s | %s | %s\n",
-					info.GetName(), hub.NodeAddress(info.GetAddress().Bytes()), info.GetAddress())
+					info.GetName(), hubtypes.NodeAddress(info.GetAddress().Bytes()), info.GetAddress())
 			}
 
 			return nil
@@ -170,12 +192,16 @@ func keysDelete() *cobra.Command {
 				return err
 			}
 
-			kb, err := keys.NewKeyBaseFromDir(home)
+			var (
+				reader = bufio.NewReader(cmd.InOrStdin())
+			)
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
 			if err != nil {
 				return err
 			}
 
-			return kb.Delete(args[0], "", true)
+			return kr.Delete(args[0])
 		},
 	}
 

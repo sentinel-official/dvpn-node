@@ -40,7 +40,9 @@ func configInitCmd() *cobra.Command {
 				return err
 			}
 
-			configPath := filepath.Join(home, wgt.ConfigFileName)
+			var (
+				configPath = filepath.Join(home, wgt.ConfigFileName)
+			)
 
 			if !force {
 				_, err = os.Stat(configPath)
@@ -73,8 +75,12 @@ func configShowCmd() *cobra.Command {
 				return err
 			}
 
-			config := wgt.NewConfig()
-			if err := config.LoadFromPath(filepath.Join(home, wgt.ConfigFileName)); err != nil {
+			var (
+				config     = wgt.NewConfig()
+				configPath = filepath.Join(home, wgt.ConfigFileName)
+			)
+
+			if err := config.LoadFromPath(configPath); err != nil {
 				return err
 			}
 

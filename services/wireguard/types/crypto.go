@@ -13,7 +13,9 @@ const (
 	KeyLength = 32
 )
 
-type Key [KeyLength]byte
+type (
+	Key [KeyLength]byte
+)
 
 func KeyFromBytes(b []byte) (*Key, error) {
 	if len(b) != KeyLength {

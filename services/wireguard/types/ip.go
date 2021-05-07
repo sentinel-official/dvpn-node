@@ -5,7 +5,10 @@ import (
 	"net"
 )
 
-type IPv4 [net.IPv4len]byte
+type (
+	IPv4 [net.IPv4len]byte
+	IPv6 [net.IPv6len]byte
+)
 
 func NewIPv4FromIP(ip net.IP) (v4 IPv4) {
 	copy(v4[:], ip.To4())
@@ -31,8 +34,6 @@ func (ip IPv4) Next() IPv4 {
 
 	return ip
 }
-
-type IPv6 [net.IPv6len]byte
 
 func NewIPv6FromIP(ip net.IP) (v6 IPv6) {
 	copy(v6[:], ip.To16())

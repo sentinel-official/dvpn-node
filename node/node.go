@@ -5,9 +5,9 @@ import (
 	"path"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	hub "github.com/sentinel-official/hub/types"
-	"github.com/sentinel-official/hub/x/node"
-	"github.com/sentinel-official/hub/x/session"
+	hubtypes "github.com/sentinel-official/hub/types"
+	nodetypes "github.com/sentinel-official/hub/x/node/types"
+	sessiontypes "github.com/sentinel-official/hub/x/session/types"
 
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/types"
@@ -56,8 +56,8 @@ func (n *Node) Start() error {
 }
 
 func (n *Node) register() error {
-	res, err := n.Client().SignAndBroadcastTxCommit(
-		node.NewMsgRegister(
+	res, err := n.Client().BroadcastTx(
+		nodetypes.NewMsgRegisterRequest(
 			n.Operator(),
 			n.Provider(),
 			n.Price(),
@@ -73,8 +73,8 @@ func (n *Node) register() error {
 }
 
 func (n *Node) update() error {
-	res, err := n.Client().SignAndBroadcastTxCommit(
-		node.NewMsgUpdate(
+	res, err := n.Client().BroadcastTx(
+		nodetypes.NewMsgUpdateRequest(
 			n.Address(),
 			n.Provider(),
 			n.Price(),
@@ -90,10 +90,10 @@ func (n *Node) update() error {
 }
 
 func (n *Node) updateStatus() error {
-	res, err := n.Client().SignAndBroadcastTxCommit(
-		node.NewMsgSetStatus(
+	res, err := n.Client().BroadcastTx(
+		nodetypes.NewMsgSetStatusRequest(
 			n.Address(),
-			hub.StatusActive,
+			hubtypes.StatusActive,
 		),
 	)
 	if err != nil {
@@ -111,16 +111,20 @@ func (n *Node) updateSessions(items []types.Session) error {
 
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
-		messages = append(messages, session.NewMsgUpsert(
-			n.Address(),
-			item.Subscription,
+		messages = append(messages, sessiontypes.NewMsgUpsertRequest(
+			sessiontypes.Proof{
+				Channel:      0,
+				Subscription: item.Subscription,
+				Node:         n.Address().String(),
+				Duration:     item.Duration,
+				Bandwidth:    hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
+			},
 			item.Address,
-			item.Duration,
-			hub.NewBandwidthFromInt64(item.Download, item.Upload),
+			nil,
 		))
 	}
 
-	res, err := n.Client().SignAndBroadcastTxCommit(messages...)
+	res, err := n.Client().BroadcastTx(messages...)
 	if err != nil {
 		return err
 	}

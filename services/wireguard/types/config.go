@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"os"
 	"strings"
 	"text/template"
 
@@ -58,13 +57,6 @@ func (c *Config) WithDefaultValues() *Config {
 }
 
 func (c *Config) LoadFromPath(path string) error {
-	if _, err := os.Stat(path); err != nil {
-		config := NewConfig().WithDefaultValues()
-		if err := config.SaveToPath(path); err != nil {
-			return err
-		}
-	}
-
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -108,13 +100,13 @@ func (c *Config) String() string {
 
 func (c *Config) Validate() error {
 	if c.Interface == "" {
-		return fmt.Errorf("invalid interface")
+		return fmt.Errorf("invalid interface; expected non-empty value")
 	}
 	if c.ListenPort == 0 {
-		return fmt.Errorf("invalid listen_port")
+		return fmt.Errorf("invalid listen_port; expected positive value")
 	}
 	if c.PrivateKey == "" {
-		return fmt.Errorf("invalid private_key")
+		return fmt.Errorf("invalid private_key; expected non-empty value")
 	}
 
 	return nil

@@ -1,90 +1,82 @@
 package lite
 
 import (
+	"context"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	hub "github.com/sentinel-official/hub/types"
-	"github.com/sentinel-official/hub/x/node"
-	"github.com/sentinel-official/hub/x/plan"
-	"github.com/sentinel-official/hub/x/subscription"
-	"github.com/sentinel-official/hub/x/vpn"
+	nodetypes "github.com/sentinel-official/hub/x/node/types"
+	plantypes "github.com/sentinel-official/hub/x/plan/types"
+	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
+	vpntypes "github.com/sentinel-official/hub/x/vpn/types"
 )
 
-func (c *Client) Query(path string, params, result interface{}) (bool, error) {
-	bytes, err := c.ctx.Codec.MarshalJSON(params)
+func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error) {
+	var (
+		account authtypes.AccountI
+		qc      = authtypes.NewQueryClient(c.ctx)
+	)
+
+	res, err := qc.Account(context.Background(),
+		&authtypes.QueryAccountRequest{Address: address.String()})
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	res, _, err := c.ctx.QueryWithData(path, bytes)
+	if err := c.ctx.InterfaceRegistry.UnpackAny(res.Account, &account); err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (c *Client) QueryNode(address hub.NodeAddress) (*nodetypes.Node, error) {
+	var (
+		qc = nodetypes.NewQueryServiceClient(c.ctx)
+	)
+
+	res, err := qc.QueryNode(context.Background(),
+		nodetypes.NewQueryNodeRequest(address))
 	if err != nil {
-		return false, err
-	}
-	if res == nil {
-		return false, nil
-	}
-
-	return true, c.ctx.Codec.UnmarshalJSON(res, result)
-}
-
-func (c *Client) QueryAccount(address sdk.AccAddress) (exported.Account, error) {
-	var (
-		result exported.Account
-		path   = fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount)
-	)
-
-	if ok, err := c.Query(path, auth.NewQueryAccountParams(address), &result); !ok {
 		return nil, err
 	}
 
-	return result, nil
+	return &res.Node, nil
 }
 
-func (c *Client) QueryNode(address hub.NodeAddress) (*node.Node, error) {
+func (c *Client) QuerySubscription(id uint64) (*subscriptiontypes.Subscription, error) {
 	var (
-		result node.Node
-		path   = fmt.Sprintf("custom/%s/%s/%s", vpn.StoreKey, node.QuerierRoute, node.QueryNode)
+		qc = subscriptiontypes.NewQueryServiceClient(c.ctx)
 	)
 
-	if ok, err := c.Query(path, node.NewQueryNodeParams(address), &result); !ok {
+	res, err := qc.QuerySubscription(context.Background(),
+		subscriptiontypes.NewQuerySubscriptionRequest(id))
+	if err != nil {
 		return nil, err
 	}
 
-	return &result, nil
+	return &res.Subscription, nil
 }
 
-func (c *Client) QuerySubscription(id uint64) (*subscription.Subscription, error) {
+func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontypes.Quota, error) {
 	var (
-		result subscription.Subscription
-		path   = fmt.Sprintf("custom/%s/%s/%s", vpn.StoreKey, subscription.QuerierRoute, subscription.QuerySubscription)
+		qc = subscriptiontypes.NewQueryServiceClient(c.ctx)
 	)
 
-	if ok, err := c.Query(path, subscription.NewQuerySubscriptionParams(id), &result); !ok {
+	res, err := qc.QueryQuota(context.Background(),
+		subscriptiontypes.NewQueryQuotaRequest(id, address))
+	if err != nil {
 		return nil, err
 	}
 
-	return &result, nil
-}
-
-func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscription.Quota, error) {
-	var (
-		result subscription.Quota
-		path   = fmt.Sprintf("custom/%s/%s/%s", vpn.StoreKey, subscription.QuerierRoute, subscription.QueryQuota)
-	)
-
-	if ok, err := c.Query(path, subscription.NewQueryQuotaParams(id, address), &result); !ok {
-		return nil, err
-	}
-
-	return &result, nil
+	return &res.Quota, nil
 }
 
 func (c *Client) HasNodeForPlan(id uint64, address hub.NodeAddress) (bool, error) {
-	res, _, err := c.ctx.QueryStore(plan.NodeForPlanKey(id, address),
-		fmt.Sprintf("%s/%s", vpn.ModuleName, plan.ModuleName))
+	res, _, err := c.ctx.QueryStore(plantypes.NodeForPlanKey(id, address),
+		fmt.Sprintf("%s/%s", vpntypes.ModuleName, plantypes.ModuleName))
 	if err != nil {
 		return false, err
 	}
@@ -92,10 +84,5 @@ func (c *Client) HasNodeForPlan(id uint64, address hub.NodeAddress) (bool, error
 		return false, nil
 	}
 
-	var item bool
-	if err := c.ctx.Codec.UnmarshalJSON(res, &item); err != nil {
-		return false, err
-	}
-
-	return item, nil
+	return true, nil
 }

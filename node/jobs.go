@@ -78,7 +78,7 @@ func (n *Node) jobUpdateSessions() error {
 			session.Upload += item.Upload
 			session.Download += item.Download
 			session.Duration += item.Duration
-			n.Sessions().Set(session)
+			n.Sessions().Put(session)
 		}
 	}
 }

@@ -29,7 +29,7 @@ func NewSessions() *Sessions {
 	}
 }
 
-func (s *Sessions) Set(v Session) {
+func (s *Sessions) Put(v Session) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

@@ -166,6 +166,8 @@ func Bandwidth() (upload, download int64, err error) {
 		if err == nil {
 			break
 		}
+
+		fmt.Println(err)
 	}
 
 	for i := range servers[:8] {
@@ -173,6 +175,8 @@ func Bandwidth() (upload, download int64, err error) {
 		if err == nil {
 			break
 		}
+
+		fmt.Println(err)
 	}
 
 	return upload, download, nil
