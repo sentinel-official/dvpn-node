@@ -6,10 +6,11 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
-	"github.com/sentinel-official/dvpn-node/lite"
-	"github.com/sentinel-official/dvpn-node/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/tendermint/tendermint/libs/log"
+
+	"github.com/sentinel-official/dvpn-node/lite"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Context struct {

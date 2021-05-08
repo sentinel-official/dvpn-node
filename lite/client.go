@@ -14,8 +14,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
-
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Client struct {
@@ -39,29 +37,6 @@ func NewDefaultClient() *Client {
 		WithSimulate(false).
 		WithSkipConfirm(true).
 		WithMemo("")
-}
-
-func NewClientFromConfig(home string, cfg *types.Config) (*Client, error) {
-	kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	info, err := kr.Key(cfg.Node.From)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewClient().
-		WithGasAdjustment(cfg.Chain.GasAdjustment).
-		WithKeyring(kr).
-		WithNodeURI(cfg.Chain.RPCAddress).
-		WithFrom(cfg.Node.From).
-		WithFromAddress(info.GetAddress()).
-		WithFromName(cfg.Node.From).
-		WithGas(cfg.Chain.Gas).
-		WithChainID(cfg.Chain.ID).
-		WithGasPrices(cfg.Chain.GasPrices), nil
 }
 
 func (c *Client) Copy() *Client {

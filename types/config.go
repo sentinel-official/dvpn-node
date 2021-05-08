@@ -27,6 +27,9 @@ rpc_address = "{{ .Chain.RPCAddress }}"
 enable = {{ .Handshake.Enable }}
 peers = {{ .Handshake.Peers }}
 
+[keyring]
+backend = "{{ .Keyring.Backend }}"
+
 [node]
 from = "{{ .Node.From }}"
 interval_sessions = {{ .Node.IntervalSessions }}
@@ -61,6 +64,9 @@ type Config struct {
 		Enable bool   `json:"enable"`
 		Peers  uint64 `json:"peers"`
 	}
+	Keyring struct {
+		Backend string `json:"backend"`
+	}
 	Node struct {
 		From             string `json:"from"`
 		IntervalSessions int64  `json:"interval_sessions"`
@@ -87,6 +93,8 @@ func (c *Config) WithDefaultValues() *Config {
 
 	c.Handshake.Enable = true
 	c.Handshake.Peers = 8
+
+	c.Keyring.Backend = "file"
 
 	c.Node.From = ""
 	c.Node.IntervalSessions = 8 * time.Minute.Nanoseconds()
@@ -156,6 +164,10 @@ func (c *Config) Validate() error {
 
 	if c.Handshake.Peers == 0 {
 		return fmt.Errorf("invalid handshake->peers; expected positive value")
+	}
+
+	if c.Keyring.Backend == "" {
+		return fmt.Errorf("invalid keyring->backend; expected non-empty value")
 	}
 
 	if c.Node.From == "" {

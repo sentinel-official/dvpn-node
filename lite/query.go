@@ -11,6 +11,8 @@ import (
 	plantypes "github.com/sentinel-official/hub/x/plan/types"
 	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 	vpntypes "github.com/sentinel-official/hub/x/vpn/types"
+
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error) {
@@ -22,7 +24,7 @@ func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error
 	res, err := qc.Account(context.Background(),
 		&authtypes.QueryAccountRequest{Address: address.String()})
 	if err != nil {
-		return nil, err
+		return nil, utils.IsNotFoundError(err)
 	}
 
 	if err := c.ctx.InterfaceRegistry.UnpackAny(res.Account, &account); err != nil {
@@ -40,7 +42,7 @@ func (c *Client) QueryNode(address hub.NodeAddress) (*nodetypes.Node, error) {
 	res, err := qc.QueryNode(context.Background(),
 		nodetypes.NewQueryNodeRequest(address))
 	if err != nil {
-		return nil, err
+		return nil, utils.IsNotFoundError(err)
 	}
 
 	return &res.Node, nil
@@ -54,7 +56,7 @@ func (c *Client) QuerySubscription(id uint64) (*subscriptiontypes.Subscription, 
 	res, err := qc.QuerySubscription(context.Background(),
 		subscriptiontypes.NewQuerySubscriptionRequest(id))
 	if err != nil {
-		return nil, err
+		return nil, utils.IsNotFoundError(err)
 	}
 
 	return &res.Subscription, nil
@@ -68,7 +70,7 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontyp
 	res, err := qc.QueryQuota(context.Background(),
 		subscriptiontypes.NewQueryQuotaRequest(id, address))
 	if err != nil {
-		return nil, err
+		return nil, utils.IsNotFoundError(err)
 	}
 
 	return &res.Quota, nil

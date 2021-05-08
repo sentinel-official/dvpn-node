@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -66,6 +67,7 @@ func StartCmd() *cobra.Command {
 				encoding = params.MakeEncodingConfig()
 				logger   = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 				service  = wireguard.NewWireGuard(wgtypes.NewIPPool(ipv4Pool, ipv6Pool))
+				reader   = bufio.NewReader(cmd.InOrStdin())
 			)
 
 			std.RegisterInterfaces(encoding.InterfaceRegistry)
@@ -76,7 +78,7 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, nil)
+			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
