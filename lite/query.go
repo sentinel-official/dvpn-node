@@ -6,9 +6,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	hub "github.com/sentinel-official/hub/types"
+	hubtypes "github.com/sentinel-official/hub/types"
 	nodetypes "github.com/sentinel-official/hub/x/node/types"
 	plantypes "github.com/sentinel-official/hub/x/plan/types"
+	sessiontypes "github.com/sentinel-official/hub/x/session/types"
 	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 	vpntypes "github.com/sentinel-official/hub/x/vpn/types"
 
@@ -34,7 +35,7 @@ func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error
 	return account, nil
 }
 
-func (c *Client) QueryNode(address hub.NodeAddress) (*nodetypes.Node, error) {
+func (c *Client) QueryNode(address hubtypes.NodeAddress) (*nodetypes.Node, error) {
 	var (
 		qc = nodetypes.NewQueryServiceClient(c.ctx)
 	)
@@ -76,7 +77,21 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontyp
 	return &res.Quota, nil
 }
 
-func (c *Client) HasNodeForPlan(id uint64, address hub.NodeAddress) (bool, error) {
+func (c *Client) QuerySession(id uint64) (*sessiontypes.Session, error) {
+	var (
+		qc = sessiontypes.NewQueryServiceClient(c.ctx)
+	)
+
+	res, err := qc.QuerySession(context.Background(),
+		sessiontypes.NewQuerySessionRequest(id))
+	if err != nil {
+		return nil, utils.IsNotFoundError(err)
+	}
+
+	return &res.Session, nil
+}
+
+func (c *Client) HasNodeForPlan(id uint64, address hubtypes.NodeAddress) (bool, error) {
 	res, _, err := c.ctx.QueryStore(plantypes.NodeForPlanKey(id, address),
 		fmt.Sprintf("%s/%s", vpntypes.ModuleName, plantypes.ModuleName))
 	if err != nil {

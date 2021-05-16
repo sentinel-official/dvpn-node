@@ -1,7 +1,8 @@
 package main
 
 import (
-	sent "github.com/sentinel-official/hub/types"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-	sent.GetConfig().Seal()
+	hubtypes.GetConfig().Seal()
 	cobra.EnableCommandSorting = false
 
 	root := &cobra.Command{
@@ -22,17 +23,17 @@ func main() {
 	root.AddCommand(
 		cmd.ConfigCmd(),
 		cmd.KeysCmd(),
-		types.LineBreakCmd,
+		flags.LineBreak,
 		wireguard.Command(),
-		types.LineBreakCmd,
+		flags.LineBreak,
 		cmd.StartCmd(),
 	)
 
-	root.PersistentFlags().String(types.FlagHome, types.DefaultHomeDirectory, "home")
-	root.PersistentFlags().String(types.FlagLogLevel, "info", "log level")
+	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home")
+	root.PersistentFlags().String(flags.FlagLogLevel, "info", "log level")
 
-	_ = viper.BindPFlag(types.FlagHome, root.PersistentFlags().Lookup(types.FlagHome))
-	_ = viper.BindPFlag(types.FlagLogLevel, root.PersistentFlags().Lookup(types.FlagLogLevel))
+	_ = viper.BindPFlag(flags.FlagHome, root.PersistentFlags().Lookup(flags.FlagHome))
+	_ = viper.BindPFlag(flags.FlagLogLevel, root.PersistentFlags().Lookup(flags.FlagLogLevel))
 
 	_ = root.Execute()
 }

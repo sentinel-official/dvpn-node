@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -12,8 +13,6 @@ import (
 	"github.com/cosmos/go-bip39"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
-
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func KeysCmd() *cobra.Command {
@@ -38,7 +37,7 @@ func keysAdd() *cobra.Command {
 		Short: "Add a key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
@@ -116,7 +115,7 @@ func keysShow() *cobra.Command {
 		Short: "Show a key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
@@ -150,7 +149,7 @@ func keysList() *cobra.Command {
 		Use:   "list",
 		Short: "List all the keys",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
@@ -187,7 +186,7 @@ func keysDelete() *cobra.Command {
 		Short: "Delete a key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}

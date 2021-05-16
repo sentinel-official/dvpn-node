@@ -3,6 +3,7 @@ package node
 import (
 	"net/http"
 	"path"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
@@ -22,11 +23,11 @@ func NewNode(ctx *context.Context) *Node {
 }
 
 func (n *Node) Initialize() error {
-	result, err := n.Client().QueryNode(n.Address())
+	res, err := n.Client().QueryNode(n.Address())
 	if err != nil {
 		return err
 	}
-	if result == nil {
+	if res == nil {
 		return n.register()
 	}
 
@@ -111,17 +112,17 @@ func (n *Node) updateSessions(items []types.Session) error {
 
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
-		messages = append(messages, sessiontypes.NewMsgUpsertRequest(
-			sessiontypes.Proof{
-				Channel:      0,
-				Subscription: item.Subscription,
-				Node:         n.Address().String(),
-				Duration:     item.Duration,
-				Bandwidth:    hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
-			},
-			item.Address,
-			nil,
-		))
+		messages = append(messages,
+			sessiontypes.NewMsgUpdateRequest(
+				n.Address(),
+				sessiontypes.Proof{
+					Id:        item.ID,
+					Duration:  time.Since(item.ConnectedAt),
+					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
+				},
+				nil,
+			),
+		)
 	}
 
 	res, err := n.Client().BroadcastTx(messages...)

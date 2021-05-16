@@ -4,6 +4,9 @@ import (
 	"encoding/base64"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	hubtypes "github.com/sentinel-official/hub/types"
+
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
@@ -24,8 +27,7 @@ func (n *Node) jobUpdateSessions() error {
 	t := time.NewTicker(n.IntervalSessions())
 	for ; ; <-t.C {
 		var (
-			items   []types.Session
-			timeNow = time.Now()
+			items []types.Session
 		)
 
 		peers, err := n.Service().Peers()
@@ -34,51 +36,40 @@ func (n *Node) jobUpdateSessions() error {
 		}
 
 		for _, peer := range peers {
-			key, err := base64.StdEncoding.DecodeString(peer.Identity)
+			var (
+				item     = n.Sessions().Get(peer.Key)
+				consumed = sdk.NewInt(peer.Upload + peer.Download)
+			)
+
+			session, err := n.Client().QuerySession(item.ID)
 			if err != nil {
 				return err
 			}
 
-			item := n.Sessions().Get(peer.Identity)
-			if item.Identity == "" || peer.Download == item.Download {
+			if session.Status.Equal(hubtypes.Inactive) || consumed.GT(item.Available) {
+				key, err := base64.StdEncoding.DecodeString(peer.Key)
+				if err != nil {
+					return err
+				}
+
 				if err := n.Service().RemovePeer(key); err != nil {
 					return err
 				}
 
-				n.Sessions().Delete(peer.Identity)
+				n.Sessions().Delete(peer.Key)
+			}
+
+			if session.Status.Equal(hubtypes.Inactive) {
 				continue
 			}
 
-			item.Upload = peer.Upload - item.Upload
-			item.Download = peer.Download - item.Download
-			item.Duration = timeNow.Sub(item.ConnectedAt) - item.Duration
+			item.Upload = peer.Upload
+			item.Download = peer.Download
 			items = append(items, item)
-
-			quota, err := n.Client().QueryQuota(item.Subscription, item.Address)
-			if err != nil {
-				return err
-			}
-
-			if quota.Consumed.AddRaw(item.Upload + item.Download).GT(quota.Allocated) {
-				if err := n.Service().RemovePeer(key); err != nil {
-					return err
-				}
-
-				n.Sessions().Delete(peer.Identity)
-			}
 		}
 
 		if err := n.updateSessions(items); err != nil {
 			return err
-		}
-
-		for _, item := range items {
-			session := n.Sessions().Get(item.Identity)
-
-			session.Upload += item.Upload
-			session.Download += item.Download
-			session.Duration += item.Duration
-			n.Sessions().Put(session)
 		}
 	}
 }

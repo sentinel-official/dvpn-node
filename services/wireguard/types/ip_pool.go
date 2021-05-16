@@ -14,9 +14,9 @@ type IPv4Pool struct {
 	mutex     *sync.Mutex
 }
 
-func NewIPv4Pool(ip net.IP, net *net.IPNet) *IPv4Pool {
+func NewIPv4Pool(ip net.IP, ipNet *net.IPNet) *IPv4Pool {
 	return &IPv4Pool{
-		Net:      net,
+		Net:      ipNet,
 		current:  NewIPv4FromIP(ip),
 		reserved: make(map[IPv4]bool),
 		mutex:    &sync.Mutex{},
@@ -71,9 +71,9 @@ type IPv6Pool struct {
 	mutex     *sync.Mutex
 }
 
-func NewIPv6Pool(ip net.IP, net *net.IPNet) *IPv6Pool {
+func NewIPv6Pool(ip net.IP, ipNet *net.IPNet) *IPv6Pool {
 	return &IPv6Pool{
-		Net:      net,
+		Net:      ipNet,
 		current:  NewIPv6FromIP(ip),
 		reserved: make(map[IPv6]bool),
 		mutex:    &sync.Mutex{},

@@ -506,8 +506,8 @@ github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa/go.mod h1:F7
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sentinel-official/cosmos-sdk v0.42.5-sentinel h1:GJd65ZkV5bggGdgIew7XkHWCetz4sEP0cUSiYOUdHZQ=
 github.com/sentinel-official/cosmos-sdk v0.42.5-sentinel/go.mod h1:I1Zw1zmU4rA/NITaakTb71pXQnQrWyFBhqo3WSeg0vA=
-github.com/sentinel-official/hub v0.6.0 h1:VIQ5yztQwG+L8Ai72vRNDVaVqNyiJlO9i7k6xFCMmb4=
-github.com/sentinel-official/hub v0.6.0/go.mod h1:Fv/HM/IddmSXgfx0blDkbNbyBvmUFUMhE5kXGzcmWmg=
+github.com/sentinel-official/hub v0.6.1-rc0 h1:6nWOGzzakDYVNQs4/jNgKSOEJBqyN0bp/RzKrcTXS1w=
+github.com/sentinel-official/hub v0.6.1-rc0/go.mod h1:Fv/HM/IddmSXgfx0blDkbNbyBvmUFUMhE5kXGzcmWmg=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=

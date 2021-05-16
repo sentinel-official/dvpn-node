@@ -43,7 +43,7 @@ type server struct {
 }
 
 func fetchServers() ([]server, error) {
-	resp, err := http.Get("https://www.speedtest.net/speedtest-servers-static.php")
+	resp, err := http.Get("https://c.speedtest.net/speedtest-servers-static.php")
 	if err != nil {
 		return nil, err
 	}
@@ -166,8 +166,6 @@ func Bandwidth() (upload, download int64, err error) {
 		if err == nil {
 			break
 		}
-
-		fmt.Println(err)
 	}
 
 	for i := range servers[:8] {

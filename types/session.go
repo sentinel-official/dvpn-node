@@ -8,13 +8,13 @@ import (
 )
 
 type Session struct {
-	Address      sdk.AccAddress `json:"address"`
-	ConnectedAt  time.Time      `json:"connected_at"`
-	Download     int64          `json:"download"`
-	Duration     time.Duration  `json:"duration"`
-	Identity     string         `json:"identity"`
-	Subscription uint64         `json:"subscription"`
-	Upload       int64          `json:"upload"`
+	ID          uint64         `json:"id"`
+	Key         string         `json:"key"`
+	Address     sdk.AccAddress `json:"address"`
+	Available   sdk.Int        `json:"available"`
+	Download    int64          `json:"download"`
+	Upload      int64          `json:"upload"`
+	ConnectedAt time.Time      `json:"connected_at"`
 }
 
 type Sessions struct {
@@ -24,8 +24,7 @@ type Sessions struct {
 
 func NewSessions() *Sessions {
 	return &Sessions{
-		m:     make(map[string]Session),
-		mutex: sync.Mutex{},
+		m: make(map[string]Session),
 	}
 }
 
@@ -33,7 +32,7 @@ func (s *Sessions) Put(v Session) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.m[v.Identity] = v
+	s.m[v.Key] = v
 }
 
 func (s *Sessions) Get(v string) Session {

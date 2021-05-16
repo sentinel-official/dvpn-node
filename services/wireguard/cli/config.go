@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 
 	wgt "github.com/sentinel-official/dvpn-node/services/wireguard/types"
@@ -30,7 +31,7 @@ func configInitCmd() *cobra.Command {
 		Use:   "init",
 		Short: "Init",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
@@ -70,7 +71,7 @@ func configShowCmd() *cobra.Command {
 		Use:   "show",
 		Short: "Show",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}

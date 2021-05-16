@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 
 	"github.com/sentinel-official/dvpn-node/types"
@@ -29,7 +30,7 @@ func configInit() *cobra.Command {
 		Use:   "init",
 		Short: "Initialize the default configuration file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
@@ -67,7 +68,7 @@ func configShow() *cobra.Command {
 		Use:   "show",
 		Short: "Show the configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
