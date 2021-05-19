@@ -52,7 +52,7 @@ func (n *Node) Start() error {
 		keyFile  = path.Join(n.Home(), "tls.key")
 	)
 
-	n.Logger().Info("Started REST API server", "address", n.ListenOn())
+	n.Logger().Info("started REST API server", "address", n.ListenOn())
 	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Router())
 }
 
@@ -69,7 +69,7 @@ func (n *Node) register() error {
 		return err
 	}
 
-	n.Logger().Info("Registered node", "tx_hash", res.TxHash)
+	n.Logger().Info("registered node", "tx_hash", res.TxHash)
 	return nil
 }
 
@@ -86,7 +86,7 @@ func (n *Node) update() error {
 		return err
 	}
 
-	n.Logger().Info("Updated node information", "tx_hash", res.TxHash)
+	n.Logger().Info("updated node information", "tx_hash", res.TxHash)
 	return nil
 }
 
@@ -101,7 +101,7 @@ func (n *Node) updateStatus() error {
 		return err
 	}
 
-	n.Logger().Info("Updated node status", "tx_hash", res.TxHash)
+	n.Logger().Info("updated node status", "tx_hash", res.TxHash)
 	return nil
 }
 
@@ -130,6 +130,6 @@ func (n *Node) updateSessions(items []types.Session) error {
 		return err
 	}
 
-	n.Logger().Info("Updated sessions", "tx_hash", res.TxHash)
+	n.Logger().Info("updated sessions", "tx_hash", res.TxHash)
 	return nil
 }

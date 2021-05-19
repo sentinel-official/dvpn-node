@@ -116,7 +116,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			}
 		}
 
-		quota, err := ctx.Client().QueryQuota(id, address)
+		quota, err := ctx.Client().QueryQuota(subscription.Id, address)
 		if err != nil {
 			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 7, err.Error())
 			return
@@ -135,15 +135,18 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		ctx.Sessions().Put(
-			types.Session{
+		var (
+			item = types.Session{
 				ID:          id,
 				Key:         body.Key,
 				Address:     address,
 				Available:   quota.Allocated.Sub(quota.Consumed),
 				ConnectedAt: time.Now(),
-			},
+			}
 		)
+
+		ctx.Sessions().Put(item)
+		ctx.Logger().Info("added session", "value", item)
 
 		result, err := ctx.Service().AddPeer(key)
 		if err != nil {

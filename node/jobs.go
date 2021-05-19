@@ -11,7 +11,7 @@ import (
 )
 
 func (n *Node) jobUpdateStatus() error {
-	n.Logger().Info("Started job", "name", "update_status", "interval", n.IntervalStatus())
+	n.Logger().Info("starting a job", "name", "update_status", "interval", n.IntervalStatus())
 
 	t := time.NewTicker(n.IntervalStatus())
 	for ; ; <-t.C {
@@ -22,7 +22,7 @@ func (n *Node) jobUpdateStatus() error {
 }
 
 func (n *Node) jobUpdateSessions() error {
-	n.Logger().Info("Started job", "name", "update_sessions", "interval", n.IntervalSessions())
+	n.Logger().Info("starting a job", "name", "update_sessions", "interval", n.IntervalSessions())
 
 	t := time.NewTicker(n.IntervalSessions())
 	for ; ; <-t.C {
@@ -47,6 +47,8 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			if session.Status.Equal(hubtypes.Inactive) || consumed.GT(item.Available) {
+				n.Logger().Info("inactive session", "value", item, "consumed", consumed)
+
 				key, err := base64.StdEncoding.DecodeString(peer.Key)
 				if err != nil {
 					return err

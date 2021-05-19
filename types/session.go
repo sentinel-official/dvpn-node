@@ -8,13 +8,13 @@ import (
 )
 
 type Session struct {
-	ID          uint64         `json:"id"`
-	Key         string         `json:"key"`
-	Address     sdk.AccAddress `json:"address"`
-	Available   sdk.Int        `json:"available"`
-	Download    int64          `json:"download"`
-	Upload      int64          `json:"upload"`
-	ConnectedAt time.Time      `json:"connected_at"`
+	ID          uint64         `json:"id,omitempty"`
+	Key         string         `json:"key,omitempty"`
+	Address     sdk.AccAddress `json:"address,omitempty"`
+	Available   sdk.Int        `json:"available,omitempty"`
+	Download    int64          `json:"download,omitempty"`
+	Upload      int64          `json:"upload,omitempty"`
+	ConnectedAt time.Time      `json:"connected_at,omitempty"`
 }
 
 type Sessions struct {
