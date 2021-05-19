@@ -1,0 +1,39 @@
+package main
+
+import (
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	hubtypes "github.com/sentinel-official/hub/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"github.com/sentinel-official/dvpn-node/cmd"
+	wireguard "github.com/sentinel-official/dvpn-node/services/wireguard/cli"
+	"github.com/sentinel-official/dvpn-node/types"
+)
+
+func main() {
+	hubtypes.GetConfig().Seal()
+	cobra.EnableCommandSorting = false
+
+	root := &cobra.Command{
+		Use:          "sentinel-dvpn-node",
+		SilenceUsage: true,
+	}
+
+	root.AddCommand(
+		cmd.ConfigCmd(),
+		cmd.KeysCmd(),
+		flags.LineBreak,
+		wireguard.Command(),
+		flags.LineBreak,
+		cmd.StartCmd(),
+	)
+
+	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home")
+	root.PersistentFlags().String(flags.FlagLogLevel, "info", "log level")
+
+	_ = viper.BindPFlag(flags.FlagHome, root.PersistentFlags().Lookup(flags.FlagHome))
+	_ = viper.BindPFlag(flags.FlagLogLevel, root.PersistentFlags().Lookup(flags.FlagLogLevel))
+
+	_ = root.Execute()
+}
