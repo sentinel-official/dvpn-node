@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
@@ -13,6 +14,8 @@ import (
 	"github.com/cosmos/go-bip39"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
+
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func KeysCmd() *cobra.Command {
@@ -42,6 +45,16 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
+			path := filepath.Join(home, "config.toml")
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("config file does not exist at path '%s'", path)
+			}
+
+			cfg := types.NewConfig()
+			if err := cfg.LoadFromPath(path); err != nil {
+				return err
+			}
+
 			recovery, err := cmd.Flags().GetBool(flagRecover)
 			if err != nil {
 				return err
@@ -51,7 +64,7 @@ func keysAdd() *cobra.Command {
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
+			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
@@ -120,11 +133,21 @@ func keysShow() *cobra.Command {
 				return err
 			}
 
+			path := filepath.Join(home, "config.toml")
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("config file does not exist at path '%s'", path)
+			}
+
+			cfg := types.NewConfig()
+			if err := cfg.LoadFromPath(path); err != nil {
+				return err
+			}
+
 			var (
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
+			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
@@ -154,11 +177,21 @@ func keysList() *cobra.Command {
 				return err
 			}
 
+			path := filepath.Join(home, "config.toml")
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("config file does not exist at path '%s'", path)
+			}
+
+			cfg := types.NewConfig()
+			if err := cfg.LoadFromPath(path); err != nil {
+				return err
+			}
+
 			var (
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
+			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
@@ -191,11 +224,21 @@ func keysDelete() *cobra.Command {
 				return err
 			}
 
+			path := filepath.Join(home, "config.toml")
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("config file does not exist at path '%s'", path)
+			}
+
+			cfg := types.NewConfig()
+			if err := cfg.LoadFromPath(path); err != nil {
+				return err
+			}
+
 			var (
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendFile, home, reader)
+			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
