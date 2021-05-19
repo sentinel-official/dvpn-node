@@ -7,13 +7,13 @@ require (
 	github.com/cosmos/cosmos-sdk v0.42.4
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/gorilla/mux v1.8.0
-	github.com/pelletier/go-toml v1.8.0
-	github.com/sentinel-official/hub v0.6.1-rc0
+	github.com/pelletier/go-toml v1.9.1
+	github.com/sentinel-official/hub v0.6.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
-	github.com/tendermint/tendermint v0.34.9
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	github.com/tendermint/tendermint v0.34.10
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
 replace (
