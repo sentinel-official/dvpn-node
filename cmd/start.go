@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -35,7 +36,7 @@ func StartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start VPN node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(types.FlagHome)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
 			if err != nil {
 				return err
 			}
@@ -102,6 +103,7 @@ func StartCmd() *cobra.Command {
 				WithKeyring(kr).
 				WithLegacyAmino(encoding.Amino).
 				WithNodeURI(cfg.Chain.RPCAddress).
+				WithSimulateAndExecute(cfg.Chain.SimulateAndExecute).
 				WithTxConfig(encoding.TxConfig)
 
 			account, err := client.QueryAccount(info.GetAddress())

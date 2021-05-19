@@ -123,11 +123,13 @@ func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 		w.pool.Release(peer.IPv4, peer.IPv6)
 	}
 
-	w.peers.Put(wgtypes.Peer{
-		Identity: identity,
-		IPv4:     v4,
-		IPv6:     v6,
-	})
+	w.peers.Put(
+		wgtypes.Peer{
+			Identity: identity,
+			IPv4:     v4,
+			IPv6:     v6,
+		},
+	)
 
 	result = append(result, v4.Bytes()...)
 	result = append(result, v6.Bytes()...)
@@ -184,11 +186,13 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 			return nil, err
 		}
 
-		items = append(items, types.Peer{
-			Identity: columns[0],
-			Upload:   upload,
-			Download: download,
-		})
+		items = append(items,
+			types.Peer{
+				Key:      columns[0],
+				Upload:   upload,
+				Download: download,
+			},
+		)
 	}
 
 	return items, nil

@@ -3,6 +3,7 @@ package node
 import (
 	"net/http"
 	"path"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
@@ -22,11 +23,11 @@ func NewNode(ctx *context.Context) *Node {
 }
 
 func (n *Node) Initialize() error {
-	result, err := n.Client().QueryNode(n.Address())
+	res, err := n.Client().QueryNode(n.Address())
 	if err != nil {
 		return err
 	}
-	if result == nil {
+	if res == nil {
 		return n.register()
 	}
 
@@ -51,7 +52,7 @@ func (n *Node) Start() error {
 		keyFile  = path.Join(n.Home(), "tls.key")
 	)
 
-	n.Logger().Info("Started REST API server", "address", n.ListenOn())
+	n.Logger().Info("started REST API server", "address", n.ListenOn())
 	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Router())
 }
 
@@ -68,7 +69,7 @@ func (n *Node) register() error {
 		return err
 	}
 
-	n.Logger().Info("Registered node", "tx_hash", res.TxHash)
+	n.Logger().Info("registered node", "tx_hash", res.TxHash)
 	return nil
 }
 
@@ -85,7 +86,7 @@ func (n *Node) update() error {
 		return err
 	}
 
-	n.Logger().Info("Updated node information", "tx_hash", res.TxHash)
+	n.Logger().Info("updated node information", "tx_hash", res.TxHash)
 	return nil
 }
 
@@ -100,7 +101,7 @@ func (n *Node) updateStatus() error {
 		return err
 	}
 
-	n.Logger().Info("Updated node status", "tx_hash", res.TxHash)
+	n.Logger().Info("updated node status", "tx_hash", res.TxHash)
 	return nil
 }
 
@@ -111,17 +112,17 @@ func (n *Node) updateSessions(items []types.Session) error {
 
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
-		messages = append(messages, sessiontypes.NewMsgUpsertRequest(
-			sessiontypes.Proof{
-				Channel:      0,
-				Subscription: item.Subscription,
-				Node:         n.Address().String(),
-				Duration:     item.Duration,
-				Bandwidth:    hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
-			},
-			item.Address,
-			nil,
-		))
+		messages = append(messages,
+			sessiontypes.NewMsgUpdateRequest(
+				n.Address(),
+				sessiontypes.Proof{
+					Id:        item.ID,
+					Duration:  time.Since(item.ConnectedAt),
+					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
+				},
+				nil,
+			),
+		)
 	}
 
 	res, err := n.Client().BroadcastTx(messages...)
@@ -129,6 +130,6 @@ func (n *Node) updateSessions(items []types.Session) error {
 		return err
 	}
 
-	n.Logger().Info("Updated sessions", "tx_hash", res.TxHash)
+	n.Logger().Info("updated sessions", "tx_hash", res.TxHash)
 	return nil
 }

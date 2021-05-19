@@ -13,7 +13,7 @@ type Service interface {
 }
 
 type Peer struct {
-	Identity string `json:"identity"`
+	Key      string `json:"key"`
 	Upload   int64  `json:"upload"`
 	Download int64  `json:"download"`
 }

@@ -22,6 +22,7 @@ gas = {{ .Chain.Gas }}
 gas_prices = "{{ .Chain.GasPrices }}"
 id = "{{ .Chain.ID }}"
 rpc_address = "{{ .Chain.RPCAddress }}"
+simulate_and_execute = {{ .Chain.SimulateAndExecute }}
 
 [handshake]
 enable = {{ .Handshake.Enable }}
@@ -54,11 +55,12 @@ type = {{ .Node.Type }}
 
 type Config struct {
 	Chain struct {
-		GasAdjustment float64 `json:"gas_adjustment"`
-		GasPrices     string  `json:"gas_prices"`
-		Gas           uint64  `json:"gas"`
-		ID            string  `json:"id"`
-		RPCAddress    string  `json:"rpc_address"`
+		GasAdjustment      float64 `json:"gas_adjustment"`
+		GasPrices          string  `json:"gas_prices"`
+		Gas                uint64  `json:"gas"`
+		ID                 string  `json:"id"`
+		RPCAddress         string  `json:"rpc_address"`
+		SimulateAndExecute bool    `json:"simulate_and_execute"`
 	} `json:"chain"`
 	Handshake struct {
 		Enable bool   `json:"enable"`
@@ -86,10 +88,11 @@ func NewConfig() *Config {
 
 func (c *Config) WithDefaultValues() *Config {
 	c.Chain.Gas = 1e5
-	c.Chain.GasAdjustment = 0
+	c.Chain.GasAdjustment = 1.05
 	c.Chain.GasPrices = "0.1tsent"
 	c.Chain.ID = "sentinel-turing-4"
 	c.Chain.RPCAddress = "https://rpc.turing.sentinel.co:443"
+	c.Chain.SimulateAndExecute = true
 
 	c.Handshake.Enable = true
 	c.Handshake.Peers = 8
