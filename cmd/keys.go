@@ -84,7 +84,7 @@ func keysAdd() *cobra.Command {
 			}
 
 			if recovery {
-				mnemonic, err = input.GetString("Enter your bip39 mnemonic.", bufio.NewReader(os.Stdin))
+				mnemonic, err = input.GetString("Enter your bip39 mnemonic.", reader)
 				if err != nil {
 					return err
 				}
