@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -12,8 +11,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
+	"github.com/pkg/errors"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -40,18 +41,16 @@ func keysAdd() *cobra.Command {
 		Short: "Add a key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			cfg := types.NewConfig().WithDefaultValues()
+			if err := cfg.LoadFromPath(path); err != nil {
 				return err
 			}
-
-			path := filepath.Join(home, "config.toml")
-			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("config file does not exist at path '%s'", path)
-			}
-
-			cfg := types.NewConfig()
-			if err := cfg.LoadFromPath(path); err != nil {
+			if err := cfg.Validate(); err != nil {
 				return err
 			}
 
@@ -70,7 +69,7 @@ func keysAdd() *cobra.Command {
 			}
 
 			if _, err = kr.Key(args[0]); err == nil {
-				return fmt.Errorf("key already exists with name '%s'", args[0])
+				return fmt.Errorf("key already exists with name %s", args[0])
 			}
 
 			entropy, err := bip39.NewEntropy(256)
@@ -84,13 +83,13 @@ func keysAdd() *cobra.Command {
 			}
 
 			if recovery {
-				mnemonic, err = input.GetString("Enter your bip39 mnemonic.", reader)
+				mnemonic, err = input.GetString("Enter your bip39 mnemonic", reader)
 				if err != nil {
 					return err
 				}
 
 				if !bip39.IsMnemonicValid(mnemonic) {
-					return fmt.Errorf("invalid bip39 mnemonic")
+					return errors.New("invalid bip39 mnemonic")
 				}
 			}
 
@@ -128,18 +127,16 @@ func keysShow() *cobra.Command {
 		Short: "Show a key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			cfg := types.NewConfig().WithDefaultValues()
+			if err := cfg.LoadFromPath(path); err != nil {
 				return err
 			}
-
-			path := filepath.Join(home, "config.toml")
-			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("config file does not exist at path '%s'", path)
-			}
-
-			cfg := types.NewConfig()
-			if err := cfg.LoadFromPath(path); err != nil {
+			if err := cfg.Validate(); err != nil {
 				return err
 			}
 
@@ -172,18 +169,16 @@ func keysList() *cobra.Command {
 		Use:   "list",
 		Short: "List all the keys",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			cfg := types.NewConfig().WithDefaultValues()
+			if err := cfg.LoadFromPath(path); err != nil {
 				return err
 			}
-
-			path := filepath.Join(home, "config.toml")
-			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("config file does not exist at path '%s'", path)
-			}
-
-			cfg := types.NewConfig()
-			if err := cfg.LoadFromPath(path); err != nil {
+			if err := cfg.Validate(); err != nil {
 				return err
 			}
 
@@ -196,12 +191,12 @@ func keysList() *cobra.Command {
 				return err
 			}
 
-			list, err := kr.List()
+			infos, err := kr.List()
 			if err != nil {
 				return err
 			}
 
-			for _, info := range list {
+			for _, info := range infos {
 				fmt.Printf("%s | %s | %s\n",
 					info.GetName(), hubtypes.NodeAddress(info.GetAddress().Bytes()), info.GetAddress())
 			}
@@ -219,18 +214,16 @@ func keysDelete() *cobra.Command {
 		Short: "Delete a key",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			cfg := types.NewConfig().WithDefaultValues()
+			if err := cfg.LoadFromPath(path); err != nil {
 				return err
 			}
-
-			path := filepath.Join(home, "config.toml")
-			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("config file does not exist at path '%s'", path)
-			}
-
-			cfg := types.NewConfig()
-			if err := cfg.LoadFromPath(path); err != nil {
+			if err := cfg.Validate(); err != nil {
 				return err
 			}
 
