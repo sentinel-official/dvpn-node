@@ -245,21 +245,6 @@ func (c *Config) WithDefaultValues() *Config {
 	return c
 }
 
-func (c *Config) LoadFromPath(path string) error {
-	v := viper.New()
-	v.SetConfigFile(path)
-
-	if err := v.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := v.Unmarshal(c); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (c *Config) SaveToPath(path string) error {
 	var buffer bytes.Buffer
 	if err := t.Execute(&buffer, c); err != nil {
@@ -276,4 +261,17 @@ func (c *Config) String() string {
 	}
 
 	return buffer.String()
+}
+
+func ReadInConfig(v *viper.Viper) (*Config, error) {
+	cfg := NewConfig().WithDefaultValues()
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := v.Unmarshal(cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }

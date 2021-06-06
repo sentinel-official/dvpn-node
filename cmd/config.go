@@ -21,6 +21,7 @@ func ConfigCmd() *cobra.Command {
 	cmd.AddCommand(
 		configInit(),
 		configShow(),
+		configSet(),
 	)
 
 	return cmd
@@ -30,7 +31,7 @@ func configInit() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize the default configuration",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
 				home = viper.GetString(flags.FlagHome)
 				path = filepath.Join(home, types.ConfigFileName)
@@ -65,19 +66,54 @@ func configShow() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show",
 		Short: "Show the configuration",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			var (
 				home = viper.GetString(flags.FlagHome)
 				path = filepath.Join(home, types.ConfigFileName)
 			)
 
-			cfg := types.NewConfig().WithDefaultValues()
-			if err := cfg.LoadFromPath(path); err != nil {
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := types.ReadInConfig(v)
+			if err != nil {
 				return err
 			}
 
 			fmt.Println(cfg.String())
 			return nil
+		},
+	}
+
+	return cmd
+}
+
+func configSet() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "set [key] [value]",
+		Short: "Set configuration",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := types.ReadInConfig(v)
+			if err != nil {
+				return err
+			}
+
+			v.Set(args[0], args[1])
+
+			if err := v.Unmarshal(cfg); err != nil {
+				return err
+			}
+
+			return cfg.SaveToPath(path)
 		},
 	}
 
