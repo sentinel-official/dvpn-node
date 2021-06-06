@@ -36,14 +36,17 @@ func StartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start VPN node",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
 				home = viper.GetString(flags.FlagHome)
 				path = filepath.Join(home, types.ConfigFileName)
 			)
 
-			cfg := types.NewConfig().WithDefaultValues()
-			if err := cfg.LoadFromPath(path); err != nil {
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := types.ReadInConfig(v)
+			if err != nil {
 				return err
 			}
 			if err := cfg.Validate(); err != nil {
