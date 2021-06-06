@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
+	abcitypes "github.com/tendermint/tendermint/abci/types"
 )
 
 func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
@@ -55,7 +56,7 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 			switch {
 			case err != nil:
 				return err
-			case res.Code == 0:
+			case res.Code == abcitypes.CodeTypeOK:
 				return nil
 			case res.Code == errors.ErrTxInMempoolCache.ABCICode():
 				return nil

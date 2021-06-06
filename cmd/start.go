@@ -18,6 +18,7 @@ import (
 	"github.com/sentinel-official/hub/params"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 
@@ -36,18 +37,13 @@ func StartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start VPN node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
 
-			cfgFilePath := filepath.Join(home, types.ConfigFileName)
-			if _, err := os.Stat(cfgFilePath); err != nil {
-				return fmt.Errorf("config file does not exist at path %s", cfgFilePath)
-			}
-
-			cfg := types.NewConfig()
-			if err := cfg.LoadFromPath(cfgFilePath); err != nil {
+			cfg := types.NewConfig().WithDefaultValues()
+			if err := cfg.LoadFromPath(path); err != nil {
 				return err
 			}
 			if err := cfg.Validate(); err != nil {
@@ -84,7 +80,7 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			info, err := kr.Key(cfg.Node.From)
+			info, err := kr.Key(cfg.Keyring.From)
 			if err != nil {
 				return err
 			}
@@ -93,9 +89,9 @@ func StartCmd() *cobra.Command {
 				WithAccountRetriever(authtypes.AccountRetriever{}).
 				WithChainID(cfg.Chain.ID).
 				WithClient(rpcclient).
-				WithFrom(cfg.Node.From).
+				WithFrom(cfg.Keyring.From).
 				WithFromAddress(info.GetAddress()).
-				WithFromName(cfg.Node.From).
+				WithFromName(cfg.Keyring.From).
 				WithGas(cfg.Chain.Gas).
 				WithGasAdjustment(cfg.Chain.GasAdjustment).
 				WithGasPrices(cfg.Chain.GasPrices).

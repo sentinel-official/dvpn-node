@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/version"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -11,10 +12,12 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func main() {
+func init() {
 	hubtypes.GetConfig().Seal()
 	cobra.EnableCommandSorting = false
+}
 
+func main() {
 	root := &cobra.Command{
 		Use:          "sentinel-dvpn-node",
 		SilenceUsage: true,
@@ -27,6 +30,8 @@ func main() {
 		wireguard.Command(),
 		flags.LineBreak,
 		cmd.StartCmd(),
+		flags.LineBreak,
+		version.NewVersionCommand(),
 	)
 
 	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home")
