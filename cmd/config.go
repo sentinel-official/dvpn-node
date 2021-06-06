@@ -91,7 +91,7 @@ func configShow() *cobra.Command {
 func configSet() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set [key] [value]",
-		Short: "Set configuration",
+		Short: "Set the configuration",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			var (

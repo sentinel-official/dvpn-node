@@ -182,11 +182,15 @@ func (c *NodeConfig) Validate() error {
 	if c.Price != "" && c.Provider != "" {
 		return errors.New("either price or provider must be empty")
 	}
-	if _, err := sdk.ParseCoinNormalized(c.Price); err != nil {
-		return errors.Wrap(err, "invalid price")
+	if c.Price != "" {
+		if _, err := sdk.ParseCoinNormalized(c.Price); err != nil {
+			return errors.Wrap(err, "invalid price")
+		}
 	}
-	if _, err := hubtypes.ProvAddressFromBech32(c.Provider); err != nil {
-		return errors.Wrap(err, "invalid provider")
+	if c.Provider != "" {
+		if _, err := hubtypes.ProvAddressFromBech32(c.Provider); err != nil {
+			return errors.Wrap(err, "invalid provider")
+		}
 	}
 	if c.RemoteURL == "" {
 		return errors.New("remote_url cannot be empty")
