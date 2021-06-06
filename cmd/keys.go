@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"path/filepath"
+	"text/tabwriter"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
@@ -111,9 +112,11 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Address:  %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
-			fmt.Printf("Operator: %s\n", info.GetAddress())
-			fmt.Printf("Mnemonic: %s\n", mnemonic)
+			fmt.Fprintf(cmd.ErrOrStderr(), "operator: %s\n", info.GetAddress())
+			fmt.Fprintf(cmd.ErrOrStderr(), "address: %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
+			fmt.Fprintln(cmd.ErrOrStderr(), "")
+			fmt.Fprintln(cmd.ErrOrStderr(), "**Important** write this mnemonic phrase in a safe place")
+			fmt.Fprintln(cmd.ErrOrStderr(), mnemonic)
 
 			return nil
 		},
@@ -160,8 +163,8 @@ func keysShow() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Address:  %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
-			fmt.Printf("Operator: %s\n", info.GetAddress())
+			fmt.Printf("operator: %s\n", info.GetAddress())
+			fmt.Printf("address: %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
 
 			return nil
 		},
@@ -205,12 +208,13 @@ func keysList() *cobra.Command {
 				return err
 			}
 
+			w := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 1, 1, ' ', 0)
 			for _, info := range infos {
-				fmt.Printf("%s | %s | %s\n",
-					info.GetName(), hubtypes.NodeAddress(info.GetAddress().Bytes()), info.GetAddress())
+				fmt.Fprintf(w, "%s\t%s\t%s\n",
+					info.GetName(), info.GetAddress(), hubtypes.NodeAddress(info.GetAddress().Bytes()))
 			}
 
-			return nil
+			return w.Flush()
 		},
 	}
 
