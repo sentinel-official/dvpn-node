@@ -16,7 +16,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sentinel-official/hub"
 	"github.com/sentinel-official/hub/params"
-	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
@@ -113,14 +112,12 @@ func StartCmd() *cobra.Command {
 				return fmt.Errorf("account does not exist with address %s", client.FromAddress())
 			}
 
-			logger.Info("Fetching the GeoIP location")
 			location, err := utils.FetchGeoIPLocation()
 			if err != nil {
 				return err
 			}
 
-			logger.Info("Calculating the bandwidth")
-			upload, download, err := utils.Bandwidth()
+			bandwidth, err := utils.Bandwidth()
 			if err != nil {
 				return err
 			}
@@ -131,12 +128,10 @@ func StartCmd() *cobra.Command {
 				}
 			}
 
-			logger.Info("Initializing the service", "type", service.Type())
 			if err := service.Init(home); err != nil {
 				return err
 			}
 
-			logger.Info("Starting the service", "type", service.Type())
 			if err := service.Start(); err != nil {
 				return err
 			}
@@ -154,10 +149,9 @@ func StartCmd() *cobra.Command {
 				WithRouter(router).
 				WithConfig(cfg).
 				WithClient(client).
-				WithHome(home).
 				WithLocation(location).
 				WithSessions(types.NewSessions()).
-				WithBandwidth(hubtypes.NewBandwidthFromInt64(upload, download))
+				WithBandwidth(bandwidth)
 
 			n := node.NewNode(ctx)
 			if err := n.Initialize(); err != nil {
