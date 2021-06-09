@@ -19,7 +19,7 @@ type (
 
 func KeyFromBytes(b []byte) (*Key, error) {
 	if len(b) != KeyLength {
-		return nil, fmt.Errorf("invalid bytes length")
+		return nil, fmt.Errorf("invalid bytes length %d", len(b))
 	}
 
 	var key Key
