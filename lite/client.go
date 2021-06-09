@@ -13,13 +13,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	"github.com/tendermint/tendermint/libs/log"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 )
 
 type Client struct {
-	ctx   client.Context
-	txf   tx.Factory
-	mutex sync.Mutex
+	ctx    client.Context
+	txf    tx.Factory
+	logger log.Logger
+	mutex  sync.Mutex
 }
 
 func NewClient() *Client {
@@ -58,6 +60,7 @@ func (c *Client) WithInput(v io.Reader) *Client                   { c.ctx.Input 
 func (c *Client) WithJSONMarshaler(v codec.JSONMarshaler) *Client { c.ctx.JSONMarshaler = v; return c }
 func (c *Client) WithKeyringDir(v string) *Client                 { c.ctx.KeyringDir = v; return c }
 func (c *Client) WithLegacyAmino(v *codec.LegacyAmino) *Client    { c.ctx.LegacyAmino = v; return c }
+func (c *Client) WithLogger(v log.Logger) *Client                 { c.logger = v; return c }
 func (c *Client) WithNodeURI(v string) *Client                    { c.ctx.NodeURI = v; return c }
 func (c *Client) WithOffline(v bool) *Client                      { c.ctx.Offline = v; return c }
 func (c *Client) WithOutput(v io.Writer) *Client                  { c.ctx.Output = v; return c }
@@ -131,6 +134,7 @@ func (c *Client) WithTxConfig(v client.TxConfig) *Client {
 }
 
 func (c *Client) AccountRetriever() client.AccountRetriever { return c.ctx.AccountRetriever }
+func (c *Client) BroadcastMode() string                     { return c.ctx.BroadcastMode }
 func (c *Client) ChainID() string                           { return c.ctx.ChainID }
 func (c *Client) Client() rpcclient.Client                  { return c.ctx.Client }
 func (c *Client) From() string                              { return c.ctx.From }

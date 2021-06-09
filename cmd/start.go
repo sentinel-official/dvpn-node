@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -11,14 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/std"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gorilla/mux"
 	"github.com/sentinel-official/hub"
 	"github.com/sentinel-official/hub/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/log"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 
 	"github.com/sentinel-official/dvpn-node/context"
@@ -41,30 +38,39 @@ func StartCmd() *cobra.Command {
 				path = filepath.Join(home, types.ConfigFileName)
 			)
 
+			logger, err := utils.PrepareLogger()
+			if err != nil {
+				return err
+			}
+
 			v := viper.New()
 			v.SetConfigFile(path)
 
+			logger.Info("Reading configuration file", "path", path)
 			cfg, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
+
+			logger.Info("Validating configuration", "data", cfg)
 			if err := cfg.Validate(); err != nil {
 				return err
 			}
 
-			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR("10.8.0.2/24")
+			logger.Info("Creating IPv4 pool", "CIDR", types.DefaultIPv4CIDR)
+			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.DefaultIPv4CIDR)
 			if err != nil {
 				return err
 			}
 
-			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR("fd86:ea04:1115::2/120")
+			logger.Info("Creating IPv6 pool", "CIDR", types.DefaultIPv6CIDR)
+			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.DefaultIPv6CIDR)
 			if err != nil {
 				return err
 			}
 
 			var (
 				encoding = params.MakeEncodingConfig()
-				logger   = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 				service  = wireguard.NewWireGuard(wgtypes.NewIPPool(ipv4Pool, ipv6Pool))
 				reader   = bufio.NewReader(cmd.InOrStdin())
 			)
@@ -72,12 +78,14 @@ func StartCmd() *cobra.Command {
 			std.RegisterInterfaces(encoding.InterfaceRegistry)
 			hub.ModuleBasics.RegisterInterfaces(encoding.InterfaceRegistry)
 
+			logger.Info("Initializing RPC HTTP client", "address", cfg.Chain.RPCAddress, "endpoint", "/websocket")
 			rpcclient, err := rpchttp.New(cfg.Chain.RPCAddress, "/websocket")
 			if err != nil {
 				return err
 			}
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
+			logger.Info("Initializing keyring", "name", types.KeyringName, "backend", cfg.Keyring.Backend)
+			kr, err := keyring.New(types.KeyringName, cfg.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
@@ -100,6 +108,7 @@ func StartCmd() *cobra.Command {
 				WithInterfaceRegistry(encoding.InterfaceRegistry).
 				WithKeyring(kr).
 				WithLegacyAmino(encoding.Amino).
+				WithLogger(logger).
 				WithNodeURI(cfg.Chain.RPCAddress).
 				WithSimulateAndExecute(cfg.Chain.SimulateAndExecute).
 				WithTxConfig(encoding.TxConfig)
@@ -112,15 +121,19 @@ func StartCmd() *cobra.Command {
 				return fmt.Errorf("account does not exist with address %s", client.FromAddress())
 			}
 
+			logger.Info("Fetching GeoIP location info...")
 			location, err := utils.FetchGeoIPLocation()
 			if err != nil {
 				return err
 			}
+			logger.Info("GeoIP location info", "city", location.City, "country", location.Country)
 
+			logger.Info("Performing internet speed test...")
 			bandwidth, err := utils.Bandwidth()
 			if err != nil {
 				return err
 			}
+			logger.Info("Internet speed test result", "data", bandwidth)
 
 			if cfg.Handshake.Enable {
 				if err := runHandshakeDaemon(cfg.Handshake.Peers); err != nil {
@@ -128,10 +141,12 @@ func StartCmd() *cobra.Command {
 				}
 			}
 
+			logger.Info("Initializing underlying VPN service", "type", service.Type())
 			if err := service.Init(home); err != nil {
 				return err
 			}
 
+			logger.Info("Starting underlying VPN service", "type", service.Type())
 			if err := service.Start(); err != nil {
 				return err
 			}

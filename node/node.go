@@ -25,6 +25,8 @@ func NewNode(ctx *context.Context) *Node {
 }
 
 func (n *Node) Initialize() error {
+	n.Logger().Info("Initializing...")
+
 	result, err := n.Client().QueryNode(n.Address())
 	if err != nil {
 		return err
@@ -38,6 +40,8 @@ func (n *Node) Initialize() error {
 }
 
 func (n *Node) Start() error {
+	n.Logger().Info("Starting...")
+
 	go func() {
 		if err := n.jobUpdateStatus(); err != nil {
 			panic(err)
@@ -59,6 +63,8 @@ func (n *Node) Start() error {
 }
 
 func (n *Node) register() error {
+	n.Logger().Info("Registering node...")
+
 	_, err := n.Client().BroadcastTx(
 		nodetypes.NewMsgRegisterRequest(
 			n.Operator(),
@@ -72,6 +78,8 @@ func (n *Node) register() error {
 }
 
 func (n *Node) updateInfo() error {
+	n.Logger().Info("Updating node info...")
+
 	_, err := n.Client().BroadcastTx(
 		nodetypes.NewMsgUpdateRequest(
 			n.Address(),
@@ -85,6 +93,8 @@ func (n *Node) updateInfo() error {
 }
 
 func (n *Node) updateStatus() error {
+	n.Logger().Info("Updating node status...")
+
 	_, err := n.Client().BroadcastTx(
 		nodetypes.NewMsgSetStatusRequest(
 			n.Address(),
@@ -96,6 +106,8 @@ func (n *Node) updateStatus() error {
 }
 
 func (n *Node) updateSessions(items ...*types.Session) error {
+	n.Logger().Info("Updating sessions...")
+
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
 		messages = append(messages,
