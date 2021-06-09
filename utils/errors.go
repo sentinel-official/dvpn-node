@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"strings"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func IsNotFoundError(v error) error {
-	if strings.Contains(v.Error(), "code = NotFound") {
+func ValidError(v error) error {
+	if status.Code(v) == codes.NotFound {
 		return nil
 	}
 

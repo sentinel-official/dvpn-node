@@ -1,9 +1,11 @@
 package session
 
 import (
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 type RequestAddSession struct {
@@ -22,10 +24,16 @@ func NewRequestAddSession(r *http.Request) (*RequestAddSession, error) {
 
 func (r *RequestAddSession) Validate() error {
 	if r.Key == "" {
-		return fmt.Errorf("invalid field key; expected non-empty value")
+		return errors.New("key cannot be empty")
+	}
+	if _, err := base64.StdEncoding.DecodeString(r.Key); err != nil {
+		return errors.Wrap(err, "invalid key")
 	}
 	if r.Signature == "" {
-		return fmt.Errorf("invalid field signature; expected non-empty value")
+		return errors.New("signature cannot be empty")
+	}
+	if _, err := base64.StdEncoding.DecodeString(r.Signature); err != nil {
+		return errors.Wrap(err, "invalid signature")
 	}
 
 	return nil

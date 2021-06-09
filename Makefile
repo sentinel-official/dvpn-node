@@ -1,27 +1,26 @@
 PACKAGES := $(shell go list ./...)
 VERSION := $(shell git rev-parse --short HEAD)
+COMMIT := $(shell git log -1 --format='%H')
 
-BUILD_TAGS := netgo
-BUILD_TAGS := $(strip ${BUILD_TAGS})
-
+BUILD_TAGS := $(strip netgo)
 LD_FLAGS := -s -w \
-	-X github.com/sentinel-official/dvpn-node/types.Version=${VERSION}
+	-X github.com/cosmos/cosmos-sdk/version.Name=sentinel \
+	-X github.com/cosmos/cosmos-sdk/version.AppName=sentinel-dvpn-node \
+	-X github.com/cosmos/cosmos-sdk/version.Version=${VERSION} \
+	-X github.com/cosmos/cosmos-sdk/version.Commit=${COMMIT} \
+	-X github.com/cosmos/cosmos-sdk/version.BuildTags=${BUILD_TAGS}
 
-BUILD_FLAGS := -tags "${BUILD_TAGS}" -ldflags "${LD_FLAGS}"
+.PHONY: all
+all: test benchmark install
 
-all: mod_verify test benchmark install
+.PHONY: install
+install:
+	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" -o ${GOPATH}/bin/sentinel-dvpn-node main.go
 
-install: mod_verify
-	go build -mod=readonly ${BUILD_FLAGS} -o ${GOPATH}/bin/sentinel-dvpn-node main.go
-
+.PHONY: test
 test:
 	@go test -mod=readonly -cover ${PACKAGES}
 
+.PHONY: benchmark
 benchmark:
 	@go test -mod=readonly -bench=. ${PACKAGES}
-
-mod_verify:
-	@echo "Ensure dependencies have not been modified"
-	@go mod verify
-
-.PHONY: all install test benchmark mod_verify

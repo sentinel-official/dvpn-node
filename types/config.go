@@ -18,28 +18,58 @@ import (
 var (
 	ct = strings.TrimSpace(`
 [chain]
+# Gas adjustment factor
 gas_adjustment = {{ .Chain.GasAdjustment }}
+
+# Gas limit to set per transaction
 gas = {{ .Chain.Gas }}
+
+# Gas prices to determine the transaction fee
 gas_prices = "{{ .Chain.GasPrices }}"
+
+# The network chain ID
 id = "{{ .Chain.ID }}"
+
+# Tendermint RPC interface for the chain
 rpc_address = "{{ .Chain.RPCAddress }}"
+
+# Calculate the transaction fee by simulating it
 simulate_and_execute = {{ .Chain.SimulateAndExecute }}
 
 [handshake]
+# Enable Handshake DNS resolver
 enable = {{ .Handshake.Enable }}
+
+# Number of peers
 peers = {{ .Handshake.Peers }}
 
 [keyring]
+# Underlying storage mechanism for keys
 backend = "{{ .Keyring.Backend }}"
+
+# Name of the key with which to sign
 from = "{{ .Keyring.From }}"
 
 [node]
+# Time interval between each update_sessions transactions
 interval_sessions = "{{ .Node.IntervalSessions }}"
+
+# Time interval between each update_status transactions
 interval_status = "{{ .Node.IntervalStatus }}"
+
+# API listen-address
 listen_on = "{{ .Node.ListenOn }}"
+
+# Name of the node
 moniker = "{{ .Node.Moniker }}"
+
+# Per Gigabyte price to charge against the provided bandwidth
 price = "{{ .Node.Price }}"
+
+# Address of the provider the node wants to operate under
 provider = "{{ .Node.Provider }}"
+
+# Public URL of the node
 remote_url = "{{ .Node.RemoteURL }}"
 	`)
 
@@ -272,7 +302,6 @@ func ReadInConfig(v *viper.Viper) (*Config, error) {
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
-
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, err
 	}

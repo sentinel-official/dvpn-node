@@ -2,21 +2,25 @@ package types
 
 import (
 	"bytes"
-	crand "crypto/rand"
-	"encoding/json"
-	"fmt"
+	"crypto/rand"
 	"io/ioutil"
 	"math/big"
 	"strings"
 	"text/template"
 
-	"github.com/pelletier/go-toml"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 var (
 	ct = strings.TrimSpace(`
+# Name of the network interface
 interface = "{{ .Interface }}"
+
+# Port number to accept the incoming connections
 listen_port = {{ .ListenPort }}
+
+# Server private key
 private_key = "{{ .PrivateKey }}"
 	`)
 
@@ -31,53 +35,48 @@ private_key = "{{ .PrivateKey }}"
 )
 
 type Config struct {
-	Interface  string `json:"interface"`
-	ListenPort uint16 `json:"listen_port"`
-	PrivateKey string `json:"private_key"`
+	Interface  string `mapstructure:"interface"`
+	ListenPort uint16 `mapstructure:"listen_port"`
+	PrivateKey string `mapstructure:"private_key"`
 }
 
 func NewConfig() *Config {
 	return &Config{}
 }
 
-func (c *Config) WithDefaultValues() *Config {
-	c.Interface = "wg0"
+func (c *Config) Validate() error {
+	if c.Interface == "" {
+		return errors.New("interface cannot be empty")
+	}
+	if c.ListenPort == 0 {
+		return errors.New("listen_port cannot be zero")
+	}
+	if c.PrivateKey == "" {
+		return errors.New("private_key cannot be empty")
+	}
+	if _, err := KeyFromString(c.PrivateKey); err != nil {
+		return errors.Wrap(err, "invalid private_key")
+	}
 
-	n, _ := crand.Int(crand.Reader, big.NewInt(1<<16-1<<10))
-	c.ListenPort = uint16(n.Int64() + 1<<10)
+	return nil
+}
+
+func (c *Config) WithDefaultValues() *Config {
+	n, err := rand.Int(rand.Reader, big.NewInt(1<<16-1<<10))
+	if err != nil {
+		panic(err)
+	}
 
 	key, err := NewPrivateKey()
 	if err != nil {
 		panic(err)
 	}
 
+	c.Interface = "wg0"
+	c.ListenPort = uint16(n.Int64() + 1<<10)
 	c.PrivateKey = key.String()
 
 	return c
-}
-
-func (c *Config) LoadFromPath(path string) error {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	if len(data) == 0 {
-		*c = Config{}
-		return nil
-	}
-
-	tree, err := toml.LoadBytes(data)
-	if err != nil {
-		return err
-	}
-
-	data, err = json.Marshal(tree.ToMap())
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(data, c)
 }
 
 func (c *Config) SaveToPath(path string) error {
@@ -98,16 +97,14 @@ func (c *Config) String() string {
 	return buffer.String()
 }
 
-func (c *Config) Validate() error {
-	if c.Interface == "" {
-		return fmt.Errorf("invalid interface; expected non-empty value")
+func ReadInConfig(v *viper.Viper) (*Config, error) {
+	cfg := NewConfig().WithDefaultValues()
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
 	}
-	if c.ListenPort == 0 {
-		return fmt.Errorf("invalid listen_port; expected positive value")
-	}
-	if c.PrivateKey == "" {
-		return fmt.Errorf("invalid private_key; expected non-empty value")
+	if err := v.Unmarshal(cfg); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return cfg, nil
 }

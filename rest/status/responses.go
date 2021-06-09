@@ -24,11 +24,11 @@ type (
 type (
 	ResponseGetStatus struct {
 		Address          string        `json:"address"`
-		Bandwidth        Bandwidth     `json:"bandwidth"`
-		Handshake        Handshake     `json:"handshake"`
+		Bandwidth        *Bandwidth    `json:"bandwidth"`
+		Handshake        *Handshake    `json:"handshake"`
 		IntervalSessions time.Duration `json:"interval_sessions"`
 		IntervalStatus   time.Duration `json:"interval_status"`
-		Location         Location      `json:"location"`
+		Location         *Location     `json:"location"`
 		Moniker          string        `json:"moniker"`
 		Operator         string        `json:"operator"`
 		Peers            int           `json:"peers"`
