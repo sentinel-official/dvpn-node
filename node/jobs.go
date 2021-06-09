@@ -11,8 +11,6 @@ import (
 )
 
 func (n *Node) jobUpdateStatus() error {
-	n.Logger().Info("starting a job", "name", "update_status", "interval", n.IntervalStatus())
-
 	t := time.NewTicker(n.IntervalStatus())
 	for ; ; <-t.C {
 		if err := n.updateStatus(); err != nil {
@@ -22,12 +20,10 @@ func (n *Node) jobUpdateStatus() error {
 }
 
 func (n *Node) jobUpdateSessions() error {
-	n.Logger().Info("starting a job", "name", "update_sessions", "interval", n.IntervalSessions())
-
 	t := time.NewTicker(n.IntervalSessions())
 	for ; ; <-t.C {
 		var (
-			items []types.Session
+			items []*types.Session
 		)
 
 		peers, err := n.Service().Peers()
@@ -36,32 +32,35 @@ func (n *Node) jobUpdateSessions() error {
 		}
 
 		for _, peer := range peers {
-			var (
-				item     = n.Sessions().Get(peer.Key)
-				consumed = sdk.NewInt(peer.Upload + peer.Download)
-			)
+			item := n.Sessions().GetForKey(peer.Key)
+			if item == nil {
+				continue
+			}
 
 			session, err := n.Client().QuerySession(item.ID)
 			if err != nil {
 				return err
 			}
 
-			if session.Status.Equal(hubtypes.Inactive) || consumed.GT(item.Available) {
-				n.Logger().Info("inactive session", "value", item, "consumed", consumed)
+			var (
+				consumed = sdk.NewInt(peer.Upload + peer.Download)
+				inactive = session.Status.Equal(hubtypes.StatusInactive) ||
+					peer.Download == session.Bandwidth.Upload.Int64()
+			)
 
+			if inactive || consumed.GT(item.Available) {
 				key, err := base64.StdEncoding.DecodeString(peer.Key)
 				if err != nil {
 					return err
 				}
-
 				if err := n.Service().RemovePeer(key); err != nil {
 					return err
 				}
 
-				n.Sessions().Delete(peer.Key)
+				n.Sessions().DeleteForKey(item.Key)
+				n.Sessions().DeleteForAddress(item.Address)
 			}
-
-			if session.Status.Equal(hubtypes.Inactive) {
+			if inactive {
 				continue
 			}
 
@@ -70,7 +69,10 @@ func (n *Node) jobUpdateSessions() error {
 			items = append(items, item)
 		}
 
-		if err := n.updateSessions(items); err != nil {
+		if len(items) == 0 {
+			continue
+		}
+		if err := n.updateSessions(items...); err != nil {
 			return err
 		}
 	}
