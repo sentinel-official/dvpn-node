@@ -13,6 +13,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/spf13/viper"
+
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -45,9 +47,12 @@ func (w *WireGuard) Type() uint64 {
 	return wgtypes.Type
 }
 
-func (w *WireGuard) Init(home string) error {
-	configFilePath := filepath.Join(home, wgtypes.ConfigFileName)
-	if err := w.cfg.LoadFromPath(configFilePath); err != nil {
+func (w *WireGuard) Init(home string) (err error) {
+	v := viper.New()
+	v.SetConfigFile(filepath.Join(home, wgtypes.ConfigFileName))
+
+	w.cfg, err = wgtypes.ReadInConfig(v)
+	if err != nil {
 		return err
 	}
 
@@ -61,8 +66,8 @@ func (w *WireGuard) Init(home string) error {
 		return err
 	}
 
-	configFilePath = fmt.Sprintf("/etc/wireguard/%s.conf", w.cfg.Interface)
-	if err := ioutil.WriteFile(configFilePath, buffer.Bytes(), 0600); err != nil {
+	path := fmt.Sprintf("/etc/wireguard/%s.conf", w.cfg.Interface)
+	if err := ioutil.WriteFile(path, buffer.Bytes(), 0600); err != nil {
 		return err
 	}
 
