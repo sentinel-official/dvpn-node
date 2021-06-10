@@ -34,10 +34,12 @@ func (n *Node) jobUpdateSessions() error {
 		if err != nil {
 			return err
 		}
+		n.Log().Info("Connected peers", "count", len(peers))
 
 		for _, peer := range peers {
 			item := n.Sessions().GetForKey(peer.Key)
 			if item == nil {
+				n.Log().Error("Unknown connected peer", "info", peer)
 				continue
 			}
 
@@ -47,24 +49,38 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			var (
-				consumed = sdk.NewInt(peer.Upload + peer.Download)
-				inactive = session.Status.Equal(hubtypes.StatusInactive) ||
-					peer.Download == session.Bandwidth.Upload.Int64()
+				remove, skip = false, false
+				consumed     = sdk.NewInt(peer.Upload + peer.Download)
 			)
 
-			if inactive || consumed.GT(item.Available) {
+			switch {
+			case session.Status.Equal(hubtypes.StatusInactive):
+				remove, skip = true, true
+				n.Log().Info("Invalid session status", "peer", peer, "item", item, "session", session)
+			case peer.Download == session.Bandwidth.Upload.Int64():
+				remove, skip = true, true
+				n.Log().Info("Stale peer connection", "peer", peer, "item", item, "session", session)
+			case consumed.GT(item.Available):
+				remove, skip = true, false
+				n.Log().Info("Peer quota exceeded", "peer", peer, "item", item, "session", session)
+			}
+
+			if remove {
 				key, err := base64.StdEncoding.DecodeString(peer.Key)
 				if err != nil {
 					return err
 				}
+
 				if err := n.Service().RemovePeer(key); err != nil {
 					return err
 				}
+				n.Log().Info("Removed peer for underlying service...")
 
 				n.Sessions().DeleteForKey(item.Key)
 				n.Sessions().DeleteForAddress(item.Address)
+				n.Log().Info("Removed session...")
 			}
-			if inactive {
+			if skip {
 				continue
 			}
 

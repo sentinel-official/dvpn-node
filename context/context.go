@@ -38,7 +38,6 @@ func (c *Context) WithSessions(v *types.Sessions) *Context      { c.sessions = v
 
 func (c *Context) Address() hubtypes.NodeAddress   { return c.Operator().Bytes() }
 func (c *Context) Bandwidth() *hubtypes.Bandwidth  { return c.bandwidth }
-func (c *Context) Type() uint64                    { return c.service.Type() }
 func (c *Context) Client() *lite.Client            { return c.client }
 func (c *Context) Config() *types.Config           { return c.config }
 func (c *Context) IntervalSessions() time.Duration { return c.Config().Node.IntervalSessions }
