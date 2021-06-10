@@ -35,9 +35,9 @@ private_key = "{{ .PrivateKey }}"
 )
 
 type Config struct {
-	Interface  string `mapstructure:"interface"`
-	ListenPort uint16 `mapstructure:"listen_port"`
-	PrivateKey string `mapstructure:"private_key"`
+	Interface  string `json:"interface" mapstructure:"interface"`
+	ListenPort uint16 `json:"listen_port" mapstructure:"listen_port"`
+	PrivateKey string `json:"private_key" mapstructure:"private_key"`
 }
 
 func NewConfig() *Config {
