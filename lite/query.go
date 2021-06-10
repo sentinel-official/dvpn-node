@@ -22,6 +22,7 @@ func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error
 		qc      = authtypes.NewQueryClient(c.ctx)
 	)
 
+	c.Log().Info("Querying account", "address", address)
 	res, err := qc.Account(context.Background(),
 		&authtypes.QueryAccountRequest{Address: address.String()})
 	if err != nil {
@@ -40,6 +41,7 @@ func (c *Client) QueryNode(address hubtypes.NodeAddress) (*nodetypes.Node, error
 		qc = nodetypes.NewQueryServiceClient(c.ctx)
 	)
 
+	c.Log().Info("Querying node", "address", address)
 	res, err := qc.QueryNode(context.Background(),
 		nodetypes.NewQueryNodeRequest(address))
 	if err != nil {
@@ -54,6 +56,7 @@ func (c *Client) QuerySubscription(id uint64) (*subscriptiontypes.Subscription, 
 		qc = subscriptiontypes.NewQueryServiceClient(c.ctx)
 	)
 
+	c.Log().Info("Querying subscription", "id", id)
 	res, err := qc.QuerySubscription(context.Background(),
 		subscriptiontypes.NewQuerySubscriptionRequest(id))
 	if err != nil {
@@ -68,6 +71,7 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontyp
 		qc = subscriptiontypes.NewQueryServiceClient(c.ctx)
 	)
 
+	c.Log().Info("Querying quota", "id", id, "address", address)
 	res, err := qc.QueryQuota(context.Background(),
 		subscriptiontypes.NewQueryQuotaRequest(id, address))
 	if err != nil {
@@ -82,6 +86,7 @@ func (c *Client) QuerySession(id uint64) (*sessiontypes.Session, error) {
 		qc = sessiontypes.NewQueryServiceClient(c.ctx)
 	)
 
+	c.Log().Info("Querying session", "id", id)
 	res, err := qc.QuerySession(context.Background(),
 		sessiontypes.NewQuerySessionRequest(id))
 	if err != nil {

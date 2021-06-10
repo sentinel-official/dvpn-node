@@ -8,6 +8,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/gorilla/mux v1.8.0
 	github.com/pkg/errors v0.9.1
+	github.com/rs/zerolog v1.21.0
 	github.com/sentinel-official/hub v0.6.3
 	github.com/showwin/speedtest-go v1.1.2
 	github.com/spf13/cobra v1.1.3

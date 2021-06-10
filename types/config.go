@@ -84,12 +84,12 @@ remote_url = "{{ .Node.RemoteURL }}"
 )
 
 type ChainConfig struct {
-	GasAdjustment      float64 `mapstructure:"gas_adjustment"`
-	GasPrices          string  `mapstructure:"gas_prices"`
-	Gas                uint64  `mapstructure:"gas"`
-	ID                 string  `mapstructure:"id"`
-	RPCAddress         string  `mapstructure:"rpc_address"`
-	SimulateAndExecute bool    `mapstructure:"simulate_and_execute"`
+	GasAdjustment      float64 `json:"gas_adjustment" mapstructure:"gas_adjustment"`
+	GasPrices          string  `json:"gas_prices" mapstructure:"gas_prices"`
+	Gas                uint64  `json:"gas" mapstructure:"gas"`
+	ID                 string  `json:"id" mapstructure:"id"`
+	RPCAddress         string  `json:"rpc_address" mapstructure:"rpc_address"`
+	SimulateAndExecute bool    `json:"simulate_and_execute" mapstructure:"simulate_and_execute"`
 }
 
 func NewChainConfig() *ChainConfig {
@@ -128,8 +128,8 @@ func (c *ChainConfig) WithDefaultValues() *ChainConfig {
 }
 
 type HandshakeConfig struct {
-	Enable bool   `mapstructure:"enable"`
-	Peers  uint64 `mapstructure:"peers"`
+	Enable bool   `json:"enable" mapstructure:"enable"`
+	Peers  uint64 `json:"peers" mapstructure:"peers"`
 }
 
 func NewHandshakeConfig() *HandshakeConfig {
@@ -154,8 +154,8 @@ func (c *HandshakeConfig) WithDefaultValues() *HandshakeConfig {
 }
 
 type KeyringConfig struct {
-	Backend string `mapstructure:"backend"`
-	From    string `mapstructure:"from"`
+	Backend string `json:"backend" mapstructure:"backend"`
+	From    string `json:"from" mapstructure:"from"`
 }
 
 func NewKeyringConfig() *KeyringConfig {
@@ -183,13 +183,13 @@ func (c *KeyringConfig) WithDefaultValues() *KeyringConfig {
 }
 
 type NodeConfig struct {
-	IntervalSessions time.Duration `mapstructure:"interval_sessions"`
-	IntervalStatus   time.Duration `mapstructure:"interval_status"`
-	ListenOn         string        `mapstructure:"listen_on"`
-	Moniker          string        `mapstructure:"moniker"`
-	Price            string        `mapstructure:"price"`
-	Provider         string        `mapstructure:"provider"`
-	RemoteURL        string        `mapstructure:"remote_url"`
+	IntervalSessions time.Duration `json:"interval_sessions" mapstructure:"interval_sessions"`
+	IntervalStatus   time.Duration `json:"interval_status" mapstructure:"interval_status"`
+	ListenOn         string        `json:"listen_on" mapstructure:"listen_on"`
+	Moniker          string        `json:"moniker" mapstructure:"moniker"`
+	Price            string        `json:"price" mapstructure:"price"`
+	Provider         string        `json:"provider" mapstructure:"provider"`
+	RemoteURL        string        `json:"remote_url" mapstructure:"remote_url"`
 }
 
 func NewNodeConfig() *NodeConfig {
@@ -238,10 +238,10 @@ func (c *NodeConfig) WithDefaultValues() *NodeConfig {
 }
 
 type Config struct {
-	Chain     *ChainConfig     `mapstructure:"chain"`
-	Handshake *HandshakeConfig `mapstructure:"handshake"`
-	Keyring   *KeyringConfig   `mapstructure:"keyring"`
-	Node      *NodeConfig      `mapstructure:"node"`
+	Chain     *ChainConfig     `json:"chain" mapstructure:"chain"`
+	Handshake *HandshakeConfig `json:"handshake" mapstructure:"handshake"`
+	Keyring   *KeyringConfig   `json:"keyring" mapstructure:"keyring"`
+	Node      *NodeConfig      `json:"node" mapstructure:"node"`
 }
 
 func NewConfig() *Config {

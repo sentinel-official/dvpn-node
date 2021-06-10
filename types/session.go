@@ -32,8 +32,8 @@ type Session struct {
 }
 
 type Sessions struct {
-	m     map[string]interface{}
-	mutex sync.Mutex
+	sync.RWMutex
+	m map[string]interface{}
 }
 
 func NewSessions() *Sessions {
@@ -42,23 +42,18 @@ func NewSessions() *Sessions {
 	}
 }
 
-func (s *Sessions) delete(v *Session) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	delete(s.m, withTypePrefix(v.Key))
-	delete(s.m, withTypePrefix(v.Address))
-}
-
 func (s *Sessions) Put(v *Session) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	s.m[withTypePrefix(v.Key)] = v
 	s.m[withTypePrefix(v.Address)] = v.Key
 }
 
 func (s *Sessions) GetForKey(k string) *Session {
+	s.RLock()
+	defer s.RUnlock()
+
 	v, ok := s.m[withTypePrefix(k)]
 	if !ok {
 		return nil
@@ -68,12 +63,28 @@ func (s *Sessions) GetForKey(k string) *Session {
 }
 
 func (s *Sessions) GetForAddress(k sdk.AccAddress) *Session {
+	s.RLock()
+	defer s.RUnlock()
+
 	v, ok := s.m[withTypePrefix(k)]
 	if !ok {
 		return nil
 	}
 
-	return s.GetForKey(v.(string))
+	v, ok = s.m[withTypePrefix(v.(string))]
+	if !ok {
+		return nil
+	}
+
+	return v.(*Session)
+}
+
+func (s *Sessions) Delete(v *Session) {
+	s.Lock()
+	defer s.Unlock()
+
+	delete(s.m, withTypePrefix(v.Key))
+	delete(s.m, withTypePrefix(v.Address))
 }
 
 func (s *Sessions) DeleteForKey(k string) {
@@ -82,7 +93,7 @@ func (s *Sessions) DeleteForKey(k string) {
 		return
 	}
 
-	s.delete(v)
+	s.Delete(v)
 }
 
 func (s *Sessions) DeleteForAddress(k sdk.AccAddress) {
@@ -91,5 +102,12 @@ func (s *Sessions) DeleteForAddress(k sdk.AccAddress) {
 		return
 	}
 
-	s.delete(v)
+	s.Delete(v)
+}
+
+func (s *Sessions) Len() int {
+	s.RLock()
+	defer s.RUnlock()
+
+	return len(s.m) / 2
 }

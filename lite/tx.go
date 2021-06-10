@@ -33,6 +33,9 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 		txf = txf.WithGas(adjusted)
 	}
 
+	c.Log().Info("Preparing transaction with data", "gas", txf.Gas(),
+		"messages", len(messages), "sequence", txf.Sequence())
+
 	txb, err := tx.BuildUnsignedTx(txf, messages...)
 	if err != nil {
 		return nil, err
@@ -47,6 +50,7 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 		return nil, err
 	}
 
+	c.Log().Info("Broadcasting transaction", "mode", c.BroadcastMode(), "size", len(txBytes))
 	err = retry.Do(func() error {
 		res, err = c.ctx.BroadcastTx(txBytes)
 		switch {
@@ -61,5 +65,6 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 		}
 	}, retry.Attempts(5))
 
+	c.Log().Info("Transaction result", "tx_hash", res.TxHash, "code", res.Code, "codespace", res.Codespace)
 	return res, err
 }

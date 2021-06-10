@@ -35,9 +35,11 @@ func main() {
 	)
 
 	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home")
+	root.PersistentFlags().String(flags.FlagLogFormat, "plain", "log format")
 	root.PersistentFlags().String(flags.FlagLogLevel, "info", "log level")
 
 	_ = viper.BindPFlag(flags.FlagHome, root.PersistentFlags().Lookup(flags.FlagHome))
+	_ = viper.BindPFlag(flags.FlagLogFormat, root.PersistentFlags().Lookup(flags.FlagLogFormat))
 	_ = viper.BindPFlag(flags.FlagLogLevel, root.PersistentFlags().Lookup(flags.FlagLogLevel))
 
 	_ = root.Execute()
