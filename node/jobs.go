@@ -11,7 +11,7 @@ import (
 )
 
 func (n *Node) jobUpdateStatus() error {
-	n.Logger().Info("Starting job", "name", "update_status", "interval", n.IntervalStatus())
+	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalStatus())
 
 	t := time.NewTicker(n.IntervalStatus())
 	for ; ; <-t.C {
@@ -22,7 +22,7 @@ func (n *Node) jobUpdateStatus() error {
 }
 
 func (n *Node) jobUpdateSessions() error {
-	n.Logger().Info("Starting job", "name", "update_sessions", "interval", n.IntervalSessions())
+	n.Log().Info("Starting job", "name", "update_sessions", "interval", n.IntervalSessions())
 
 	t := time.NewTicker(n.IntervalSessions())
 	for ; ; <-t.C {

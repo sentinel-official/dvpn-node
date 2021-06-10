@@ -6,14 +6,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 	hubtypes "github.com/sentinel-official/hub/types"
-	"github.com/tendermint/tendermint/libs/log"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Context struct {
-	logger    log.Logger
+	logger    tmlog.Logger
 	service   types.Service
 	bandwidth *hubtypes.Bandwidth
 	client    *lite.Client
@@ -31,7 +31,7 @@ func (c *Context) WithBandwidth(v *hubtypes.Bandwidth) *Context { c.bandwidth = 
 func (c *Context) WithClient(v *lite.Client) *Context           { c.client = v; return c }
 func (c *Context) WithConfig(v *types.Config) *Context          { c.config = v; return c }
 func (c *Context) WithLocation(v *types.GeoIPLocation) *Context { c.location = v; return c }
-func (c *Context) WithLogger(v log.Logger) *Context             { c.logger = v; return c }
+func (c *Context) WithLogger(v tmlog.Logger) *Context           { c.logger = v; return c }
 func (c *Context) WithRouter(v *mux.Router) *Context            { c.router = v; return c }
 func (c *Context) WithService(v types.Service) *Context         { c.service = v; return c }
 func (c *Context) WithSessions(v *types.Sessions) *Context      { c.sessions = v; return c }
@@ -45,7 +45,7 @@ func (c *Context) IntervalSessions() time.Duration { return c.Config().Node.Inte
 func (c *Context) IntervalStatus() time.Duration   { return c.Config().Node.IntervalStatus }
 func (c *Context) ListenOn() string                { return c.Config().Node.ListenOn }
 func (c *Context) Location() *types.GeoIPLocation  { return c.location }
-func (c *Context) Logger() log.Logger              { return c.logger }
+func (c *Context) Log() tmlog.Logger               { return c.logger }
 func (c *Context) Moniker() string                 { return c.Config().Node.Moniker }
 func (c *Context) Operator() sdk.AccAddress        { return c.client.FromAddress() }
 func (c *Context) RemoteURL() string               { return c.Config().Node.RemoteURL }

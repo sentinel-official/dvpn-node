@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/libs/log"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 )
 
-func PrepareLogger() (log.Logger, error) {
+func PrepareLogger() (tmlog.Logger, error) {
 	var (
 		format           = viper.GetString(flags.FlagLogFormat)
 		level            = viper.GetString(flags.FlagLogLevel)
