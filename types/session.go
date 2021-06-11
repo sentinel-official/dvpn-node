@@ -1,11 +1,25 @@
 package types
 
 import (
+	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+func withTypePrefix(v interface{}) string {
+	t := reflect.TypeOf(v).String()
+	switch v := v.(type) {
+	case string:
+		return t + v
+	case fmt.Stringer:
+		return t + v.String()
+	default:
+		return ""
+	}
+}
 
 type Session struct {
 	ID          uint64         `json:"id,omitempty"`
@@ -18,30 +32,82 @@ type Session struct {
 }
 
 type Sessions struct {
-	m     map[string]Session
-	mutex sync.Mutex
+	sync.RWMutex
+	m map[string]interface{}
 }
 
 func NewSessions() *Sessions {
 	return &Sessions{
-		m: make(map[string]Session),
+		m: make(map[string]interface{}),
 	}
 }
 
-func (s *Sessions) Put(v Session) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+func (s *Sessions) Put(v *Session) {
+	s.Lock()
+	defer s.Unlock()
 
-	s.m[v.Key] = v
+	s.m[withTypePrefix(v.Key)] = v
+	s.m[withTypePrefix(v.Address)] = v.Key
 }
 
-func (s *Sessions) Get(v string) Session {
-	return s.m[v]
+func (s *Sessions) GetForKey(k string) *Session {
+	s.RLock()
+	defer s.RUnlock()
+
+	v, ok := s.m[withTypePrefix(k)]
+	if !ok {
+		return nil
+	}
+
+	return v.(*Session)
 }
 
-func (s *Sessions) Delete(v string) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+func (s *Sessions) GetForAddress(k sdk.AccAddress) *Session {
+	s.RLock()
+	defer s.RUnlock()
 
-	delete(s.m, v)
+	v, ok := s.m[withTypePrefix(k)]
+	if !ok {
+		return nil
+	}
+
+	v, ok = s.m[withTypePrefix(v.(string))]
+	if !ok {
+		return nil
+	}
+
+	return v.(*Session)
+}
+
+func (s *Sessions) Delete(v *Session) {
+	s.Lock()
+	defer s.Unlock()
+
+	delete(s.m, withTypePrefix(v.Key))
+	delete(s.m, withTypePrefix(v.Address))
+}
+
+func (s *Sessions) DeleteForKey(k string) {
+	v := s.GetForKey(k)
+	if v == nil {
+		return
+	}
+
+	s.Delete(v)
+}
+
+func (s *Sessions) DeleteForAddress(k sdk.AccAddress) {
+	v := s.GetForAddress(k)
+	if v == nil {
+		return
+	}
+
+	s.Delete(v)
+}
+
+func (s *Sessions) Len() int {
+	s.RLock()
+	defer s.RUnlock()
+
+	return len(s.m) / 2
 }

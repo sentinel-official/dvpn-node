@@ -1,9 +1,10 @@
 package types
 
 import (
-	"fmt"
 	"net"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 type IPv4Pool struct {
@@ -32,7 +33,7 @@ func (p *IPv4Pool) Get() (ip IPv4, err error) {
 			p.current = p.current.Next()
 		}
 		if !p.Net.Contains(p.current.IP()) {
-			return ip, fmt.Errorf("ipv4 pool is pull")
+			return ip, errors.New("ipv4 pool is pull")
 		}
 
 		ip, p.current = p.current, p.current.Next()
@@ -86,7 +87,7 @@ func (p *IPv6Pool) Get() (ip IPv6, err error) {
 
 	if len(p.available) == 0 {
 		if !p.Net.Contains(p.current.IP()) {
-			return ip, fmt.Errorf("ipv6 pool is pull")
+			return ip, errors.New("ipv6 pool is pull")
 		}
 
 		ip, p.current = p.current, p.current.Next()
@@ -138,6 +139,7 @@ func (p *IPPool) Get() (IPv4, IPv6, error) {
 	v6, err := p.V6.Get()
 	if err != nil {
 		p.V4.Release(v4)
+
 		return IPv4{}, IPv6{}, err
 	}
 

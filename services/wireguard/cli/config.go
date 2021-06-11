@@ -7,48 +7,45 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
-	wgt "github.com/sentinel-official/dvpn-node/services/wireguard/types"
+	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func configCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Config",
+		Short: "Configuration sub-commands",
 	}
 
 	cmd.AddCommand(
-		configInitCmd(),
-		configShowCmd(),
+		configInit(),
+		configShow(),
+		configSet(),
 	)
 
 	return cmd
 }
 
-func configInitCmd() *cobra.Command {
+func configInit() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Init",
+		Short: "Init the configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, wgtypes.ConfigFileName)
+			)
 
 			force, err := cmd.Flags().GetBool(types.FlagForce)
 			if err != nil {
 				return err
 			}
 
-			var (
-				configPath = filepath.Join(home, wgt.ConfigFileName)
-			)
-
 			if !force {
-				_, err = os.Stat(configPath)
-				if err == nil {
-					return fmt.Errorf("config file already exists at path '%s'", configPath)
+				if _, err = os.Stat(path); err == nil {
+					return fmt.Errorf("config file already exists at path %s", path)
 				}
 			}
 
@@ -56,8 +53,8 @@ func configInitCmd() *cobra.Command {
 				return err
 			}
 
-			config := wgt.NewConfig().WithDefaultValues()
-			return config.SaveToPath(configPath)
+			config := wgtypes.NewConfig().WithDefaultValues()
+			return config.SaveToPath(path)
 		},
 	}
 
@@ -66,27 +63,58 @@ func configInitCmd() *cobra.Command {
 	return cmd
 }
 
-func configShowCmd() *cobra.Command {
+func configShow() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show",
-		Short: "Show",
+		Short: "Show the configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, wgtypes.ConfigFileName)
+			)
+
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := wgtypes.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
+			fmt.Println(cfg.String())
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func configSet() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "set [key] [value]",
+		Short: "Set the configuration",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
 			var (
-				config     = wgt.NewConfig()
-				configPath = filepath.Join(home, wgt.ConfigFileName)
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, wgtypes.ConfigFileName)
 			)
 
-			if err := config.LoadFromPath(configPath); err != nil {
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := wgtypes.ReadInConfig(v)
+			if err != nil {
 				return err
 			}
 
-			fmt.Println(config)
-			return nil
+			v.Set(args[0], args[1])
+
+			if err := v.Unmarshal(cfg); err != nil {
+				return err
+			}
+
+			return cfg.SaveToPath(path)
 		},
 	}
 

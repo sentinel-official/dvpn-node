@@ -5,10 +5,12 @@ import (
 	"path"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	nodetypes "github.com/sentinel-official/hub/x/node/types"
 	sessiontypes "github.com/sentinel-official/hub/x/session/types"
+	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/types"
@@ -23,18 +25,23 @@ func NewNode(ctx *context.Context) *Node {
 }
 
 func (n *Node) Initialize() error {
-	res, err := n.Client().QueryNode(n.Address())
+	n.Log().Info("Initializing...")
+
+	result, err := n.Client().QueryNode(n.Address())
 	if err != nil {
 		return err
 	}
-	if res == nil {
+
+	if result == nil {
 		return n.register()
 	}
 
-	return n.update()
+	return n.updateInfo()
 }
 
 func (n *Node) Start() error {
+	n.Log().Info("Starting...")
+
 	go func() {
 		if err := n.jobUpdateStatus(); err != nil {
 			panic(err)
@@ -48,16 +55,17 @@ func (n *Node) Start() error {
 	}()
 
 	var (
-		certFile = path.Join(n.Home(), "tls.crt")
-		keyFile  = path.Join(n.Home(), "tls.key")
+		certFile = path.Join(viper.GetString(flags.FlagHome), "tls.crt")
+		keyFile  = path.Join(viper.GetString(flags.FlagHome), "tls.key")
 	)
 
-	n.Logger().Info("started REST API server", "address", n.ListenOn())
 	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Router())
 }
 
 func (n *Node) register() error {
-	res, err := n.Client().BroadcastTx(
+	n.Log().Info("Registering node...")
+
+	_, err := n.Client().BroadcastTx(
 		nodetypes.NewMsgRegisterRequest(
 			n.Operator(),
 			n.Provider(),
@@ -65,16 +73,14 @@ func (n *Node) register() error {
 			n.RemoteURL(),
 		),
 	)
-	if err != nil {
-		return err
-	}
 
-	n.Logger().Info("registered node", "tx_hash", res.TxHash)
-	return nil
+	return err
 }
 
-func (n *Node) update() error {
-	res, err := n.Client().BroadcastTx(
+func (n *Node) updateInfo() error {
+	n.Log().Info("Updating node info...")
+
+	_, err := n.Client().BroadcastTx(
 		nodetypes.NewMsgUpdateRequest(
 			n.Address(),
 			n.Provider(),
@@ -82,33 +88,25 @@ func (n *Node) update() error {
 			n.RemoteURL(),
 		),
 	)
-	if err != nil {
-		return err
-	}
 
-	n.Logger().Info("updated node information", "tx_hash", res.TxHash)
-	return nil
+	return err
 }
 
 func (n *Node) updateStatus() error {
-	res, err := n.Client().BroadcastTx(
+	n.Log().Info("Updating node status...")
+
+	_, err := n.Client().BroadcastTx(
 		nodetypes.NewMsgSetStatusRequest(
 			n.Address(),
 			hubtypes.StatusActive,
 		),
 	)
-	if err != nil {
-		return err
-	}
 
-	n.Logger().Info("updated node status", "tx_hash", res.TxHash)
-	return nil
+	return err
 }
 
-func (n *Node) updateSessions(items []types.Session) error {
-	if len(items) == 0 {
-		return nil
-	}
+func (n *Node) updateSessions(items ...*types.Session) error {
+	n.Log().Info("Updating sessions...")
 
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
@@ -125,11 +123,6 @@ func (n *Node) updateSessions(items []types.Session) error {
 		)
 	}
 
-	res, err := n.Client().BroadcastTx(messages...)
-	if err != nil {
-		return err
-	}
-
-	n.Logger().Info("updated sessions", "tx_hash", res.TxHash)
-	return nil
+	_, err := n.Client().BroadcastTx(messages...)
+	return err
 }

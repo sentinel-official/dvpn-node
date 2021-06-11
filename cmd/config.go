@@ -7,6 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -20,6 +21,7 @@ func ConfigCmd() *cobra.Command {
 	cmd.AddCommand(
 		configInit(),
 		configShow(),
+		configSet(),
 	)
 
 	return cmd
@@ -28,24 +30,21 @@ func ConfigCmd() *cobra.Command {
 func configInit() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize the default configuration file",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
+		Short: "Initialize the default configuration",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
 
 			force, err := cmd.Flags().GetBool(types.FlagForce)
 			if err != nil {
 				return err
 			}
 
-			path := filepath.Join(home, "config.toml")
-
 			if !force {
-				_, err = os.Stat(path)
-				if err == nil {
-					return fmt.Errorf("config file already exists at path '%s'", path)
+				if _, err = os.Stat(path); err == nil {
+					return fmt.Errorf("config file already exists at path %s", path)
 				}
 			}
 
@@ -67,24 +66,54 @@ func configShow() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show",
 		Short: "Show the configuration",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
-			path := filepath.Join(home, "config.toml")
-			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("config file does not exist at path '%s'", path)
-			}
+			fmt.Println(cfg.String())
+			return nil
+		},
+	}
 
-			cfg := types.NewConfig()
-			if err := cfg.LoadFromPath(path); err != nil {
+	return cmd
+}
+
+func configSet() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "set [key] [value]",
+		Short: "Set the configuration",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			var (
+				home = viper.GetString(flags.FlagHome)
+				path = filepath.Join(home, types.ConfigFileName)
+			)
+
+			v := viper.New()
+			v.SetConfigFile(path)
+
+			cfg, err := types.ReadInConfig(v)
+			if err != nil {
 				return err
 			}
 
-			fmt.Println(cfg)
-			return nil
+			v.Set(args[0], args[1])
+
+			if err := v.Unmarshal(cfg); err != nil {
+				return err
+			}
+
+			return cfg.SaveToPath(path)
 		},
 	}
 
