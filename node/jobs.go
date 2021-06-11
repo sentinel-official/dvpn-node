@@ -57,7 +57,7 @@ func (n *Node) jobUpdateSessions() error {
 			case session.Status.Equal(hubtypes.StatusInactive):
 				remove, skip = true, true
 				n.Log().Info("Invalid session status", "peer", peer, "item", item, "session", session)
-			case peer.Download == session.Bandwidth.Upload.Int64():
+			case peer.Download == session.Bandwidth.Upload.Int64() && session.StatusAt.After(item.ConnectedAt):
 				remove, skip = true, true
 				n.Log().Info("Stale peer connection", "peer", peer, "item", item, "session", session)
 			case consumed.GT(item.Available):

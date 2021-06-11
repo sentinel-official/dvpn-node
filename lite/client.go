@@ -133,13 +133,12 @@ func (c *Client) WithTxConfig(v client.TxConfig) *Client {
 	return c
 }
 
-func (c *Client) AccountRetriever() client.AccountRetriever { return c.ctx.AccountRetriever }
-func (c *Client) BroadcastMode() string                     { return c.ctx.BroadcastMode }
-func (c *Client) ChainID() string                           { return c.ctx.ChainID }
-func (c *Client) Client() rpcclient.Client                  { return c.ctx.Client }
-func (c *Client) From() string                              { return c.ctx.From }
-func (c *Client) FromAddress() sdk.AccAddress               { return c.ctx.FromAddress }
-func (c *Client) Keyring() keyring.Keyring                  { return c.ctx.Keyring }
-func (c *Client) Log() tmlog.Logger                         { return c.logger }
-func (c *Client) TxConfig() client.TxConfig                 { return c.ctx.TxConfig }
-func (c *Client) SimulateAndExecute() bool                  { return c.txf.SimulateAndExecute() }
+func (c *Client) BroadcastMode() string       { return c.ctx.BroadcastMode }
+func (c *Client) ChainID() string             { return c.ctx.ChainID }
+func (c *Client) Client() rpcclient.Client    { return c.ctx.Client }
+func (c *Client) From() string                { return c.ctx.From }
+func (c *Client) FromAddress() sdk.AccAddress { return c.ctx.FromAddress }
+func (c *Client) Keyring() keyring.Keyring    { return c.ctx.Keyring }
+func (c *Client) Log() tmlog.Logger           { return c.logger }
+func (c *Client) TxConfig() client.TxConfig   { return c.ctx.TxConfig }
+func (c *Client) SimulateAndExecute() bool    { return c.txf.SimulateAndExecute() }

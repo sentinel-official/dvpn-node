@@ -164,13 +164,13 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		ctx.Log().Info("Adding new peer", "key", key)
+		ctx.Log().Info("Adding new peer", "key", body.Key)
 		result, err := ctx.Service().AddPeer(key)
 		if err != nil {
 			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 9, err.Error())
 			return
 		}
-		ctx.Log().Info("Added new peer", "key", key, "count", ctx.Service().PeersCount())
+		ctx.Log().Info("Added new peer", "key", body.Key, "count", ctx.Service().PeersCount())
 
 		ctx.Sessions().Put(
 			&types.Session{

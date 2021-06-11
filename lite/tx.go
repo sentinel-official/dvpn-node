@@ -13,7 +13,7 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	account, err := c.AccountRetriever().GetAccount(c.ctx, c.FromAddress())
+	account, err := c.QueryAccount(c.FromAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -25,6 +25,7 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 	)
 
 	if c.SimulateAndExecute() {
+		c.Log().Info("Calculating the gas by simulating the transaction...")
 		_, adjusted, err := tx.CalculateGas(c.ctx.QueryWithData, txf, messages...)
 		if err != nil {
 			return nil, err
