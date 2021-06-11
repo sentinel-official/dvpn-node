@@ -65,6 +65,7 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 		}
 	}, retry.Attempts(5))
 
-	c.Log().Info("Transaction result", "tx_hash", res.TxHash, "code", res.Code, "codespace", res.Codespace)
+	c.Log().Info("Transaction result", "tx_hash", res.TxHash,
+		"code", res.Code, "codespace", res.Codespace, "height", res.Height)
 	return res, err
 }
