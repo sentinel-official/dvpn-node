@@ -65,7 +65,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		if item := ctx.Sessions().GetForAddress(address); item != nil {
+		if item := ctx.Sessions().GetByAddress(address); !item.Empty() {
 			session, err := ctx.Client().QuerySession(item.ID)
 			if err != nil {
 				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 3, err.Error())
@@ -80,10 +80,10 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 				return
 			}
 
-			ctx.Sessions().DeleteForAddress(address)
+			ctx.Sessions().DeleteByAddress(address)
 		}
 
-		if item := ctx.Sessions().GetForKey(body.Key); item != nil {
+		if item := ctx.Sessions().GetByKey(body.Key); !item.Empty() {
 			session, err := ctx.Client().QuerySession(item.ID)
 			if err != nil {
 				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 4, err.Error())
@@ -98,7 +98,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 				return
 			}
 
-			ctx.Sessions().DeleteForKey(body.Key)
+			ctx.Sessions().DeleteByKey(body.Key)
 		}
 
 		session, err := ctx.Client().QuerySession(id)
@@ -145,7 +145,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 				return
 			}
 			if !ok {
-				utils.WriteErrorToResponse(w, http.StatusBadRequest, 7, "node address mismatch")
+				utils.WriteErrorToResponse(w, http.StatusBadRequest, 7, "node does not exist for plan")
 				return
 			}
 		}
@@ -172,8 +172,8 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 		ctx.Log().Info("Added new peer", "key", body.Key, "count", ctx.Service().PeersCount())
 
-		ctx.Sessions().Put(
-			&types.Session{
+		ctx.Sessions().Set(
+			types.Session{
 				ID:          id,
 				Key:         body.Key,
 				Address:     address,
@@ -181,8 +181,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 				ConnectedAt: time.Now(),
 			},
 		)
-		ctx.Log().Info("Added new session", "id", id,
-			"address", address, "count", ctx.Sessions().Len())
+		ctx.Log().Info("Added new session", "id", id, "address", address, "count", ctx.Sessions().Len())
 
 		result = append(result, net.ParseIP(ctx.Location().IP).To4()...)
 		result = append(result, ctx.Service().Info()...)

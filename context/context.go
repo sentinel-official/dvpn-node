@@ -36,21 +36,25 @@ func (c *Context) WithRouter(v *mux.Router) *Context            { c.router = v; 
 func (c *Context) WithService(v types.Service) *Context         { c.service = v; return c }
 func (c *Context) WithSessions(v *types.Sessions) *Context      { c.sessions = v; return c }
 
-func (c *Context) Address() hubtypes.NodeAddress   { return c.Operator().Bytes() }
-func (c *Context) Bandwidth() *hubtypes.Bandwidth  { return c.bandwidth }
-func (c *Context) Client() *lite.Client            { return c.client }
-func (c *Context) Config() *types.Config           { return c.config }
-func (c *Context) IntervalSessions() time.Duration { return c.Config().Node.IntervalSessions }
-func (c *Context) IntervalStatus() time.Duration   { return c.Config().Node.IntervalStatus }
-func (c *Context) ListenOn() string                { return c.Config().Node.ListenOn }
-func (c *Context) Location() *types.GeoIPLocation  { return c.location }
-func (c *Context) Log() tmlog.Logger               { return c.logger }
-func (c *Context) Moniker() string                 { return c.Config().Node.Moniker }
-func (c *Context) Operator() sdk.AccAddress        { return c.client.FromAddress() }
-func (c *Context) RemoteURL() string               { return c.Config().Node.RemoteURL }
-func (c *Context) Router() *mux.Router             { return c.router }
-func (c *Context) Service() types.Service          { return c.service }
-func (c *Context) Sessions() *types.Sessions       { return c.sessions }
+func (c *Context) Address() hubtypes.NodeAddress      { return c.Operator().Bytes() }
+func (c *Context) Bandwidth() *hubtypes.Bandwidth     { return c.bandwidth }
+func (c *Context) Client() *lite.Client               { return c.client }
+func (c *Context) Config() *types.Config              { return c.config }
+func (c *Context) IntervalSetSessions() time.Duration { return c.Config().Node.IntervalSetSessions }
+func (c *Context) IntervalSetStatus() time.Duration   { return c.Config().Node.IntervalSetStatus }
+func (c *Context) ListenOn() string                   { return c.Config().Node.ListenOn }
+func (c *Context) Location() *types.GeoIPLocation     { return c.location }
+func (c *Context) Log() tmlog.Logger                  { return c.logger }
+func (c *Context) Moniker() string                    { return c.Config().Node.Moniker }
+func (c *Context) Operator() sdk.AccAddress           { return c.client.FromAddress() }
+func (c *Context) RemoteURL() string                  { return c.Config().Node.RemoteURL }
+func (c *Context) Router() *mux.Router                { return c.router }
+func (c *Context) Service() types.Service             { return c.service }
+func (c *Context) Sessions() *types.Sessions          { return c.sessions }
+
+func (c *Context) IntervalUpdateSessions() time.Duration {
+	return c.Config().Node.IntervalUpdateSessions
+}
 
 func (c *Context) Provider() hubtypes.ProvAddress {
 	if c.Config().Node.Provider == "" {

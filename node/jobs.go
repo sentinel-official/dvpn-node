@@ -1,7 +1,6 @@
 package node
 
 import (
-	"encoding/base64"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,10 +9,47 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func (n *Node) jobUpdateStatus() error {
-	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalStatus())
+func (n *Node) jobSetSessions() error {
+	n.Log().Info("Starting job", "name", "set_sessions", "interval", n.IntervalSetSessions())
 
-	t := time.NewTicker(n.IntervalStatus())
+	t := time.NewTicker(n.IntervalSetSessions())
+	for ; ; <-t.C {
+		peers, err := n.Service().Peers()
+		if err != nil {
+			return err
+		}
+		n.Log().Info("Connected peers", "count", len(peers))
+
+		for i := 0; i < len(peers); i++ {
+			item := n.Sessions().GetByKey(peers[i].Key)
+			if item.Empty() {
+				n.Log().Error("Unknown connected peer", "peer", peers[i])
+				if err := n.RemovePeer(peers[i].Key); err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			item.Upload = peers[i].Upload
+			item.Download = peers[i].Download
+			n.Sessions().Update(item)
+
+			consumed := sdk.NewInt(item.Upload + item.Download)
+			if consumed.GT(item.Available) {
+				n.Log().Info("Peer quota exceeded", "peer", peers[i], "item", item)
+				if err := n.RemovePeer(item.Key); err != nil {
+					return err
+				}
+			}
+		}
+	}
+}
+
+func (n *Node) jobUpdateStatus() error {
+	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalSetStatus())
+
+	t := time.NewTicker(n.IntervalSetStatus())
 	for ; ; <-t.C {
 		if err := n.updateStatus(); err != nil {
 			return err
@@ -22,71 +58,52 @@ func (n *Node) jobUpdateStatus() error {
 }
 
 func (n *Node) jobUpdateSessions() error {
-	n.Log().Info("Starting job", "name", "update_sessions", "interval", n.IntervalSessions())
+	n.Log().Info("Starting job", "name", "update_sessions", "interval", n.IntervalUpdateSessions())
 
-	t := time.NewTicker(n.IntervalSessions())
+	t := time.NewTicker(n.IntervalUpdateSessions())
 	for ; ; <-t.C {
-		var (
-			items []*types.Session
-		)
+		var items []types.Session
+		n.Sessions().Iterate(func(v types.Session) bool {
+			items = append(items, v)
+			return false
+		})
+		n.Log().Info("Iterated sessions", "count", len(items))
 
-		peers, err := n.Service().Peers()
-		if err != nil {
-			return err
-		}
-		n.Log().Info("Connected peers", "count", len(peers))
-
-		for _, peer := range peers {
-			item := n.Sessions().GetForKey(peer.Key)
-			if item == nil {
-				n.Log().Error("Unknown connected peer", "info", peer)
-				continue
-			}
-
-			session, err := n.Client().QuerySession(item.ID)
+		for i := len(items) - 1; i >= 0; i-- {
+			session, err := n.Client().QuerySession(items[i].ID)
 			if err != nil {
 				return err
 			}
 
-			var (
-				remove, skip = false, false
-				consumed     = sdk.NewInt(peer.Upload + peer.Download)
-			)
-
-			switch {
-			case session.Status.Equal(hubtypes.StatusInactive):
-				remove, skip = true, true
-				n.Log().Info("Invalid session status", "peer", peer, "item", item, "session", session)
-			case peer.Download == session.Bandwidth.Upload.Int64() && session.StatusAt.After(item.ConnectedAt):
-				remove, skip = true, true
-				n.Log().Info("Stale peer connection", "peer", peer, "item", item, "session", session)
-			case consumed.GT(item.Available):
-				remove, skip = true, false
-				n.Log().Info("Peer quota exceeded", "peer", peer, "item", item, "session", session)
+			subscription, err := n.Client().QuerySubscription(session.Subscription)
+			if err != nil {
+				return err
 			}
+
+			remove, skip := func() (bool, bool) {
+				switch {
+				case !subscription.Status.Equal(hubtypes.StatusActive):
+					n.Log().Info("Invalid subscription status", "session", session, "item", items[i])
+					return true, subscription.Status.Equal(hubtypes.StatusInactive)
+				case !session.Status.Equal(hubtypes.StatusActive):
+					n.Log().Info("Invalid session status", "session", session, "item", items[i])
+					return true, session.Status.Equal(hubtypes.StatusInactive)
+				case items[i].Download == session.Bandwidth.Upload.Int64() && items[i].ConnectedAt.Before(session.StatusAt):
+					n.Log().Info("Stale peer connection", "session", session, "item", items[i])
+					return true, false
+				default:
+					return false, false
+				}
+			}()
 
 			if remove {
-				key, err := base64.StdEncoding.DecodeString(peer.Key)
-				if err != nil {
+				if err := n.RemovePeerAndSession(items[i]); err != nil {
 					return err
 				}
-
-				if err := n.Service().RemovePeer(key); err != nil {
-					return err
-				}
-				n.Log().Info("Removed peer for underlying service...")
-
-				n.Sessions().DeleteForKey(item.Key)
-				n.Sessions().DeleteForAddress(item.Address)
-				n.Log().Info("Removed session...")
 			}
 			if skip {
-				continue
+				items = append(items[:i], items[i+1:]...)
 			}
-
-			item.Upload = peer.Upload
-			item.Download = peer.Download
-			items = append(items, item)
 		}
 
 		if len(items) == 0 {

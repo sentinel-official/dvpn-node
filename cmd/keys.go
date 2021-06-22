@@ -112,11 +112,11 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintf(cmd.ErrOrStderr(), "operator: %s\n", info.GetAddress())
-			fmt.Fprintf(cmd.ErrOrStderr(), "address: %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
-			fmt.Fprintln(cmd.ErrOrStderr(), "")
-			fmt.Fprintln(cmd.ErrOrStderr(), "**Important** write this mnemonic phrase in a safe place")
-			fmt.Fprintln(cmd.ErrOrStderr(), mnemonic)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "operator: %s\n", info.GetAddress())
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "address: %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "")
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "**Important** write this mnemonic phrase in a safe place")
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), mnemonic)
 
 			return nil
 		},

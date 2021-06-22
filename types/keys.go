@@ -14,7 +14,6 @@ const (
 )
 
 var (
-	Version              = ""
 	DefaultHomeDirectory = func() string {
 		home, err := os.UserHomeDir()
 		if err != nil {
