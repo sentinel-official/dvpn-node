@@ -8,19 +8,19 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func (n *Node) RemovePeer(v string) error {
-	n.Log().Info("Removing peer from underlying service", "key", v)
+func (n *Node) RemovePeer(key string) error {
+	n.Log().Info("Removing peer from underlying service", "key", key)
 
-	key, err := base64.StdEncoding.DecodeString(v)
+	data, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
 		return err
 	}
 
-	if err := n.Service().RemovePeer(key); err != nil {
+	if err := n.Service().RemovePeer(data); err != nil {
 		return err
 	}
 
-	n.Log().Info("Removed peer from underlying service...")
+	n.Log().Debug("Removed peer from underlying service...")
 	return nil
 }
 
@@ -30,12 +30,12 @@ func (n *Node) RemoveSession(key string, address sdk.AccAddress) error {
 	n.Sessions().DeleteByKey(key)
 	n.Sessions().DeleteByAddress(address)
 
-	n.Log().Info("Removed session...")
+	n.Log().Debug("Removed session...")
 	return nil
 }
 
 func (n *Node) RemovePeerAndSession(v types.Session) error {
-	n.Log().Info("Removing peer and session", "session", v)
+	n.Log().Info("Removing peer and session", "id", v.ID, "key", v.Key)
 
 	if err := n.RemovePeer(v.Key); err != nil {
 		return err
@@ -44,6 +44,6 @@ func (n *Node) RemovePeerAndSession(v types.Session) error {
 		return err
 	}
 
-	n.Log().Info("Removed peer and session...")
+	n.Log().Debug("Removed peer and session...")
 	return nil
 }

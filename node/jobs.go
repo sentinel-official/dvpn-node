@@ -37,7 +37,8 @@ func (n *Node) jobSetSessions() error {
 
 			consumed := sdk.NewInt(item.Upload + item.Download)
 			if consumed.GT(item.Available) {
-				n.Log().Info("Peer quota exceeded", "peer", peers[i], "item", item)
+				n.Log().Info("Peer quota exceeded", "id", item.ID,
+					"available", item.Available, "consumed", consumed)
 				if err := n.RemovePeer(item.Key); err != nil {
 					return err
 				}
@@ -83,13 +84,13 @@ func (n *Node) jobUpdateSessions() error {
 			remove, skip := func() (bool, bool) {
 				switch {
 				case !subscription.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid subscription status", "session", session, "item", items[i])
+					n.Log().Info("Invalid subscription status", "id", items[i].ID)
 					return true, subscription.Status.Equal(hubtypes.StatusInactive)
 				case !session.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid session status", "session", session, "item", items[i])
+					n.Log().Info("Invalid session status", "id", items[i].ID)
 					return true, session.Status.Equal(hubtypes.StatusInactive)
 				case items[i].Download == session.Bandwidth.Upload.Int64() && items[i].ConnectedAt.Before(session.StatusAt):
-					n.Log().Info("Stale peer connection", "session", session, "item", items[i])
+					n.Log().Info("Stale peer connection", "id", items[i].ID)
 					return true, false
 				default:
 					return false, false
