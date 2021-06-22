@@ -10,45 +10,55 @@ type Peer struct {
 	IPv6     IPv6
 }
 
+func (p Peer) Empty() bool {
+	return p.Identity == ""
+}
+
 type Peers struct {
-	m     map[string]Peer
-	mutex *sync.RWMutex
+	sync.RWMutex
+	m map[string]Peer
 }
 
 func NewPeers() *Peers {
 	return &Peers{
-		m:     make(map[string]Peer),
-		mutex: &sync.RWMutex{},
+		m: make(map[string]Peer),
 	}
 }
 
-func (p *Peers) Get(key string) (Peer, bool) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+func (p *Peers) Get(key string) Peer {
+	p.RLock()
+	defer p.RUnlock()
 
-	peer, ok := p.m[key]
-	return peer, ok
-}
-
-func (p *Peers) Put(item Peer) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	if _, ok := p.m[item.Identity]; !ok {
-		p.m[item.Identity] = item
+	v, ok := p.m[key]
+	if !ok {
+		return Peer{}
 	}
+
+	return v
 }
 
-func (p *Peers) Delete(key string) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+func (p *Peers) Put(v Peer) {
+	p.Lock()
+	defer p.Unlock()
 
-	delete(p.m, key)
+	_, ok := p.m[v.Identity]
+	if ok {
+		return
+	}
+
+	p.m[v.Identity] = v
+}
+
+func (p *Peers) Delete(v string) {
+	p.Lock()
+	defer p.Unlock()
+
+	delete(p.m, v)
 }
 
 func (p *Peers) Len() int {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 
 	return len(p.m)
 }

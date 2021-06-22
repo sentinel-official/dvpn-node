@@ -16,6 +16,7 @@ func (n *Node) jobSetSessions() error {
 	for ; ; <-t.C {
 		peers, err := n.Service().Peers()
 		if err != nil {
+			n.Log().Error("Failed to get connected peers", "error", err)
 			return err
 		}
 		n.Log().Info("Connected peers", "count", len(peers))
@@ -48,11 +49,11 @@ func (n *Node) jobSetSessions() error {
 }
 
 func (n *Node) jobUpdateStatus() error {
-	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalSetStatus())
+	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalUpdateStatus())
 
-	t := time.NewTicker(n.IntervalSetStatus())
+	t := time.NewTicker(n.IntervalUpdateStatus())
 	for ; ; <-t.C {
-		if err := n.updateStatus(); err != nil {
+		if err := n.UpdateNodeStatus(); err != nil {
 			return err
 		}
 	}
@@ -98,7 +99,7 @@ func (n *Node) jobUpdateSessions() error {
 			}()
 
 			if remove {
-				if err := n.RemovePeerAndSession(items[i]); err != nil {
+				if err := n.RemovePeerAndSession(items[i].Key, items[i].Address); err != nil {
 					return err
 				}
 			}
@@ -110,7 +111,7 @@ func (n *Node) jobUpdateSessions() error {
 		if len(items) == 0 {
 			continue
 		}
-		if err := n.updateSessions(items...); err != nil {
+		if err := n.UpdateSessions(items...); err != nil {
 			return err
 		}
 	}

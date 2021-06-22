@@ -27,10 +27,10 @@ func (n *Node) Initialize() error {
 	}
 
 	if result == nil {
-		return n.register()
+		return n.RegisterNode()
 	}
 
-	return n.updateInfo()
+	return n.UpdateNodeInfo()
 }
 
 func (n *Node) Start() error {

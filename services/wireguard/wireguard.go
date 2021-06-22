@@ -123,9 +123,9 @@ func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 		return nil, err
 	}
 
-	if peer, ok := w.peers.Get(identity); ok {
-		w.peers.Delete(identity)
-		w.pool.Release(peer.IPv4, peer.IPv6)
+	if v := w.peers.Get(identity); !v.Empty() {
+		w.peers.Delete(v.Identity)
+		w.pool.Release(v.IPv4, v.IPv6)
 	}
 
 	w.peers.Put(
@@ -154,9 +154,9 @@ func (w *WireGuard) RemovePeer(data []byte) error {
 		return err
 	}
 
-	if peer, ok := w.peers.Get(identity); ok {
-		w.peers.Delete(identity)
-		w.pool.Release(peer.IPv4, peer.IPv6)
+	if v := w.peers.Get(identity); !v.Empty() {
+		w.peers.Delete(v.Identity)
+		w.pool.Release(v.IPv4, v.IPv6)
 	}
 
 	return nil

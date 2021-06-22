@@ -12,12 +12,8 @@ import (
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
-func init() {
-	hubtypes.GetConfig().Seal()
-	cobra.EnableCommandSorting = false
-}
-
 func main() {
+	hubtypes.GetConfig().Seal()
 	root := &cobra.Command{
 		Use:          "sentinel-dvpn-node",
 		SilenceUsage: true,
@@ -26,11 +22,8 @@ func main() {
 	root.AddCommand(
 		cmd.ConfigCmd(),
 		cmd.KeysCmd(),
-		flags.LineBreak,
 		wireguard.Command(),
-		flags.LineBreak,
 		cmd.StartCmd(),
-		flags.LineBreak,
 		version.NewVersionCommand(),
 	)
 

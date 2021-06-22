@@ -2,10 +2,8 @@ package types
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"strings"
 	"text/template"
 	"time"
@@ -15,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
+
+	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 var (
@@ -56,11 +56,11 @@ from = "{{ .Keyring.From }}"
 # Time interval between each set_sessions operation
 interval_set_sessions = "{{ .Node.IntervalSetSessions }}"
 
-# Time interval between each set_status transaction
-interval_set_status = "{{ .Node.IntervalSetStatus }}"
-
 # Time interval between each update_sessions transaction
 interval_update_sessions = "{{ .Node.IntervalUpdateSessions }}"
+
+# Time interval between each set_status transaction
+interval_update_status = "{{ .Node.IntervalUpdateStatus }}"
 
 # API listen-address
 listen_on = "{{ .Node.ListenOn }}"
@@ -189,8 +189,8 @@ func (c *KeyringConfig) WithDefaultValues() *KeyringConfig {
 
 type NodeConfig struct {
 	IntervalSetSessions    time.Duration `json:"interval_set_sessions" mapstructure:"interval_set_sessions"`
-	IntervalSetStatus      time.Duration `json:"interval_set_status" mapstructure:"interval_set_status"`
 	IntervalUpdateSessions time.Duration `json:"interval_update_sessions" mapstructure:"interval_update_sessions"`
+	IntervalUpdateStatus   time.Duration `json:"interval_update_status" mapstructure:"interval_update_status"`
 	ListenOn               string        `json:"listen_on" mapstructure:"listen_on"`
 	Moniker                string        `json:"moniker" mapstructure:"moniker"`
 	Price                  string        `json:"price" mapstructure:"price"`
@@ -206,11 +206,11 @@ func (c *NodeConfig) Validate() error {
 	if c.IntervalSetSessions <= 0 {
 		return errors.New("interval_set_sessions must be positive")
 	}
-	if c.IntervalSetStatus <= 0 {
-		return errors.New("interval_set_status must be positive")
-	}
 	if c.IntervalUpdateSessions <= 0 {
 		return errors.New("interval_update_sessions must be positive")
+	}
+	if c.IntervalUpdateStatus <= 0 {
+		return errors.New("interval_update_status must be positive")
 	}
 	if c.ListenOn == "" {
 		return errors.New("listen_on cannot be empty")
@@ -240,15 +240,9 @@ func (c *NodeConfig) Validate() error {
 
 func (c *NodeConfig) WithDefaultValues() *NodeConfig {
 	c.IntervalSetSessions = 1 * 120 * time.Second
-	c.IntervalSetStatus = 0.9 * 60 * time.Minute
 	c.IntervalUpdateSessions = 0.9 * 120 * time.Minute
-
-	n, err := rand.Int(rand.Reader, big.NewInt(1<<16-1<<10))
-	if err != nil {
-		panic(err)
-	}
-
-	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", uint16(n.Int64()+1<<10))
+	c.IntervalUpdateStatus = 0.9 * 60 * time.Minute
+	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
 
 	return c
 }
