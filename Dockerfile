@@ -14,7 +14,7 @@ RUN cd /root/ && \
 
 FROM alpine:3.13
 
-COPY --from=build /go/bin/sentinel-dvpn-node /usr/local/bin/run
+COPY --from=build /go/bin/sentinelnode /usr/local/bin/process
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
 
 RUN apk add --no-cache ip6tables unbound-dev wireguard-tools && \
