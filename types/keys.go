@@ -14,13 +14,12 @@ const (
 )
 
 var (
-	Version              = ""
 	DefaultHomeDirectory = func() string {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			panic(err)
 		}
 
-		return filepath.Join(home, ".sentinel", "node")
+		return filepath.Join(home, ".sentinelnode")
 	}()
 )

@@ -13,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
+
+	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 var (
@@ -51,11 +53,14 @@ backend = "{{ .Keyring.Backend }}"
 from = "{{ .Keyring.From }}"
 
 [node]
-# Time interval between each update_sessions transactions
-interval_sessions = "{{ .Node.IntervalSessions }}"
+# Time interval between each set_sessions operation
+interval_set_sessions = "{{ .Node.IntervalSetSessions }}"
 
-# Time interval between each update_status transactions
-interval_status = "{{ .Node.IntervalStatus }}"
+# Time interval between each update_sessions transaction
+interval_update_sessions = "{{ .Node.IntervalUpdateSessions }}"
+
+# Time interval between each set_status transaction
+interval_update_status = "{{ .Node.IntervalUpdateStatus }}"
 
 # API listen-address
 listen_on = "{{ .Node.ListenOn }}"
@@ -183,13 +188,14 @@ func (c *KeyringConfig) WithDefaultValues() *KeyringConfig {
 }
 
 type NodeConfig struct {
-	IntervalSessions time.Duration `json:"interval_sessions" mapstructure:"interval_sessions"`
-	IntervalStatus   time.Duration `json:"interval_status" mapstructure:"interval_status"`
-	ListenOn         string        `json:"listen_on" mapstructure:"listen_on"`
-	Moniker          string        `json:"moniker" mapstructure:"moniker"`
-	Price            string        `json:"price" mapstructure:"price"`
-	Provider         string        `json:"provider" mapstructure:"provider"`
-	RemoteURL        string        `json:"remote_url" mapstructure:"remote_url"`
+	IntervalSetSessions    time.Duration `json:"interval_set_sessions" mapstructure:"interval_set_sessions"`
+	IntervalUpdateSessions time.Duration `json:"interval_update_sessions" mapstructure:"interval_update_sessions"`
+	IntervalUpdateStatus   time.Duration `json:"interval_update_status" mapstructure:"interval_update_status"`
+	ListenOn               string        `json:"listen_on" mapstructure:"listen_on"`
+	Moniker                string        `json:"moniker" mapstructure:"moniker"`
+	Price                  string        `json:"price" mapstructure:"price"`
+	Provider               string        `json:"provider" mapstructure:"provider"`
+	RemoteURL              string        `json:"remote_url" mapstructure:"remote_url"`
 }
 
 func NewNodeConfig() *NodeConfig {
@@ -197,11 +203,14 @@ func NewNodeConfig() *NodeConfig {
 }
 
 func (c *NodeConfig) Validate() error {
-	if c.IntervalSessions <= 0 {
-		return errors.New("interval_sessions must be positive")
+	if c.IntervalSetSessions <= 0 {
+		return errors.New("interval_set_sessions must be positive")
 	}
-	if c.IntervalStatus <= 0 {
-		return errors.New("interval_status must be positive")
+	if c.IntervalUpdateSessions <= 0 {
+		return errors.New("interval_update_sessions must be positive")
+	}
+	if c.IntervalUpdateStatus <= 0 {
+		return errors.New("interval_update_status must be positive")
 	}
 	if c.ListenOn == "" {
 		return errors.New("listen_on cannot be empty")
@@ -230,9 +239,10 @@ func (c *NodeConfig) Validate() error {
 }
 
 func (c *NodeConfig) WithDefaultValues() *NodeConfig {
-	c.IntervalSessions = 0.9 * 120 * time.Minute
-	c.IntervalStatus = 0.9 * 60 * time.Minute
-	c.ListenOn = "0.0.0.0:8585"
+	c.IntervalSetSessions = 1 * 120 * time.Second
+	c.IntervalUpdateSessions = 0.9 * 120 * time.Minute
+	c.IntervalUpdateStatus = 0.9 * 60 * time.Minute
+	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
 
 	return c
 }

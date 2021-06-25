@@ -25,9 +25,11 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 	)
 
 	if c.SimulateAndExecute() {
-		c.Log().Info("Calculating the gas by simulating the transaction...")
+		c.Log().Info("Calculating the Gas by simulating the transaction...")
+
 		_, adjusted, err := tx.CalculateGas(c.ctx.QueryWithData, txf, messages...)
 		if err != nil {
+			c.Log().Error("Failed to calculate the Gas", "error", err)
 			return nil, err
 		}
 
@@ -39,15 +41,18 @@ func (c *Client) BroadcastTx(messages ...sdk.Msg) (res *sdk.TxResponse, err erro
 
 	txb, err := tx.BuildUnsignedTx(txf, messages...)
 	if err != nil {
+		c.Log().Error("Failed to build the unsigned transaction", "error", err)
 		return nil, err
 	}
 
 	if err := tx.Sign(txf, c.From(), txb, true); err != nil {
+		c.Log().Error("Failed to sign the transaction", "error", err)
 		return nil, err
 	}
 
 	txBytes, err := c.TxConfig().TxEncoder()(txb.GetTx())
 	if err != nil {
+		c.Log().Error("Failed to encode the transaction", "error", err)
 		return nil, err
 	}
 

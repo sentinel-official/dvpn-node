@@ -2,14 +2,14 @@ package types
 
 import (
 	"bytes"
-	"crypto/rand"
 	"io/ioutil"
-	"math/big"
 	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
+	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 var (
@@ -62,18 +62,13 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) WithDefaultValues() *Config {
-	n, err := rand.Int(rand.Reader, big.NewInt(1<<16-1<<10))
-	if err != nil {
-		panic(err)
-	}
-
 	key, err := NewPrivateKey()
 	if err != nil {
 		panic(err)
 	}
 
 	c.Interface = "wg0"
-	c.ListenPort = uint16(n.Int64() + 1<<10)
+	c.ListenPort = randutil.RandomPort()
 	c.PrivateKey = key.String()
 
 	return c

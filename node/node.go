@@ -3,17 +3,11 @@ package node
 import (
 	"net/http"
 	"path"
-	"time"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	hubtypes "github.com/sentinel-official/hub/types"
-	nodetypes "github.com/sentinel-official/hub/x/node/types"
-	sessiontypes "github.com/sentinel-official/hub/x/session/types"
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/context"
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Node struct {
@@ -33,14 +27,20 @@ func (n *Node) Initialize() error {
 	}
 
 	if result == nil {
-		return n.register()
+		return n.RegisterNode()
 	}
 
-	return n.updateInfo()
+	return n.UpdateNodeInfo()
 }
 
 func (n *Node) Start() error {
 	n.Log().Info("Starting...")
+
+	go func() {
+		if err := n.jobSetSessions(); err != nil {
+			panic(err)
+		}
+	}()
 
 	go func() {
 		if err := n.jobUpdateStatus(); err != nil {
@@ -60,69 +60,4 @@ func (n *Node) Start() error {
 	)
 
 	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Router())
-}
-
-func (n *Node) register() error {
-	n.Log().Info("Registering node...")
-
-	_, err := n.Client().BroadcastTx(
-		nodetypes.NewMsgRegisterRequest(
-			n.Operator(),
-			n.Provider(),
-			n.Price(),
-			n.RemoteURL(),
-		),
-	)
-
-	return err
-}
-
-func (n *Node) updateInfo() error {
-	n.Log().Info("Updating node info...")
-
-	_, err := n.Client().BroadcastTx(
-		nodetypes.NewMsgUpdateRequest(
-			n.Address(),
-			n.Provider(),
-			n.Price(),
-			n.RemoteURL(),
-		),
-	)
-
-	return err
-}
-
-func (n *Node) updateStatus() error {
-	n.Log().Info("Updating node status...")
-
-	_, err := n.Client().BroadcastTx(
-		nodetypes.NewMsgSetStatusRequest(
-			n.Address(),
-			hubtypes.StatusActive,
-		),
-	)
-
-	return err
-}
-
-func (n *Node) updateSessions(items ...*types.Session) error {
-	n.Log().Info("Updating sessions...")
-
-	messages := make([]sdk.Msg, 0, len(items))
-	for _, item := range items {
-		messages = append(messages,
-			sessiontypes.NewMsgUpdateRequest(
-				n.Address(),
-				sessiontypes.Proof{
-					Id:        item.ID,
-					Duration:  time.Since(item.ConnectedAt),
-					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
-				},
-				nil,
-			),
-		)
-	}
-
-	_, err := n.Client().BroadcastTx(messages...)
-	return err
 }

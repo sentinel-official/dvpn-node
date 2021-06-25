@@ -6,8 +6,9 @@ import (
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "wireguard",
-		Short: "WireGuard sub-commands",
+		Use:     "wireguard",
+		Aliases: []string{"wg"},
+		Short:   "WireGuard sub-commands",
 	}
 
 	cmd.AddCommand(

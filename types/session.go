@@ -31,6 +31,10 @@ type Session struct {
 	ConnectedAt time.Time      `json:"connected_at,omitempty"`
 }
 
+func (s Session) Empty() bool {
+	return s.ID == 0
+}
+
 type Sessions struct {
 	sync.RWMutex
 	m map[string]interface{}
@@ -42,67 +46,106 @@ func NewSessions() *Sessions {
 	}
 }
 
-func (s *Sessions) Put(v *Session) {
-	s.Lock()
-	defer s.Unlock()
+func (s *Sessions) unsafeIsNil(v Session) bool {
+	return s.unsafeGetForKey(v.Key).Empty() &&
+		s.unsafeGetForAddress(v.Address).Empty()
+}
 
+func (s *Sessions) unsafeSet(v Session) {
 	s.m[withTypePrefix(v.Key)] = v
 	s.m[withTypePrefix(v.Address)] = v.Key
 }
 
-func (s *Sessions) GetForKey(k string) *Session {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.m[withTypePrefix(k)]
-	if !ok {
-		return nil
-	}
-
-	return v.(*Session)
-}
-
-func (s *Sessions) GetForAddress(k sdk.AccAddress) *Session {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.m[withTypePrefix(k)]
-	if !ok {
-		return nil
-	}
-
-	v, ok = s.m[withTypePrefix(v.(string))]
-	if !ok {
-		return nil
-	}
-
-	return v.(*Session)
-}
-
-func (s *Sessions) Delete(v *Session) {
-	s.Lock()
-	defer s.Unlock()
-
+func (s *Sessions) unsafeDelete(v Session) {
 	delete(s.m, withTypePrefix(v.Key))
 	delete(s.m, withTypePrefix(v.Address))
 }
 
-func (s *Sessions) DeleteForKey(k string) {
-	v := s.GetForKey(k)
-	if v == nil {
-		return
+func (s *Sessions) unsafeGetForKey(k string) (x Session) {
+	v, ok := s.m[withTypePrefix(k)]
+	if !ok {
+		return x
 	}
 
-	s.Delete(v)
+	return v.(Session)
 }
 
-func (s *Sessions) DeleteForAddress(k sdk.AccAddress) {
-	v := s.GetForAddress(k)
-	if v == nil {
+func (s *Sessions) unsafeGetForAddress(k sdk.AccAddress) (x Session) {
+	v, ok := s.m[withTypePrefix(k)]
+	if !ok {
+		return x
+	}
+
+	v, ok = s.m[withTypePrefix(v.(string))]
+	if !ok {
+		return x
+	}
+
+	return v.(Session)
+}
+
+func (s *Sessions) Set(v Session) {
+	s.Lock()
+	defer s.Unlock()
+
+	s.unsafeSet(v)
+}
+
+func (s *Sessions) Update(v Session) {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.unsafeIsNil(v) {
 		return
 	}
 
-	s.Delete(v)
+	s.unsafeSet(v)
+}
+
+func (s *Sessions) GetByKey(k string) Session {
+	s.RLock()
+	defer s.RUnlock()
+
+	return s.unsafeGetForKey(k)
+}
+
+func (s *Sessions) GetByAddress(k sdk.AccAddress) Session {
+	s.RLock()
+	defer s.RUnlock()
+
+	return s.unsafeGetForAddress(k)
+}
+
+func (s *Sessions) DeleteByKey(k string) {
+	s.Lock()
+	defer s.Unlock()
+
+	if k == "" {
+		return
+	}
+
+	v := s.unsafeGetForKey(k)
+	if v.Empty() {
+		return
+	}
+
+	s.unsafeDelete(v)
+}
+
+func (s *Sessions) DeleteByAddress(k sdk.AccAddress) {
+	s.Lock()
+	defer s.Unlock()
+
+	if k == nil || k.Empty() {
+		return
+	}
+
+	v := s.unsafeGetForAddress(k)
+	if v.Empty() {
+		return
+	}
+
+	s.unsafeDelete(v)
 }
 
 func (s *Sessions) Len() int {
@@ -110,4 +153,20 @@ func (s *Sessions) Len() int {
 	defer s.RUnlock()
 
 	return len(s.m) / 2
+}
+
+func (s *Sessions) Iterate(fn func(v Session) bool) {
+	s.RLock()
+	defer s.RUnlock()
+
+	for _, v := range s.m {
+		v, ok := v.(Session)
+		if !ok {
+			continue
+		}
+
+		if fn(v) {
+			break
+		}
+	}
 }

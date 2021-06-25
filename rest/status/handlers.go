@@ -21,8 +21,9 @@ func HandlerGetStatus(ctx *context.Context) http.HandlerFunc {
 				Enable: ctx.Config().Handshake.Enable,
 				Peers:  ctx.Config().Handshake.Peers,
 			},
-			IntervalSessions: ctx.IntervalSessions(),
-			IntervalStatus:   ctx.IntervalStatus(),
+			IntervalSetSessions:    ctx.IntervalSetSessions(),
+			IntervalUpdateSessions: ctx.IntervalUpdateSessions(),
+			IntervalUpdateStatus:   ctx.IntervalUpdateStatus(),
 			Location: &Location{
 				City:      ctx.Location().City,
 				Country:   ctx.Location().Country,
