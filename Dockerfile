@@ -1,4 +1,4 @@
-FROM golang:alpine3.13 AS build
+FROM golang:alpine3.14 AS build
 
 COPY . /go/src/github.com/sentinel-official/dvpn-node/
 
@@ -12,7 +12,7 @@ RUN cd /root/ && \
     cd /root/hnsd/ && \
     bash autogen.sh && sh configure && make --jobs=$(nproc)
 
-FROM alpine:3.13
+FROM alpine:3.14
 
 COPY --from=build /go/bin/sentinel-dvpn-node /usr/local/bin/run
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
@@ -20,4 +20,4 @@ COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
 RUN apk add --no-cache ip6tables unbound-dev wireguard-tools && \
     rm -rf /tmp/* /var/tmp/*
 
-CMD ["run"]
+CMD ["process"]
