@@ -20,6 +20,6 @@ var (
 			panic(err)
 		}
 
-		return filepath.Join(home, ".sentinel", "node")
+		return filepath.Join(home, ".sentinelnode")
 	}()
 )

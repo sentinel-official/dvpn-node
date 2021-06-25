@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-kit/kit/transport/http/jsonrpc"
+
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
@@ -22,7 +24,7 @@ func WriteResultToResponse(w http.ResponseWriter, status int, result interface{}
 }
 
 func write(w http.ResponseWriter, status int, res types.Response) error {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", jsonrpc.ContentType)
 	w.WriteHeader(status)
 
 	return json.NewEncoder(w).Encode(res)
