@@ -84,15 +84,15 @@ func (n *Node) jobUpdateSessions() error {
 
 			remove, skip := func() (bool, bool) {
 				switch {
+				case items[i].Download == session.Bandwidth.Upload.Int64() && items[i].ConnectedAt.Before(session.StatusAt):
+					n.Log().Info("Stale peer connection", "id", items[i].ID)
+					return true, true
 				case !subscription.Status.Equal(hubtypes.StatusActive):
 					n.Log().Info("Invalid subscription status", "id", items[i].ID)
 					return true, subscription.Status.Equal(hubtypes.StatusInactive)
 				case !session.Status.Equal(hubtypes.StatusActive):
 					n.Log().Info("Invalid session status", "id", items[i].ID)
 					return true, session.Status.Equal(hubtypes.StatusInactive)
-				case items[i].Download == session.Bandwidth.Upload.Int64() && items[i].ConnectedAt.Before(session.StatusAt):
-					n.Log().Info("Stale peer connection", "id", items[i].ID)
-					return true, false
 				default:
 					return false, false
 				}
