@@ -14,7 +14,7 @@ import (
 func (c *Context) RegisterNode() error {
 	c.Log().Info("Registering node...")
 
-	_, err := c.Client().BroadcastTx(
+	_, err := c.Client().Tx(
 		nodetypes.NewMsgRegisterRequest(
 			c.Operator(),
 			c.Provider(),
@@ -33,7 +33,7 @@ func (c *Context) RegisterNode() error {
 func (c *Context) UpdateNodeInfo() error {
 	c.Log().Info("Updating node info...")
 
-	_, err := c.Client().BroadcastTx(
+	_, err := c.Client().Tx(
 		nodetypes.NewMsgUpdateRequest(
 			c.Address(),
 			c.Provider(),
@@ -52,7 +52,7 @@ func (c *Context) UpdateNodeInfo() error {
 func (c *Context) UpdateNodeStatus() error {
 	c.Log().Info("Updating node status...")
 
-	_, err := c.Client().BroadcastTx(
+	_, err := c.Client().Tx(
 		nodetypes.NewMsgSetStatusRequest(
 			c.Address(),
 			hubtypes.StatusActive,
@@ -84,7 +84,7 @@ func (c *Context) UpdateSessions(items ...types.Session) error {
 		)
 	}
 
-	_, err := c.Client().BroadcastTx(
+	_, err := c.Client().Tx(
 		messages...,
 	)
 	if err != nil {
