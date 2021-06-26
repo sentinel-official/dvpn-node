@@ -46,15 +46,22 @@ func StartCmd() *cobra.Command {
 			v := viper.New()
 			v.SetConfigFile(path)
 
-			log.Info("Reading configuration file", "path", path)
+			log.Info("Reading the configuration file", "path", path)
 			cfg, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
-			log.Info("Validating configuration", "data", cfg)
-			if err := cfg.Validate(); err != nil {
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if !skipConfigValidation {
+				log.Info("Validating the configuration", "data", cfg)
+				if err := cfg.Validate(); err != nil {
+					return err
+				}
 			}
 
 			log.Info("Creating IPv4 pool", "CIDR", types.DefaultIPv4CIDR)
@@ -141,12 +148,12 @@ func StartCmd() *cobra.Command {
 				}
 			}
 
-			log.Info("Initializing underlying VPN service", "type", service.Type())
+			log.Info("Initializing VPN service", "type", service.Type())
 			if err := service.Init(home); err != nil {
 				return err
 			}
 
-			log.Info("Starting underlying VPN service", "type", service.Type())
+			log.Info("Starting VPN service", "type", service.Type())
 			if err := service.Start(); err != nil {
 				return err
 			}
@@ -176,6 +183,8 @@ func StartCmd() *cobra.Command {
 			return n.Start()
 		},
 	}
+
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration file")
 
 	return cmd
 }

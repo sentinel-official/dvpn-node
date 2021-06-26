@@ -54,8 +54,16 @@ func keysAdd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if !skipConfigValidation {
+				if err := cfg.Validate(); err != nil {
+					return err
+				}
 			}
 
 			recovery, err := cmd.Flags().GetBool(flagRecover)
@@ -123,6 +131,7 @@ func keysAdd() *cobra.Command {
 	}
 
 	cmd.Flags().Bool(flagRecover, false, "recover")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration file")
 
 	return cmd
 }
@@ -145,8 +154,16 @@ func keysShow() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if !skipConfigValidation {
+				if err := cfg.Validate(); err != nil {
+					return err
+				}
 			}
 
 			var (
@@ -170,6 +187,8 @@ func keysShow() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration file")
+
 	return cmd
 }
 
@@ -190,8 +209,16 @@ func keysList() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if !skipConfigValidation {
+				if err := cfg.Validate(); err != nil {
+					return err
+				}
 			}
 
 			var (
@@ -210,13 +237,18 @@ func keysList() *cobra.Command {
 
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 1, 1, ' ', 0)
 			for _, info := range infos {
-				fmt.Fprintf(w, "%s\t%s\t%s\n",
-					info.GetName(), info.GetAddress(), hubtypes.NodeAddress(info.GetAddress().Bytes()))
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n",
+					info.GetName(),
+					info.GetAddress(),
+					hubtypes.NodeAddress(info.GetAddress().Bytes()),
+				)
 			}
 
 			return w.Flush()
 		},
 	}
+
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration file")
 
 	return cmd
 }
@@ -239,8 +271,16 @@ func keysDelete() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if !skipConfigValidation {
+				if err := cfg.Validate(); err != nil {
+					return err
+				}
 			}
 
 			var (
@@ -255,6 +295,8 @@ func keysDelete() *cobra.Command {
 			return kr.Delete(args[0])
 		},
 	}
+
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration file")
 
 	return cmd
 }

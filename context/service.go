@@ -20,7 +20,6 @@ func (c *Context) RemovePeer(key string) error {
 		return err
 	}
 
-	c.Log().Info("Removed peer from service...")
 	return nil
 }
 
@@ -30,7 +29,6 @@ func (c *Context) RemoveSession(key string, address sdk.AccAddress) error {
 	c.Sessions().DeleteByKey(key)
 	c.Sessions().DeleteByAddress(address)
 
-	c.Log().Info("Removed session from list...")
 	return nil
 }
 

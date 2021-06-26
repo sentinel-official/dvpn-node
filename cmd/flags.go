@@ -1,5 +1,6 @@
 package cmd
 
 const (
-	flagRecover = "recover"
+	flagRecover              = "recover"
+	flagSkipConfigValidation = "skip-config-validation"
 )
