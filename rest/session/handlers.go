@@ -160,13 +160,12 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		ctx.Log().Info("Adding new peer", "key", body.Key)
 		result, err := ctx.Service().AddPeer(key)
 		if err != nil {
 			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 8, err.Error())
 			return
 		}
-		ctx.Log().Info("Added new peer", "key", body.Key, "count", ctx.Service().PeersCount())
+		ctx.Log().Info("Added a new peer", "key", body.Key, "count", ctx.Service().PeersCount())
 
 		ctx.Sessions().Set(
 			types.Session{
@@ -177,7 +176,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 				ConnectedAt: time.Now(),
 			},
 		)
-		ctx.Log().Info("Added new session", "id", id, "address", address, "count", ctx.Sessions().Len())
+		ctx.Log().Info("Added a new session", "id", id, "address", address, "count", ctx.Sessions().Len())
 
 		result = append(result, net.ParseIP(ctx.Location().IP).To4()...)
 		result = append(result, ctx.Service().Info()...)
