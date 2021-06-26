@@ -19,6 +19,8 @@ import (
 )
 
 const (
+	MinMonikerLength          = 5
+	MaxMonikerLength          = 30
 	MinIntervalSetSessions    = 2 * time.Minute
 	MaxIntervalSetSessions    = 10 * time.Minute
 	MinIntervalUpdateSessions = (2 * time.Hour) / 2
@@ -244,6 +246,15 @@ func (c *NodeConfig) Validate() error {
 	}
 	if c.ListenOn == "" {
 		return errors.New("listen_on cannot be empty")
+	}
+	if c.Moniker == "" {
+		return errors.New("moniker cannot be empty")
+	}
+	if len(c.Moniker) < MinMonikerLength {
+		return fmt.Errorf("moniker length cannot be less than %d", MinMonikerLength)
+	}
+	if len(c.Moniker) > MaxMonikerLength {
+		return fmt.Errorf("moniker length cannot be greater than %d", MaxMonikerLength)
 	}
 	if c.Price == "" && c.Provider == "" {
 		return errors.New("both price and provider cannot be empty")
