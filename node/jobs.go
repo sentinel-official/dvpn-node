@@ -10,7 +10,7 @@ import (
 )
 
 func (n *Node) jobSetSessions() error {
-	n.Log().Info("Starting job", "name", "set_sessions", "interval", n.IntervalSetSessions())
+	n.Log().Info("Starting a job", "name", "set_sessions", "interval", n.IntervalSetSessions())
 
 	t := time.NewTicker(n.IntervalSetSessions())
 	for ; ; <-t.C {
@@ -49,7 +49,7 @@ func (n *Node) jobSetSessions() error {
 }
 
 func (n *Node) jobUpdateStatus() error {
-	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalUpdateStatus())
+	n.Log().Info("Starting a job", "name", "update_status", "interval", n.IntervalUpdateStatus())
 
 	t := time.NewTicker(n.IntervalUpdateStatus())
 	for ; ; <-t.C {
@@ -60,7 +60,7 @@ func (n *Node) jobUpdateStatus() error {
 }
 
 func (n *Node) jobUpdateSessions() error {
-	n.Log().Info("Starting job", "name", "update_sessions", "interval", n.IntervalUpdateSessions())
+	n.Log().Info("Starting a job", "name", "update_sessions", "interval", n.IntervalUpdateSessions())
 
 	t := time.NewTicker(n.IntervalUpdateSessions())
 	for ; ; <-t.C {
@@ -83,16 +83,20 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			remove, skip := func() (bool, bool) {
+				var (
+					nochange = items[i].Download == session.Bandwidth.Upload.Int64()
+				)
+
 				switch {
-				case items[i].Download == session.Bandwidth.Upload.Int64() && items[i].ConnectedAt.Before(session.StatusAt):
+				case nochange && items[i].ConnectedAt.Before(session.StatusAt):
 					n.Log().Info("Stale peer connection", "id", items[i].ID)
 					return true, true
 				case !subscription.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid subscription status", "id", items[i].ID)
-					return true, subscription.Status.Equal(hubtypes.StatusInactive)
+					n.Log().Info("Invalid subscription status", "id", items[i].ID, "nochange", nochange)
+					return true, nochange || subscription.Status.Equal(hubtypes.StatusInactive)
 				case !session.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid session status", "id", items[i].ID)
-					return true, session.Status.Equal(hubtypes.StatusInactive)
+					n.Log().Info("Invalid session status", "id", items[i].ID, "nochange", nochange)
+					return true, nochange || session.Status.Equal(hubtypes.StatusInactive)
 				default:
 					return false, false
 				}
