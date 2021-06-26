@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -15,6 +16,15 @@ import (
 	"github.com/spf13/viper"
 
 	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
+)
+
+const (
+	MinIntervalSetSessions    = 2 * time.Minute
+	MaxIntervalSetSessions    = 5 * time.Minute
+	MinIntervalUpdateSessions = (2 * time.Hour) / 2
+	MaxIntervalUpdateSessions = (2 * time.Hour) - (5 * time.Minute)
+	MinIntervalUpdateStatus   = (1 * time.Hour) / 2
+	MaxIntervalUpdateStatus   = (1 * time.Hour) - (5 * time.Minute)
 )
 
 var (
@@ -118,6 +128,17 @@ func (c *ChainConfig) Validate() error {
 		return errors.New("rpc_address cannot be empty")
 	}
 
+	rpcAddress, err := url.ParseRequestURI(c.RPCAddress)
+	if err != nil {
+		return errors.Wrap(err, "invalid rpc_address")
+	}
+	if rpcAddress.Scheme != "http" && rpcAddress.Scheme != "https" {
+		return errors.New("rpc_address scheme must be either http or https")
+	}
+	if rpcAddress.Port() == "" {
+		return errors.New("rpc_address port cannot be empty")
+	}
+
 	return nil
 }
 
@@ -125,7 +146,7 @@ func (c *ChainConfig) WithDefaultValues() *ChainConfig {
 	c.GasAdjustment = 1.05
 	c.GasPrices = "0.1udvpn"
 	c.Gas = 200000
-	c.ID = ""
+	c.ID = "sentinelhub-2"
 	c.RPCAddress = "https://rpc.sentinel.co:443"
 	c.SimulateAndExecute = true
 
@@ -172,7 +193,7 @@ func (c *KeyringConfig) Validate() error {
 		return errors.New("backend cannot be empty")
 	}
 	if c.Backend != keyring.BackendFile && c.Backend != keyring.BackendTest {
-		return fmt.Errorf("unknown backend %s", c.Backend)
+		return fmt.Errorf("backend must be either %s or %s", keyring.BackendFile, keyring.BackendTest)
 	}
 	if c.From == "" {
 		return errors.New("from cannot be empty")
@@ -203,14 +224,23 @@ func NewNodeConfig() *NodeConfig {
 }
 
 func (c *NodeConfig) Validate() error {
-	if c.IntervalSetSessions <= 0 {
-		return errors.New("interval_set_sessions must be positive")
+	if c.IntervalSetSessions < MinIntervalSetSessions {
+		return fmt.Errorf("interval_set_sessions cannot be less than %s", MinIntervalSetSessions)
 	}
-	if c.IntervalUpdateSessions <= 0 {
-		return errors.New("interval_update_sessions must be positive")
+	if c.IntervalSetSessions > MaxIntervalSetSessions {
+		return fmt.Errorf("interval_set_sessions cannot be greater than %s", MaxIntervalSetSessions)
 	}
-	if c.IntervalUpdateStatus <= 0 {
-		return errors.New("interval_update_status must be positive")
+	if c.IntervalUpdateSessions < MinIntervalUpdateSessions {
+		return fmt.Errorf("interval_update_sessions cannot be less than %s", MinIntervalUpdateSessions)
+	}
+	if c.IntervalUpdateSessions > MaxIntervalUpdateSessions {
+		return fmt.Errorf("interval_update_sessions cannot be greater than %s", MaxIntervalUpdateSessions)
+	}
+	if c.IntervalUpdateStatus < MinIntervalUpdateStatus {
+		return fmt.Errorf("interval_set_sessions cannot be less than %s", MinIntervalUpdateStatus)
+	}
+	if c.IntervalUpdateStatus > MaxIntervalUpdateStatus {
+		return fmt.Errorf("interval_set_sessions cannot be greater than %s", MaxIntervalUpdateStatus)
 	}
 	if c.ListenOn == "" {
 		return errors.New("listen_on cannot be empty")
@@ -235,13 +265,24 @@ func (c *NodeConfig) Validate() error {
 		return errors.New("remote_url cannot be empty")
 	}
 
+	remoteURL, err := url.ParseRequestURI(c.RemoteURL)
+	if err != nil {
+		return errors.Wrap(err, "invalid remote_url")
+	}
+	if remoteURL.Scheme != "https" {
+		return errors.New("remote_url scheme must be https")
+	}
+	if remoteURL.Port() == "" {
+		return errors.New("remote_url port cannot be empty")
+	}
+
 	return nil
 }
 
 func (c *NodeConfig) WithDefaultValues() *NodeConfig {
-	c.IntervalSetSessions = 1 * 120 * time.Second
-	c.IntervalUpdateSessions = 0.9 * 120 * time.Minute
-	c.IntervalUpdateStatus = 0.9 * 60 * time.Minute
+	c.IntervalSetSessions = MinIntervalSetSessions
+	c.IntervalUpdateSessions = MaxIntervalUpdateSessions
+	c.IntervalUpdateStatus = MaxIntervalUpdateStatus
 	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
 
 	return c
