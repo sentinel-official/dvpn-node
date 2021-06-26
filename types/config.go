@@ -20,7 +20,7 @@ import (
 
 const (
 	MinIntervalSetSessions    = 2 * time.Minute
-	MaxIntervalSetSessions    = 5 * time.Minute
+	MaxIntervalSetSessions    = 10 * time.Minute
 	MinIntervalUpdateSessions = (2 * time.Hour) / 2
 	MaxIntervalUpdateSessions = (2 * time.Hour) - (5 * time.Minute)
 	MinIntervalUpdateStatus   = (1 * time.Hour) / 2

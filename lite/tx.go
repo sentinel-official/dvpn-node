@@ -11,7 +11,9 @@ import (
 
 func (c *Client) prepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err error) {
 	defer func() {
-		c.Log().Error("Failed to prepare the transaction", "error", err)
+		if err != nil {
+			c.Log().Error("Failed to prepare the transaction", "error", err)
+		}
 	}()
 
 	account, err := c.QueryAccount(c.FromAddress())
@@ -37,7 +39,9 @@ func (c *Client) prepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err erro
 
 func (c *Client) broadcastTx(txBytes []byte) (res *sdk.TxResponse, err error) {
 	defer func() {
-		c.Log().Error("Failed to broadcast the transaction", "error", err)
+		if err != nil {
+			c.Log().Error("Failed to broadcast the transaction", "error", err)
+		}
 	}()
 
 	res, err = c.ctx.BroadcastTx(txBytes)
