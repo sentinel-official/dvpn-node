@@ -23,5 +23,6 @@ replace (
 	github.com/99designs/keyring => github.com/99designs/keyring v1.1.7-0.20210324095724-d9b6b92e219f
 	github.com/cosmos/cosmos-sdk => github.com/sentinel-official/cosmos-sdk v0.42.6-sentinel
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+	github.com/showwin/speedtest-go => github.com/bsrinivas8687/speedtest-go v1.1.3-0.20210629110436-a23d0944a09d
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
