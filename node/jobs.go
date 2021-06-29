@@ -16,15 +16,19 @@ func (n *Node) jobSetSessions() error {
 	for ; ; <-t.C {
 		peers, err := n.Service().Peers()
 		if err != nil {
-			n.Log().Error("Failed to get connected peers", "error", err)
 			return err
 		}
-		n.Log().Info("Connected peers", "count", len(peers))
 
 		for i := 0; i < len(peers); i++ {
-			item := n.Sessions().GetByKey(peers[i].Key)
-			if item.Empty() {
-				n.Log().Error("Unknown connected peer", "peer", peers[i])
+			var item types.Session
+			n.Database().Where(
+				&types.Session{
+					Key: peers[i].Key,
+				},
+			).First(&item)
+
+			if item.ID == 0 {
+				n.Log().Info("Unknown connected peer", "key", peers[i].Key)
 				if err := n.RemovePeer(peers[i].Key); err != nil {
 					return err
 				}
@@ -32,14 +36,24 @@ func (n *Node) jobSetSessions() error {
 				continue
 			}
 
-			item.Upload = peers[i].Upload
-			item.Download = peers[i].Download
-			n.Sessions().Update(item)
+			n.Database().Model(
+				&types.Session{
+					Key: peers[i].Key,
+				},
+			).Updates(
+				&types.Session{
+					Upload:   peers[i].Upload,
+					Download: peers[i].Download,
+				},
+			)
 
-			consumed := sdk.NewInt(item.Upload + item.Download)
-			if consumed.GT(item.Available) {
-				n.Log().Info("Peer quota exceeded", "id", item.ID,
-					"available", item.Available, "consumed", consumed)
+			var (
+				available = sdk.NewInt(item.Available)
+				consumed  = sdk.NewInt(peers[i].Upload + peers[i].Download)
+			)
+
+			if consumed.GT(available) {
+				n.Log().Info("Peer quota exceeded", "key", peers[i].Key)
 				if err := n.RemovePeer(item.Key); err != nil {
 					return err
 				}
@@ -65,11 +79,7 @@ func (n *Node) jobUpdateSessions() error {
 	t := time.NewTicker(n.IntervalUpdateSessions())
 	for ; ; <-t.C {
 		var items []types.Session
-		n.Sessions().Iterate(func(v types.Session) bool {
-			items = append(items, v)
-			return false
-		})
-		n.Log().Info("Iterated sessions", "count", len(items))
+		n.Database().Find(&items)
 
 		for i := len(items) - 1; i >= 0; i-- {
 			session, err := n.Client().QuerySession(items[i].ID)
@@ -88,7 +98,7 @@ func (n *Node) jobUpdateSessions() error {
 				)
 
 				switch {
-				case nochange && items[i].ConnectedAt.Before(session.StatusAt):
+				case nochange && items[i].CreatedAt.Before(session.StatusAt): // TODO: Review condition here
 					n.Log().Info("Stale peer connection", "id", items[i].ID)
 					return true, true
 				case !subscription.Status.Equal(hubtypes.StatusActive):
@@ -103,9 +113,15 @@ func (n *Node) jobUpdateSessions() error {
 			}()
 
 			if remove {
-				if err := n.RemovePeerAndSession(items[i].Key, items[i].Address); err != nil {
+				if err := n.RemovePeer(items[i].Key); err != nil {
 					return err
 				}
+
+				n.Database().Delete(
+					&types.Session{
+						Address: items[i].Address,
+					},
+				)
 			}
 			if skip {
 				items = append(items[:i], items[i+1:]...)
