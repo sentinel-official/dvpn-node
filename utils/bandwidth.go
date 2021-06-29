@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/showwin/speedtest-go/speedtest"
@@ -23,29 +25,27 @@ func Bandwidth() (*hubtypes.Bandwidth, error) {
 	}
 
 	var (
-		upload   int64
-		download int64
+		upload   = sdk.ZeroDec()
+		download = sdk.ZeroDec()
 	)
 
 	for _, target := range targets {
 		if err := target.PingTest(); err != nil {
 			return nil, err
 		}
-
 		if err := target.DownloadTest(false); err != nil {
 			return nil, err
 		}
-
 		if err := target.UploadTest(false); err != nil {
 			return nil, err
 		}
 
-		upload += int64((target.ULSpeed * 1e6) / 8)
-		download += int64((target.DLSpeed * 1e6) / 8)
+		upload = upload.Add(sdk.MustNewDecFromStr(fmt.Sprintf("%f", target.ULSpeed)))
+		download = download.Add(sdk.MustNewDecFromStr(fmt.Sprintf("%f", target.DLSpeed)))
 	}
 
 	return &hubtypes.Bandwidth{
-		Upload:   sdk.NewInt(upload),
-		Download: sdk.NewInt(download),
+		Upload:   upload.Mul(sdk.NewDec(1e6)).QuoInt64(8).TruncateInt(),
+		Download: download.Mul(sdk.NewDec(1e6)).QuoInt64(8).TruncateInt(),
 	}, nil
 }
