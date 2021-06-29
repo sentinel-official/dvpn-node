@@ -36,7 +36,7 @@ func (n *Node) jobSetSessions() error {
 				continue
 			}
 
-			n.Database().Model(
+			n.Database().Where(
 				&types.Session{
 					Key: peers[i].Key,
 				},
@@ -117,10 +117,12 @@ func (n *Node) jobUpdateSessions() error {
 					return err
 				}
 
-				n.Database().Delete(
+				n.Database().Where(
 					&types.Session{
 						Address: items[i].Address,
 					},
+				).Delete(
+					&types.Session{},
 				)
 			}
 			if skip {

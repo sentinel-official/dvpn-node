@@ -167,6 +167,11 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
+			log.Info("Migrating database models...")
+			if err := database.AutoMigrate(&types.Session{}); err != nil {
+				return err
+			}
+
 			var (
 				ctx    = context.NewContext()
 				router = mux.NewRouter()

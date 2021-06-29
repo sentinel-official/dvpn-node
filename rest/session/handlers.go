@@ -79,6 +79,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			utils.WriteErrorToResponse(w, http.StatusBadRequest, 3, err.Error())
 			return
 		}
+
 		if item.ID != 0 {
 			session, err := ctx.Client().QuerySession(item.ID)
 			if err != nil {
@@ -102,10 +103,12 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			}
 
 			if session.Status.Equal(hubtypes.StatusInactive) {
-				_ = ctx.Database().Delete(
+				ctx.Database().Where(
 					&types.Session{
 						Address: item.Address,
 					},
+				).Delete(
+					&types.Session{},
 				)
 			}
 		}
