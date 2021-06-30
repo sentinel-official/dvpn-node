@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	hubtypes "github.com/sentinel-official/hub/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	"gorm.io/gorm"
 
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/types"
@@ -18,9 +19,9 @@ type Context struct {
 	bandwidth *hubtypes.Bandwidth
 	client    *lite.Client
 	config    *types.Config
+	database  *gorm.DB
 	location  *types.GeoIPLocation
 	router    *mux.Router
-	sessions  *types.Sessions
 }
 
 func NewContext() *Context {
@@ -34,7 +35,7 @@ func (c *Context) WithLocation(v *types.GeoIPLocation) *Context { c.location = v
 func (c *Context) WithLogger(v tmlog.Logger) *Context           { c.logger = v; return c }
 func (c *Context) WithRouter(v *mux.Router) *Context            { c.router = v; return c }
 func (c *Context) WithService(v types.Service) *Context         { c.service = v; return c }
-func (c *Context) WithSessions(v *types.Sessions) *Context      { c.sessions = v; return c }
+func (c *Context) WithDatabase(v *gorm.DB) *Context             { c.database = v; return c }
 
 func (c *Context) Address() hubtypes.NodeAddress       { return c.Operator().Bytes() }
 func (c *Context) Bandwidth() *hubtypes.Bandwidth      { return c.bandwidth }
@@ -50,7 +51,7 @@ func (c *Context) Operator() sdk.AccAddress            { return c.client.FromAdd
 func (c *Context) RemoteURL() string                   { return c.Config().Node.RemoteURL }
 func (c *Context) Router() *mux.Router                 { return c.router }
 func (c *Context) Service() types.Service              { return c.service }
-func (c *Context) Sessions() *types.Sessions           { return c.sessions }
+func (c *Context) Database() *gorm.DB                  { return c.database }
 
 func (c *Context) IntervalUpdateSessions() time.Duration {
 	return c.Config().Node.IntervalUpdateSessions

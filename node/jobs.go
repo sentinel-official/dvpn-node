@@ -16,15 +16,21 @@ func (n *Node) jobSetSessions() error {
 	for ; ; <-t.C {
 		peers, err := n.Service().Peers()
 		if err != nil {
-			n.Log().Error("Failed to get connected peers", "error", err)
 			return err
 		}
-		n.Log().Info("Connected peers", "count", len(peers))
 
 		for i := 0; i < len(peers); i++ {
-			item := n.Sessions().GetByKey(peers[i].Key)
-			if item.Empty() {
-				n.Log().Error("Unknown connected peer", "peer", peers[i])
+			var item types.Session
+			n.Database().Model(
+				&types.Session{},
+			).Where(
+				&types.Session{
+					Key: peers[i].Key,
+				},
+			).First(&item)
+
+			if item.ID == 0 {
+				n.Log().Info("Unknown connected peer", "key", peers[i].Key)
 				if err := n.RemovePeer(peers[i].Key); err != nil {
 					return err
 				}
@@ -32,14 +38,26 @@ func (n *Node) jobSetSessions() error {
 				continue
 			}
 
-			item.Upload = peers[i].Upload
-			item.Download = peers[i].Download
-			n.Sessions().Update(item)
+			n.Database().Model(
+				&types.Session{},
+			).Where(
+				&types.Session{
+					ID: item.ID,
+				},
+			).Updates(
+				&types.Session{
+					Upload:   peers[i].Upload,
+					Download: peers[i].Download,
+				},
+			)
 
-			consumed := sdk.NewInt(item.Upload + item.Download)
-			if consumed.GT(item.Available) {
-				n.Log().Info("Peer quota exceeded", "id", item.ID,
-					"available", item.Available, "consumed", consumed)
+			var (
+				available = sdk.NewInt(item.Available)
+				consumed  = sdk.NewInt(peers[i].Upload + peers[i].Download)
+			)
+
+			if consumed.GT(available) {
+				n.Log().Info("Peer quota exceeded", "key", peers[i].Key)
 				if err := n.RemovePeer(item.Key); err != nil {
 					return err
 				}
@@ -65,11 +83,9 @@ func (n *Node) jobUpdateSessions() error {
 	t := time.NewTicker(n.IntervalUpdateSessions())
 	for ; ; <-t.C {
 		var items []types.Session
-		n.Sessions().Iterate(func(v types.Session) bool {
-			items = append(items, v)
-			return false
-		})
-		n.Log().Info("Iterated sessions", "count", len(items))
+		n.Database().Model(
+			&types.Session{},
+		).Find(&items)
 
 		for i := len(items) - 1; i >= 0; i-- {
 			session, err := n.Client().QuerySession(items[i].ID)
@@ -82,39 +98,72 @@ func (n *Node) jobUpdateSessions() error {
 				return err
 			}
 
-			remove, skip := func() (bool, bool) {
-				var (
-					nochange = items[i].Download == session.Bandwidth.Upload.Int64()
-				)
+			var (
+				removePeer    = false
+				removeSession = false
+				skipUpdate    = false
+			)
 
-				switch {
-				case nochange && items[i].ConnectedAt.Before(session.StatusAt):
-					n.Log().Info("Stale peer connection", "id", items[i].ID)
-					return true, true
-				case !subscription.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid subscription status", "id", items[i].ID, "nochange", nochange)
-					return true, nochange || subscription.Status.Equal(hubtypes.StatusInactive)
-				case !session.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid session status", "id", items[i].ID, "nochange", nochange)
-					return true, nochange || session.Status.Equal(hubtypes.StatusInactive)
-				default:
-					return false, false
+			if items[i].Download == session.Bandwidth.Upload.Int64() {
+				skipUpdate = true
+				if items[i].CreatedAt.Before(session.StatusAt) {
+					removePeer = true
 				}
-			}()
 
-			if remove {
-				if err := n.RemovePeerAndSession(items[i].Key, items[i].Address); err != nil {
+				n.Log().Info("Stale peer connection", "id", items[i].ID)
+			}
+			if !subscription.Status.Equal(hubtypes.StatusActive) {
+				removePeer = true
+				if subscription.Status.Equal(hubtypes.StatusInactive) {
+					removeSession, skipUpdate = true, true
+				}
+
+				n.Log().Info("Invalid subscription status", "id", items[i].ID)
+			}
+			if !session.Status.Equal(hubtypes.StatusActive) {
+				removePeer = true
+				if session.Status.Equal(hubtypes.StatusInactive) {
+					removeSession, skipUpdate = true, true
+				}
+
+				n.Log().Info("Invalid session status", "id", items[i].ID)
+			}
+
+			if removePeer {
+				if err := n.RemovePeer(items[i].Key); err != nil {
 					return err
 				}
 			}
-			if skip {
+
+			if removeSession {
+				n.Database().Model(
+					&types.Session{},
+				).Where(
+					&types.Session{
+						ID: items[i].ID,
+					},
+				).Update(
+					"address", "",
+				)
+			}
+
+			if skipUpdate {
 				items = append(items[:i], items[i+1:]...)
 			}
 		}
 
+		n.Database().Model(
+			&types.Session{},
+		).Where(
+			"address = ?", "",
+		).Delete(
+			&types.Session{},
+		)
+
 		if len(items) == 0 {
 			continue
 		}
+
 		if err := n.UpdateSessions(items...); err != nil {
 			return err
 		}

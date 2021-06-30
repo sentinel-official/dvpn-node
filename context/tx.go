@@ -1,8 +1,6 @@
 package context
 
 import (
-	"time"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	nodetypes "github.com/sentinel-official/hub/x/node/types"
@@ -69,14 +67,14 @@ func (c *Context) UpdateNodeStatus() error {
 func (c *Context) UpdateSessions(items ...types.Session) error {
 	c.Log().Info("Updating sessions...")
 
-	var messages []sdk.Msg
+	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
 		messages = append(messages,
 			sessiontypes.NewMsgUpdateRequest(
 				c.Address(),
 				sessiontypes.Proof{
 					Id:        item.ID,
-					Duration:  time.Since(item.ConnectedAt),
+					Duration:  item.UpdatedAt.Sub(item.CreatedAt),
 					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
 				},
 				nil,

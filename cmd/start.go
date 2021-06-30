@@ -17,6 +17,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/lite"
@@ -34,8 +37,9 @@ func StartCmd() *cobra.Command {
 		Short: "Start VPN node",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home         = viper.GetString(flags.FlagHome)
+				configPath   = filepath.Join(home, types.ConfigFileName)
+				databasePath = filepath.Join(home, types.DatabaseFileName)
 			)
 
 			log, err := utils.PrepareLogger()
@@ -44,9 +48,9 @@ func StartCmd() *cobra.Command {
 			}
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			log.Info("Reading the configuration file", "path", path)
+			log.Info("Reading the configuration file", "path", configPath)
 			cfg, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
@@ -158,6 +162,22 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
+			log.Info("Opening the database", "path", databasePath)
+			database, err := gorm.Open(
+				sqlite.Open(databasePath),
+				&gorm.Config{
+					Logger: logger.Discard,
+				},
+			)
+			if err != nil {
+				return err
+			}
+
+			log.Info("Migrating database models...")
+			if err := database.AutoMigrate(&types.Session{}); err != nil {
+				return err
+			}
+
 			var (
 				ctx    = context.NewContext()
 				router = mux.NewRouter()
@@ -172,7 +192,7 @@ func StartCmd() *cobra.Command {
 				WithConfig(cfg).
 				WithClient(client).
 				WithLocation(location).
-				WithSessions(types.NewSessions()).
+				WithDatabase(database).
 				WithBandwidth(bandwidth)
 
 			n := node.NewNode(ctx)
