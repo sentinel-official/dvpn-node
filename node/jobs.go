@@ -38,7 +38,7 @@ func (n *Node) jobSetSessions() error {
 
 			n.Database().Where(
 				&types.Session{
-					Key: peers[i].Key,
+					ID: item.ID,
 				},
 			).Updates(
 				&types.Session{
@@ -98,7 +98,7 @@ func (n *Node) jobUpdateSessions() error {
 				)
 
 				switch {
-				case nochange && items[i].CreatedAt.Before(session.StatusAt): // TODO: Review condition here
+				case nochange && items[i].CreatedAt.Before(session.StatusAt):
 					n.Log().Info("Stale peer connection", "id", items[i].ID)
 					return true, true
 				case !subscription.Status.Equal(hubtypes.StatusActive):
@@ -119,7 +119,7 @@ func (n *Node) jobUpdateSessions() error {
 
 				n.Database().Where(
 					&types.Session{
-						Address: items[i].Address,
+						ID: items[i].ID,
 					},
 				).Delete(
 					&types.Session{},
