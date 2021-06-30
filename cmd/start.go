@@ -19,6 +19,7 @@ import (
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/lite"
@@ -162,7 +163,12 @@ func StartCmd() *cobra.Command {
 			}
 
 			log.Info("Opening the database", "path", databasePath)
-			database, err := gorm.Open(sqlite.Open(databasePath))
+			database, err := gorm.Open(
+				sqlite.Open(databasePath),
+				&gorm.Config{
+					Logger: logger.Discard,
+				},
+			)
 			if err != nil {
 				return err
 			}
