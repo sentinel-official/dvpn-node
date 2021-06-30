@@ -67,7 +67,7 @@ func (c *Context) UpdateNodeStatus() error {
 func (c *Context) UpdateSessions(items ...types.Session) error {
 	c.Log().Info("Updating sessions...")
 
-	var messages []sdk.Msg
+	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
 		messages = append(messages,
 			sessiontypes.NewMsgUpdateRequest(
