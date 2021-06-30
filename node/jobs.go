@@ -21,7 +21,9 @@ func (n *Node) jobSetSessions() error {
 
 		for i := 0; i < len(peers); i++ {
 			var item types.Session
-			n.Database().Where(
+			n.Database().Model(
+				&types.Session{},
+			).Where(
 				&types.Session{
 					Key: peers[i].Key,
 				},
@@ -36,7 +38,9 @@ func (n *Node) jobSetSessions() error {
 				continue
 			}
 
-			n.Database().Where(
+			n.Database().Model(
+				&types.Session{},
+			).Where(
 				&types.Session{
 					ID: item.ID,
 				},
@@ -79,7 +83,9 @@ func (n *Node) jobUpdateSessions() error {
 	t := time.NewTicker(n.IntervalUpdateSessions())
 	for ; ; <-t.C {
 		var items []types.Session
-		n.Database().Find(&items)
+		n.Database().Model(
+			&types.Session{},
+		).Find(&items)
 
 		for i := len(items) - 1; i >= 0; i-- {
 			session, err := n.Client().QuerySession(items[i].ID)
@@ -130,7 +136,9 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			if removeSession {
-				n.Database().Where(
+				n.Database().Model(
+					&types.Session{},
+				).Where(
 					&types.Session{
 						ID: items[i].ID,
 					},
@@ -144,7 +152,9 @@ func (n *Node) jobUpdateSessions() error {
 			}
 		}
 
-		n.Database().Where(
+		n.Database().Model(
+			&types.Session{},
+		).Where(
 			"address = ?", "",
 		).Delete(
 			&types.Session{},

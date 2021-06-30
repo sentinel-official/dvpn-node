@@ -124,7 +124,9 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		var item types.Session
-		ctx.Database().Where(
+		ctx.Database().Model(
+			&types.Session{},
+		).Where(
 			&types.Session{
 				ID: id,
 			},
@@ -137,7 +139,9 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		item = types.Session{}
-		ctx.Database().Where(
+		ctx.Database().Model(
+			&types.Session{},
+		).Where(
 			&types.Session{
 				Key: body.Key,
 			},
@@ -150,7 +154,9 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		var items []types.Session
-		ctx.Database().Where(
+		ctx.Database().Model(
+			&types.Session{},
+		).Where(
 			&types.Session{
 				Subscription: subscription.Id,
 				Address:      address.String(),
@@ -180,7 +186,9 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			}
 
 			if session.Status.Equal(hubtypes.StatusInactive) {
-				ctx.Database().Where(
+				ctx.Database().Model(
+					&types.Session{},
+				).Where(
 					&types.Session{
 						ID: items[i].ID,
 					},
@@ -202,7 +210,9 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		items = []types.Session{}
-		ctx.Database().Where(
+		ctx.Database().Model(
+			&types.Session{},
+		).Where(
 			&types.Session{
 				Subscription: subscription.Id,
 				Address:      address.String(),
@@ -233,7 +243,9 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 		ctx.Log().Info("Added a new peer", "key", body.Key, "count", ctx.Service().PeersCount())
 
-		ctx.Database().Create(
+		ctx.Database().Model(
+			&types.Session{},
+		).Create(
 			&types.Session{
 				ID:           id,
 				Subscription: subscription.Id,
