@@ -210,9 +210,10 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		).Find(&items)
 
 		for i := 0; i < len(items); i++ {
+			consumed := items[i].Download + items[i].Upload
 			quota.Consumed = quota.Consumed.Add(
 				hubtypes.NewBandwidthFromInt64(
-					items[i].Download, items[i].Upload,
+					consumed, 0,
 				).CeilTo(
 					hubtypes.Gigabyte.Quo(subscription.Price.Amount),
 				).Sum(),
@@ -220,7 +221,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		if quota.Consumed.GTE(quota.Allocated) {
-			err := fmt.Errorf("quota exceeded; allocated %d, consumed %d", quota.Allocated.Int64(), quota.Consumed.Int64())
+			err := fmt.Errorf("quota exceeded; allocated %s, consumed %s", quota.Allocated, quota.Consumed)
 			utils.WriteErrorToResponse(w, http.StatusBadRequest, 10, err.Error())
 			return
 		}

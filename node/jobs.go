@@ -92,40 +92,55 @@ func (n *Node) jobUpdateSessions() error {
 				return err
 			}
 
-			remove, skip := func() (bool, bool) {
-				var (
-					nochange = items[i].Download == session.Bandwidth.Upload.Int64()
-				)
+			var (
+				removePeer    = false
+				removeSession = false
+				skipUpdate    = false
+			)
 
-				switch {
-				case nochange && items[i].CreatedAt.Before(session.StatusAt):
-					n.Log().Info("Stale peer connection", "id", items[i].ID)
-					return true, true
-				case !subscription.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid subscription status", "id", items[i].ID, "nochange", nochange)
-					return true, nochange || subscription.Status.Equal(hubtypes.StatusInactive)
-				case !session.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid session status", "id", items[i].ID, "nochange", nochange)
-					return true, nochange || session.Status.Equal(hubtypes.StatusInactive)
-				default:
-					return false, false
+			switch {
+			case items[i].Download == session.Bandwidth.Upload.Int64():
+				skipUpdate = true
+				if items[i].CreatedAt.Before(session.StatusAt) {
+					removePeer = true
 				}
-			}()
 
-			if remove {
+				n.Log().Info("Stale peer connection", "id", items[i].ID)
+			case !subscription.Status.Equal(hubtypes.StatusActive):
+				removePeer = true
+				if subscription.Status.Equal(hubtypes.StatusInactive) {
+					removeSession, skipUpdate = true, true
+				}
+
+				n.Log().Info("Invalid subscription status", "id", items[i].ID)
+			case !session.Status.Equal(hubtypes.StatusActive):
+				removePeer = true
+				if subscription.Status.Equal(hubtypes.StatusInactive) {
+					removeSession, skipUpdate = true, true
+				}
+
+				n.Log().Info("Invalid session status", "id", items[i].ID)
+			}
+
+			if removePeer {
 				if err := n.RemovePeer(items[i].Key); err != nil {
 					return err
 				}
+			}
 
+			if removeSession {
 				n.Database().Where(
 					&types.Session{
 						ID: items[i].ID,
 					},
-				).Delete(
-					&types.Session{},
+				).Updates(
+					&types.Session{
+						Address: "",
+					},
 				)
 			}
-			if skip {
+
+			if skipUpdate {
 				items = append(items[:i], items[i+1:]...)
 			}
 		}
@@ -136,5 +151,13 @@ func (n *Node) jobUpdateSessions() error {
 		if err := n.UpdateSessions(items...); err != nil {
 			return err
 		}
+
+		n.Database().Where(
+			&types.Session{
+				Address: "",
+			},
+		).Delete(
+			&types.Session{},
+		)
 	}
 }
