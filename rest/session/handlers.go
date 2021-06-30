@@ -52,7 +52,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 		if account == nil {
-			var err = fmt.Errorf("account %s does not exist", address)
+			err := fmt.Errorf("account %s does not exist", address)
 			utils.WriteErrorToResponse(w, http.StatusNotFound, 2, err.Error())
 			return
 		}
@@ -67,45 +67,122 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		var item types.Session
-		ctx.Database().Where(
-			&types.Session{
-				Address: address.String(),
-			},
-		).First(&item)
-
-		if item.Key == body.Key {
-			err := fmt.Errorf("key %s for service already exist", body.Key)
+		session, err := ctx.Client().QuerySession(id)
+		if err != nil {
+			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 3, err.Error())
+			return
+		}
+		if session == nil {
+			err := fmt.Errorf("session %d does not exist", id)
+			utils.WriteErrorToResponse(w, http.StatusNotFound, 3, err.Error())
+			return
+		}
+		if !session.Status.Equal(hubtypes.StatusActive) {
+			err := fmt.Errorf("invalid status %s for session %d", session.Status, session.Id)
+			utils.WriteErrorToResponse(w, http.StatusBadRequest, 3, err.Error())
+			return
+		}
+		if session.Address != address.String() {
+			err := fmt.Errorf("account address mismatch; expected %s, got %s", address, session.Address)
 			utils.WriteErrorToResponse(w, http.StatusBadRequest, 3, err.Error())
 			return
 		}
 
-		if item.ID != 0 {
-			session, err := ctx.Client().QuerySession(item.ID)
+		subscription, err := ctx.Client().QuerySubscription(session.Subscription)
+		if err != nil {
+			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 4, err.Error())
+			return
+		}
+		if subscription == nil {
+			err := fmt.Errorf("subscription %d does not exist", session.Subscription)
+			utils.WriteErrorToResponse(w, http.StatusNotFound, 4, err.Error())
+			return
+		}
+		if !subscription.Status.Equal(hubtypes.Active) {
+			err := fmt.Errorf("invalid status %s for subscription %d", subscription.Status, subscription.Id)
+			utils.WriteErrorToResponse(w, http.StatusBadRequest, 4, err.Error())
+			return
+		}
+
+		if subscription.Plan == 0 {
+			if subscription.Node != ctx.Address().String() {
+				err := fmt.Errorf("node address mismatch; expected %s, got %s", ctx.Address(), subscription.Node)
+				utils.WriteErrorToResponse(w, http.StatusBadRequest, 5, err.Error())
+				return
+			}
+		} else {
+			ok, err := ctx.Client().HasNodeForPlan(subscription.Plan, ctx.Address())
 			if err != nil {
-				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 4, err.Error())
+				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 5, err.Error())
+				return
+			}
+			if !ok {
+				err := fmt.Errorf("node %s does not exist for plan %d", ctx.Address(), id)
+				utils.WriteErrorToResponse(w, http.StatusBadRequest, 5, err.Error())
+				return
+			}
+		}
+
+		var item types.Session
+		ctx.Database().Where(
+			&types.Session{
+				ID: id,
+			},
+		).First(&item)
+
+		if item.ID != 0 {
+			err := fmt.Errorf("peer for session %d already exist", id)
+			utils.WriteErrorToResponse(w, http.StatusBadRequest, 6, err.Error())
+			return
+		}
+
+		item = types.Session{}
+		ctx.Database().Where(
+			&types.Session{
+				Key: body.Key,
+			},
+		).First(&item)
+
+		if item.ID != 0 {
+			err := fmt.Errorf("key %s for service already exist", body.Key)
+			utils.WriteErrorToResponse(w, http.StatusBadRequest, 6, err.Error())
+			return
+		}
+
+		var items []types.Session
+		ctx.Database().Where(
+			&types.Session{
+				Subscription: subscription.Id,
+				Address:      address.String(),
+			},
+		).Find(&items)
+
+		for i := 0; i < len(items); i++ {
+			session, err := ctx.Client().QuerySession(items[i].ID)
+			if err != nil {
+				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 7, err.Error())
 				return
 			}
 			if session == nil {
-				err := fmt.Errorf("session %d does not exist", item.ID)
-				utils.WriteErrorToResponse(w, http.StatusNotFound, 4, err.Error())
+				err := fmt.Errorf("session %d does not exist", items[i].ID)
+				utils.WriteErrorToResponse(w, http.StatusNotFound, 7, err.Error())
 				return
 			}
 			if session.Status.Equal(hubtypes.StatusActive) {
-				err := fmt.Errorf("invalid session status %s", session.Status)
-				utils.WriteErrorToResponse(w, http.StatusBadRequest, 4, err.Error())
+				err := fmt.Errorf("invalid status %s for session %d", session.Status, session.Id)
+				utils.WriteErrorToResponse(w, http.StatusBadRequest, 7, err.Error())
 				return
 			}
 
-			if err := ctx.RemovePeer(item.Key); err != nil {
-				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 4, err.Error())
+			if err := ctx.RemovePeer(items[i].Key); err != nil {
+				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 8, err.Error())
 				return
 			}
 
 			if session.Status.Equal(hubtypes.StatusInactive) {
 				ctx.Database().Where(
 					&types.Session{
-						Address: item.Address,
+						ID: items[i].ID,
 					},
 				).Delete(
 					&types.Session{},
@@ -113,84 +190,29 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			}
 		}
 
-		session, err := ctx.Client().QuerySession(id)
-		if err != nil {
-			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 5, err.Error())
-			return
-		}
-		if session == nil {
-			err := fmt.Errorf("session %d does not exist", id)
-			utils.WriteErrorToResponse(w, http.StatusNotFound, 5, err.Error())
-			return
-		}
-		if !session.Status.Equal(hubtypes.StatusActive) {
-			err := fmt.Errorf("invalid session status %s", session.Status)
-			utils.WriteErrorToResponse(w, http.StatusBadRequest, 5, err.Error())
-			return
-		}
-		if session.Address != address.String() {
-			err := fmt.Errorf("account address mismatch; expected %s, got %s", address, session.Address)
-			utils.WriteErrorToResponse(w, http.StatusBadRequest, 5, err.Error())
-			return
-		}
-
-		subscription, err := ctx.Client().QuerySubscription(session.Subscription)
-		if err != nil {
-			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 6, err.Error())
-			return
-		}
-		if subscription == nil {
-			err := fmt.Errorf("subscription %d does not exist", session.Subscription)
-			utils.WriteErrorToResponse(w, http.StatusNotFound, 6, err.Error())
-			return
-		}
-		if !subscription.Status.Equal(hubtypes.Active) {
-			err := fmt.Errorf("invalid subscription status %s", subscription.Status)
-			utils.WriteErrorToResponse(w, http.StatusBadRequest, 6, err.Error())
-			return
-		}
-
-		if subscription.Plan == 0 {
-			if subscription.Node != ctx.Address().String() {
-				err := fmt.Errorf("node address mismatch; got %s", subscription.Node)
-				utils.WriteErrorToResponse(w, http.StatusBadRequest, 7, err.Error())
-				return
-			}
-		} else {
-			ok, err := ctx.Client().HasNodeForPlan(subscription.Plan, ctx.Address())
-			if err != nil {
-				utils.WriteErrorToResponse(w, http.StatusInternalServerError, 7, err.Error())
-				return
-			}
-			if !ok {
-				err := fmt.Errorf("node %s does not exist for plan %d", ctx.Address(), id)
-				utils.WriteErrorToResponse(w, http.StatusBadRequest, 7, err.Error())
-				return
-			}
-		}
-
 		quota, err := ctx.Client().QueryQuota(subscription.Id, address)
 		if err != nil {
-			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 8, err.Error())
+			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 9, err.Error())
 			return
 		}
 		if quota == nil {
 			err := fmt.Errorf("quota for address %s does not exist", address)
-			utils.WriteErrorToResponse(w, http.StatusNotFound, 8, err.Error())
+			utils.WriteErrorToResponse(w, http.StatusNotFound, 9, err.Error())
 			return
 		}
 
-		item = types.Session{}
+		items = []types.Session{}
 		ctx.Database().Where(
 			&types.Session{
-				Address: address.String(),
+				Subscription: subscription.Id,
+				Address:      address.String(),
 			},
-		).First(&item)
+		).Find(&items)
 
-		if item.ID != 0 {
+		for i := 0; i < len(items); i++ {
 			quota.Consumed = quota.Consumed.Add(
 				hubtypes.NewBandwidthFromInt64(
-					item.Download, item.Upload,
+					items[i].Download, items[i].Upload,
 				).CeilTo(
 					hubtypes.Gigabyte.Quo(subscription.Price.Amount),
 				).Sum(),
@@ -198,24 +220,25 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 		}
 
 		if quota.Consumed.GTE(quota.Allocated) {
-			err := fmt.Errorf("quota exceeded; consumed %d", quota.Consumed.Int64())
-			utils.WriteErrorToResponse(w, http.StatusBadRequest, 9, err.Error())
+			err := fmt.Errorf("quota exceeded; allocated %d, consumed %d", quota.Allocated.Int64(), quota.Consumed.Int64())
+			utils.WriteErrorToResponse(w, http.StatusBadRequest, 10, err.Error())
 			return
 		}
 
 		result, err := ctx.Service().AddPeer(key)
 		if err != nil {
-			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 8, err.Error())
+			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 11, err.Error())
 			return
 		}
 		ctx.Log().Info("Added a new peer", "key", body.Key, "count", ctx.Service().PeersCount())
 
 		ctx.Database().Create(
 			&types.Session{
-				ID:        id,
-				Key:       body.Key,
-				Address:   address.String(),
-				Available: quota.Allocated.Sub(quota.Consumed).Int64(),
+				ID:           id,
+				Subscription: subscription.Id,
+				Key:          body.Key,
+				Address:      address.String(),
+				Available:    quota.Allocated.Sub(quota.Consumed).Int64(),
 			},
 		)
 

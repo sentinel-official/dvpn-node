@@ -7,12 +7,13 @@ import (
 
 type Session struct {
 	*gorm.Model
-	ID        uint64 `gorm:"primaryKey"`
-	Key       string
-	Address   string
-	Available int64
-	Download  int64
-	Upload    int64
+	ID           uint64 `gorm:"primaryKey"`
+	Subscription uint64
+	Key          string `gorm:"unique"`
+	Address      string
+	Available    int64
+	Download     int64
+	Upload       int64
 }
 
 func (s *Session) GetAddress() sdk.AccAddress {
