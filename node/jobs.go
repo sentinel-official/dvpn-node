@@ -98,22 +98,23 @@ func (n *Node) jobUpdateSessions() error {
 				skipUpdate    = false
 			)
 
-			switch {
-			case items[i].Download == session.Bandwidth.Upload.Int64():
+			if items[i].Download == session.Bandwidth.Upload.Int64() {
 				skipUpdate = true
 				if items[i].CreatedAt.Before(session.StatusAt) {
 					removePeer = true
 				}
 
 				n.Log().Info("Stale peer connection", "id", items[i].ID)
-			case !subscription.Status.Equal(hubtypes.StatusActive):
+			}
+			if !subscription.Status.Equal(hubtypes.StatusActive) {
 				removePeer = true
 				if subscription.Status.Equal(hubtypes.StatusInactive) {
 					removeSession, skipUpdate = true, true
 				}
 
 				n.Log().Info("Invalid subscription status", "id", items[i].ID)
-			case !session.Status.Equal(hubtypes.StatusActive):
+			}
+			if !session.Status.Equal(hubtypes.StatusActive) {
 				removePeer = true
 				if subscription.Status.Equal(hubtypes.StatusInactive) {
 					removeSession, skipUpdate = true, true
@@ -133,10 +134,8 @@ func (n *Node) jobUpdateSessions() error {
 					&types.Session{
 						ID: items[i].ID,
 					},
-				).Updates(
-					&types.Session{
-						Address: "",
-					},
+				).Update(
+					"address", "",
 				)
 			}
 
@@ -145,19 +144,18 @@ func (n *Node) jobUpdateSessions() error {
 			}
 		}
 
-		if len(items) == 0 {
-			continue
-		}
-		if err := n.UpdateSessions(items...); err != nil {
-			return err
-		}
-
 		n.Database().Where(
-			&types.Session{
-				Address: "",
-			},
+			"address = ?", "",
 		).Delete(
 			&types.Session{},
 		)
+
+		if len(items) == 0 {
+			continue
+		}
+
+		if err := n.UpdateSessions(items...); err != nil {
+			return err
+		}
 	}
 }
