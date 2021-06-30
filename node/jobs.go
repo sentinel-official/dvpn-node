@@ -122,7 +122,7 @@ func (n *Node) jobUpdateSessions() error {
 			}
 			if !session.Status.Equal(hubtypes.StatusActive) {
 				removePeer = true
-				if subscription.Status.Equal(hubtypes.StatusInactive) {
+				if session.Status.Equal(hubtypes.StatusInactive) {
 					removeSession, skipUpdate = true, true
 				}
 
