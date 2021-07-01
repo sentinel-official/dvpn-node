@@ -169,7 +169,7 @@ func (n *Node) jobUpdateSessions() error {
 			&types.Session{},
 		).Where(
 			"address = ?", "",
-		).Delete(
+		).Unscoped().Delete(
 			&types.Session{},
 		)
 

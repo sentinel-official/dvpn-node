@@ -166,7 +166,8 @@ func StartCmd() *cobra.Command {
 			database, err := gorm.Open(
 				sqlite.Open(databasePath),
 				&gorm.Config{
-					Logger: logger.Discard,
+					Logger:      logger.Discard,
+					PrepareStmt: true,
 				},
 			)
 			if err != nil {
