@@ -17,6 +17,8 @@ require (
 	github.com/tendermint/tendermint v0.34.11
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	google.golang.org/grpc v1.38.0
+	gorm.io/driver/sqlite v1.1.4
+	gorm.io/gorm v1.21.11
 )
 
 replace (
