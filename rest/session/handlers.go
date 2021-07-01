@@ -192,8 +192,8 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 					&types.Session{
 						ID: items[i].ID,
 					},
-				).Update(
-					"address", "",
+				).Unscoped().Delete(
+					&types.Session{},
 				)
 			}
 		}

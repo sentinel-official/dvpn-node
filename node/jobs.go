@@ -155,8 +155,8 @@ func (n *Node) jobUpdateSessions() error {
 					&types.Session{
 						ID: items[i].ID,
 					},
-				).Update(
-					"address", "",
+				).Unscoped().Delete(
+					&types.Session{},
 				)
 			}
 
@@ -164,14 +164,6 @@ func (n *Node) jobUpdateSessions() error {
 				items = append(items[:i], items[i+1:]...)
 			}
 		}
-
-		n.Database().Model(
-			&types.Session{},
-		).Where(
-			"address = ?", "",
-		).Unscoped().Delete(
-			&types.Session{},
-		)
 
 		if len(items) == 0 {
 			continue
