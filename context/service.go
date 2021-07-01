@@ -5,7 +5,7 @@ import (
 )
 
 func (c *Context) RemovePeer(key string) error {
-	c.Log().Info("Removing peer from service", "key", key)
+	c.Log().Info("Removing the peer from service", "key", key)
 
 	data, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {

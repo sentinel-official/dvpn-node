@@ -19,7 +19,12 @@ func (n *Node) jobSetSessions() error {
 			return err
 		}
 
-		for i := 0; i < len(peers); i++ {
+		count := len(peers)
+		if count > 0 {
+			n.Log().Info("Validating the usage of connected peers", "count", count)
+		}
+
+		for i := 0; i < count; i++ {
 			var item types.Session
 			n.Database().Model(
 				&types.Session{},
@@ -87,7 +92,12 @@ func (n *Node) jobUpdateSessions() error {
 			&types.Session{},
 		).Find(&items)
 
-		for i := len(items) - 1; i >= 0; i-- {
+		count := len(items)
+		if count > 0 {
+			n.Log().Info("Validating the saved sessions", "count", count)
+		}
+
+		for i := count - 1; i >= 0; i-- {
 			session, err := n.Client().QuerySession(items[i].ID)
 			if err != nil {
 				return err
@@ -110,7 +120,8 @@ func (n *Node) jobUpdateSessions() error {
 					removePeer = true
 				}
 
-				n.Log().Info("Stale peer connection", "id", items[i].ID)
+				n.Log().Info("Stale peer connection", "session", session.Id,
+					"key", items[i].Key, "created_at", items[i].CreatedAt, "status_at", session.StatusAt)
 			}
 			if !subscription.Status.Equal(hubtypes.StatusActive) {
 				removePeer = true
@@ -118,7 +129,8 @@ func (n *Node) jobUpdateSessions() error {
 					removeSession, skipUpdate = true, true
 				}
 
-				n.Log().Info("Invalid subscription status", "id", items[i].ID)
+				n.Log().Info("Invalid subscription status", "session", session.Id,
+					"key", items[i].Key, "subscription", subscription.Id, "status", subscription.Status)
 			}
 			if !session.Status.Equal(hubtypes.StatusActive) {
 				removePeer = true
@@ -126,7 +138,8 @@ func (n *Node) jobUpdateSessions() error {
 					removeSession, skipUpdate = true, true
 				}
 
-				n.Log().Info("Invalid session status", "id", items[i].ID)
+				n.Log().Info("Invalid session status", "session", session.Id,
+					"key", items[i].Key, "status", session.Status)
 			}
 
 			if removePeer {
