@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	MinMonikerLength          = 5
-	MaxMonikerLength          = 30
-	MinIntervalSetSessions    = 2 * time.Minute
+	MinMonikerLength          = 4
+	MaxMonikerLength          = 32
+	MinIntervalSetSessions    = 10 * time.Second
 	MaxIntervalSetSessions    = 10 * time.Minute
 	MinIntervalUpdateSessions = (2 * time.Hour) / 2
 	MaxIntervalUpdateSessions = (2 * time.Hour) - (5 * time.Minute)
@@ -291,7 +291,7 @@ func (c *NodeConfig) Validate() error {
 }
 
 func (c *NodeConfig) WithDefaultValues() *NodeConfig {
-	c.IntervalSetSessions = MinIntervalSetSessions
+	c.IntervalSetSessions = 2 * time.Minute
 	c.IntervalUpdateSessions = MaxIntervalUpdateSessions
 	c.IntervalUpdateStatus = MaxIntervalUpdateStatus
 	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
