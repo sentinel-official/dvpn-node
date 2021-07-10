@@ -19,6 +19,8 @@ import (
 )
 
 const (
+	MinPeers                  = 1
+	MaxPeers                  = 250
 	MinMonikerLength          = 4
 	MaxMonikerLength          = 32
 	MinIntervalSetSessions    = 10 * time.Second
@@ -88,6 +90,10 @@ provider = "{{ .Node.Provider }}"
 
 # Public URL of the node
 remote_url = "{{ .Node.RemoteURL }}"
+
+[qos]
+# Limit max number of concurrent peers
+max_peers = {{ .QOS.MaxPeers }}
 	`)
 
 	t = func() *template.Template {
@@ -299,11 +305,37 @@ func (c *NodeConfig) WithDefaultValues() *NodeConfig {
 	return c
 }
 
+type QOSConfig struct {
+	MaxPeers int `json:"max_peers" mapstructure:"max_peers"`
+}
+
+func NewQOSConfig() *QOSConfig {
+	return &QOSConfig{}
+}
+
+func (c *QOSConfig) Validate() error {
+	if c.MaxPeers < MinPeers {
+		return fmt.Errorf("max_peers cannot be less than %d", MinPeers)
+	}
+	if c.MaxPeers > MaxPeers {
+		return fmt.Errorf("max_peers cannot be greater than %d", MaxPeers)
+	}
+
+	return nil
+}
+
+func (c *QOSConfig) WithDefaultValues() *QOSConfig {
+	c.MaxPeers = MaxPeers
+
+	return c
+}
+
 type Config struct {
 	Chain     *ChainConfig     `json:"chain" mapstructure:"chain"`
 	Handshake *HandshakeConfig `json:"handshake" mapstructure:"handshake"`
 	Keyring   *KeyringConfig   `json:"keyring" mapstructure:"keyring"`
 	Node      *NodeConfig      `json:"node" mapstructure:"node"`
+	QOS       *QOSConfig       `json:"qos" mapstructure:"qos"`
 }
 
 func NewConfig() *Config {
@@ -312,6 +344,7 @@ func NewConfig() *Config {
 		Handshake: NewHandshakeConfig(),
 		Keyring:   NewKeyringConfig(),
 		Node:      NewNodeConfig(),
+		QOS:       NewQOSConfig(),
 	}
 }
 
@@ -328,6 +361,9 @@ func (c *Config) Validate() error {
 	if err := c.Node.Validate(); err != nil {
 		return errors.Wrapf(err, "invalid section node")
 	}
+	if err := c.QOS.Validate(); err != nil {
+		return errors.Wrapf(err, "invalid section qos")
+	}
 
 	return nil
 }
@@ -337,6 +373,7 @@ func (c *Config) WithDefaultValues() *Config {
 	c.Handshake = c.Handshake.WithDefaultValues()
 	c.Keyring = c.Keyring.WithDefaultValues()
 	c.Node = c.Node.WithDefaultValues()
+	c.QOS = c.QOS.WithDefaultValues()
 
 	return c
 }
