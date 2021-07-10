@@ -35,8 +35,11 @@ func HandlerGetStatus(ctx *context.Context) http.HandlerFunc {
 			Peers:    ctx.Service().PeersCount(),
 			Price:    ctx.Price().String(),
 			Provider: ctx.Provider().String(),
-			Type:     ctx.Service().Type(),
-			Version:  version.Version,
+			QOS: &QOS{
+				MaxPeers: ctx.Config().QOS.MaxPeers,
+			},
+			Type:    ctx.Service().Type(),
+			Version: version.Version,
 		})
 	}
 }

@@ -19,6 +19,9 @@ type (
 		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
 	}
+	QOS struct {
+		MaxPeers int `json:"max_peers"`
+	}
 )
 
 type (
@@ -35,6 +38,7 @@ type (
 		Peers                  int           `json:"peers"`
 		Price                  string        `json:"price"`
 		Provider               string        `json:"provider"`
+		QOS                    *QOS          `json:"qos"`
 		Type                   uint64        `json:"type"`
 		Version                string        `json:"version"`
 	}

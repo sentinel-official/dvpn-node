@@ -42,6 +42,9 @@ func (n *Node) jobSetSessions() error {
 
 				continue
 			}
+			if peers[i].Download == item.Download {
+				continue
+			}
 
 			n.Database().Model(
 				&types.Session{},
