@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/std"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/go-kit/kit/transport/http/jsonrpc"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"github.com/sentinel-official/hub"
 	"github.com/sentinel-official/hub/params"
 	"github.com/spf13/cobra"
@@ -180,16 +183,27 @@ func StartCmd() *cobra.Command {
 			}
 
 			var (
-				ctx    = context.NewContext()
-				router = mux.NewRouter()
+				corsRouter = cors.New(
+					cors.Options{
+						AllowedMethods: []string{
+							http.MethodGet,
+							http.MethodPost,
+						},
+						AllowedHeaders: []string{
+							jsonrpc.ContentType,
+						},
+					},
+				)
+				ctx       = context.NewContext()
+				muxRouter = mux.NewRouter()
 			)
 
-			rest.RegisterRoutes(ctx, router)
+			rest.RegisterRoutes(ctx, muxRouter)
 
 			ctx = ctx.
 				WithLogger(log).
 				WithService(service).
-				WithRouter(router).
+				WithHandler(corsRouter.Handler(muxRouter)).
 				WithConfig(cfg).
 				WithClient(client).
 				WithLocation(location).

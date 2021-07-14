@@ -6,19 +6,20 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/cosmos/cosmos-sdk v0.42.5
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/go-kit/kit v0.10.0
+	github.com/go-kit/kit v0.11.0
 	github.com/gorilla/mux v1.8.0
 	github.com/pkg/errors v0.9.1
+	github.com/rs/cors v1.8.0
 	github.com/rs/zerolog v1.23.0
 	github.com/sentinel-official/hub v0.7.0
 	github.com/showwin/speedtest-go v1.1.2
-	github.com/spf13/cobra v1.1.3
-	github.com/spf13/viper v1.8.0
+	github.com/spf13/cobra v1.2.1
+	github.com/spf13/viper v1.8.1
 	github.com/tendermint/tendermint v0.34.11
-	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
-	google.golang.org/grpc v1.38.0
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
+	google.golang.org/grpc v1.39.0
 	gorm.io/driver/sqlite v1.1.4
-	gorm.io/gorm v1.21.11
+	gorm.io/gorm v1.21.12
 )
 
 replace (
