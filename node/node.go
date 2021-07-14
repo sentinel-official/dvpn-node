@@ -59,5 +59,5 @@ func (n *Node) Start() error {
 		keyFile  = path.Join(viper.GetString(flags.FlagHome), "tls.key")
 	)
 
-	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Router())
+	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Handler())
 }
