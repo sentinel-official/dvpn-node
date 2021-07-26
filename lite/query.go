@@ -2,7 +2,6 @@ package lite
 
 import (
 	"context"
-	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -97,12 +96,17 @@ func (c *Client) QuerySession(id uint64) (*sessiontypes.Session, error) {
 }
 
 func (c *Client) HasNodeForPlan(id uint64, address hubtypes.NodeAddress) (bool, error) {
-	res, _, err := c.ctx.QueryStore(plantypes.NodeForPlanKey(id, address),
-		fmt.Sprintf("%s/%s", vpntypes.ModuleName, plantypes.ModuleName))
+	value, _, err := c.ctx.QueryStore(
+		append(
+			[]byte(plantypes.ModuleName+"/"),
+			plantypes.NodeForPlanKey(id, address)...,
+		),
+		vpntypes.ModuleName,
+	)
 	if err != nil {
 		return false, err
 	}
-	if res == nil {
+	if value == nil {
 		return false, nil
 	}
 
