@@ -54,19 +54,19 @@ func StartCmd() *cobra.Command {
 			v.SetConfigFile(configPath)
 
 			log.Info("Reading the configuration file", "path", configPath)
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
-			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
+			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if !skipConfigValidation {
-				log.Info("Validating the configuration", "data", cfg)
-				if err := cfg.Validate(); err != nil {
+			if validateConfig {
+				log.Info("Validating the configuration", "data", config)
+				if err := config.Validate(); err != nil {
 					return err
 				}
 			}
@@ -92,39 +92,39 @@ func StartCmd() *cobra.Command {
 			std.RegisterInterfaces(encoding.InterfaceRegistry)
 			hub.ModuleBasics.RegisterInterfaces(encoding.InterfaceRegistry)
 
-			log.Info("Initializing RPC HTTP client", "address", cfg.Chain.RPCAddress, "endpoint", "/websocket")
-			rpcclient, err := rpchttp.New(cfg.Chain.RPCAddress, "/websocket")
+			log.Info("Initializing RPC HTTP client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
+			rpcclient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
 			if err != nil {
 				return err
 			}
 
-			log.Info("Initializing keyring", "name", types.KeyringName, "backend", cfg.Keyring.Backend)
-			kr, err := keyring.New(types.KeyringName, cfg.Keyring.Backend, home, reader)
+			log.Info("Initializing keyring", "name", types.KeyringName, "backend", config.Keyring.Backend)
+			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			info, err := kr.Key(cfg.Keyring.From)
+			info, err := kr.Key(config.Keyring.From)
 			if err != nil {
 				return err
 			}
 
 			client := lite.NewDefaultClient().
 				WithAccountRetriever(authtypes.AccountRetriever{}).
-				WithChainID(cfg.Chain.ID).
+				WithChainID(config.Chain.ID).
 				WithClient(rpcclient).
-				WithFrom(cfg.Keyring.From).
+				WithFrom(config.Keyring.From).
 				WithFromAddress(info.GetAddress()).
-				WithFromName(cfg.Keyring.From).
-				WithGas(cfg.Chain.Gas).
-				WithGasAdjustment(cfg.Chain.GasAdjustment).
-				WithGasPrices(cfg.Chain.GasPrices).
+				WithFromName(config.Keyring.From).
+				WithGas(config.Chain.Gas).
+				WithGasAdjustment(config.Chain.GasAdjustment).
+				WithGasPrices(config.Chain.GasPrices).
 				WithInterfaceRegistry(encoding.InterfaceRegistry).
 				WithKeyring(kr).
 				WithLegacyAmino(encoding.Amino).
 				WithLogger(log).
-				WithNodeURI(cfg.Chain.RPCAddress).
-				WithSimulateAndExecute(cfg.Chain.SimulateAndExecute).
+				WithNodeURI(config.Chain.RPCAddress).
+				WithSimulateAndExecute(config.Chain.SimulateAndExecute).
 				WithTxConfig(encoding.TxConfig)
 
 			account, err := client.QueryAccount(info.GetAddress())
@@ -149,8 +149,8 @@ func StartCmd() *cobra.Command {
 			}
 			log.Info("Internet speed test result", "data", bandwidth)
 
-			if cfg.Handshake.Enable {
-				if err := runHandshakeDaemon(cfg.Handshake.Peers); err != nil {
+			if config.Handshake.Enable {
+				if err := runHandshakeDaemon(config.Handshake.Peers); err != nil {
 					return err
 				}
 			}
@@ -204,7 +204,7 @@ func StartCmd() *cobra.Command {
 				WithLogger(log).
 				WithService(service).
 				WithHandler(corsRouter.Handler(muxRouter)).
-				WithConfig(cfg).
+				WithConfig(config).
 				WithClient(client).
 				WithLocation(location).
 				WithDatabase(database).
@@ -219,7 +219,7 @@ func StartCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration file")
+	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
 
 	return cmd
 }
