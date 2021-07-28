@@ -33,8 +33,8 @@ func configInit() *cobra.Command {
 		Short: "Initialize the default configuration",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			force, err := cmd.Flags().GetBool(types.FlagForce)
@@ -43,8 +43,8 @@ func configInit() *cobra.Command {
 			}
 
 			if !force {
-				if _, err = os.Stat(path); err == nil {
-					return fmt.Errorf("config file already exists at path %s", path)
+				if _, err = os.Stat(configPath); err == nil {
+					return fmt.Errorf("config file already exists at path %s", configPath)
 				}
 			}
 
@@ -52,12 +52,12 @@ func configInit() *cobra.Command {
 				return err
 			}
 
-			cfg := types.NewConfig().WithDefaultValues()
-			return cfg.SaveToPath(path)
+			config := types.NewConfig().WithDefaultValues()
+			return config.SaveToPath(configPath)
 		},
 	}
 
-	cmd.Flags().Bool(types.FlagForce, false, "force")
+	cmd.Flags().Bool(types.FlagForce, false, "force initialize the default configuration")
 
 	return cmd
 }
@@ -68,19 +68,19 @@ func configShow() *cobra.Command {
 		Short: "Show the configuration",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(cfg.String())
+			fmt.Println(config.String())
 			return nil
 		},
 	}
@@ -95,25 +95,25 @@ func configSet() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
 			v.Set(args[0], args[1])
 
-			if err := v.Unmarshal(cfg); err != nil {
+			if err := v.Unmarshal(config); err != nil {
 				return err
 			}
 
-			return cfg.SaveToPath(path)
+			return config.SaveToPath(configPath)
 		},
 	}
 
