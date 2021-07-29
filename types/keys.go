@@ -8,10 +8,13 @@ import (
 const (
 	ConfigFileName   = "config.toml"
 	DatabaseFileName = "data.db"
-	FlagForce        = "force"
+	IPv4CIDR         = "10.8.0.2/24"
+	IPv6CIDR         = "fd86:ea04:1115::2/120"
 	KeyringName      = "sentinel"
-	DefaultIPv4CIDR  = "10.8.0.2/24"
-	DefaultIPv6CIDR  = "fd86:ea04:1115::2/120"
+)
+
+const (
+	FlagForce = "force"
 )
 
 var (

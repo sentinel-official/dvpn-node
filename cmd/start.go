@@ -34,10 +34,17 @@ import (
 	"github.com/sentinel-official/dvpn-node/utils"
 )
 
+func runHandshake(peers uint64) error {
+	return exec.Command("hnsd",
+		strings.Split(fmt.Sprintf("--log-file /dev/null "+
+			"--pool-size %d "+
+			"--rs-host 0.0.0.0:53", peers), " ")...).Run()
+}
+
 func StartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start VPN node",
+		Short: "Start the VPN node",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
 				home         = viper.GetString(flags.FlagHome)
@@ -71,14 +78,14 @@ func StartCmd() *cobra.Command {
 				}
 			}
 
-			log.Info("Creating IPv4 pool", "CIDR", types.DefaultIPv4CIDR)
-			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.DefaultIPv4CIDR)
+			log.Info("Creating IPv4 pool", "CIDR", types.IPv4CIDR)
+			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.IPv4CIDR)
 			if err != nil {
 				return err
 			}
 
-			log.Info("Creating IPv6 pool", "CIDR", types.DefaultIPv6CIDR)
-			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.DefaultIPv6CIDR)
+			log.Info("Creating IPv6 pool", "CIDR", types.IPv6CIDR)
+			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.IPv6CIDR)
 			if err != nil {
 				return err
 			}
@@ -150,9 +157,14 @@ func StartCmd() *cobra.Command {
 			log.Info("Internet speed test result", "data", bandwidth)
 
 			if config.Handshake.Enable {
-				if err := runHandshakeDaemon(config.Handshake.Peers); err != nil {
-					return err
-				}
+				go func() {
+					for {
+						log.Info("Starting the Handshake process...")
+						if err := runHandshake(config.Handshake.Peers); err != nil {
+							log.Error("Handshake process exited unexpectedly", "error", err)
+						}
+					}
+				}()
 			}
 
 			log.Info("Initializing VPN service", "type", service.Type())
@@ -222,12 +234,4 @@ func StartCmd() *cobra.Command {
 	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
 
 	return cmd
-}
-
-func runHandshakeDaemon(peers uint64) error {
-	return exec.Command("hnsd",
-		strings.Split(fmt.Sprintf("--daemon "+
-			"--log-file /dev/null "+
-			"--pool-size %d "+
-			"--rs-host 0.0.0.0:53", peers), " ")...).Start()
 }
