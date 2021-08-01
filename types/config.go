@@ -15,7 +15,7 @@ import (
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
 
-	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
+	randutils "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 const (
@@ -300,7 +300,7 @@ func (c *NodeConfig) WithDefaultValues() *NodeConfig {
 	c.IntervalSetSessions = 2 * time.Minute
 	c.IntervalUpdateSessions = MaxIntervalUpdateSessions
 	c.IntervalUpdateStatus = MaxIntervalUpdateStatus
-	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
+	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutils.RandomPort())
 
 	return c
 }

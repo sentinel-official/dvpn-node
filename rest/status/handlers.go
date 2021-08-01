@@ -32,7 +32,7 @@ func HandlerGetStatus(ctx *context.Context) http.HandlerFunc {
 			},
 			Moniker:  ctx.Moniker(),
 			Operator: ctx.Operator().String(),
-			Peers:    ctx.Service().PeersCount(),
+			Peers:    ctx.Service().PeersLen(),
 			Price:    ctx.Price().String(),
 			Provider: ctx.Provider().String(),
 			QOS: &QOS{

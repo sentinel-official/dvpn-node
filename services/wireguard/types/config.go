@@ -8,14 +8,21 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-
-	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 var (
 	ct = strings.TrimSpace(`
-# Name of the network interface
-interface = "{{ .Interface }}"
+# Name of the WireGuard interface
+iface = "{{ .IFace }}"
+
+# Name of the WAN interface
+iface_wan = "{{ .IFaceWAN }}"
+
+# IPv4 CIDR block for peers
+ipv4_cidr = "{{ .IPv4CIDR }}"
+
+# IPv6 CIDR block for peers
+ipv6_cidr = "{{ .IPv6CIDR }}"
 
 # Port number to accept the incoming connections
 listen_port = {{ .ListenPort }}
@@ -35,7 +42,10 @@ private_key = "{{ .PrivateKey }}"
 )
 
 type Config struct {
-	Interface  string `json:"interface" mapstructure:"interface"`
+	IFace      string `json:"iface" mapstructure:"iface"`
+	IFaceWAN   string `json:"iface_wan" mapstructure:"iface_wan"`
+	IPv4CIDR   string `json:"ipv4_cidr" mapstructure:"ipv4_cidr"`
+	IPv6CIDR   string `json:"ipv6_cidr" mapstructure:"ipv6_cidr"`
 	ListenPort uint16 `json:"listen_port" mapstructure:"listen_port"`
 	PrivateKey string `json:"private_key" mapstructure:"private_key"`
 }
@@ -45,8 +55,17 @@ func NewConfig() *Config {
 }
 
 func (c *Config) Validate() error {
-	if c.Interface == "" {
-		return errors.New("interface cannot be empty")
+	if c.IFace == "" {
+		return errors.New("iface cannot be empty")
+	}
+	if c.IFaceWAN == "" {
+		return errors.New("iface_wan cannot be empty")
+	}
+	if c.IPv4CIDR == "" {
+		return errors.New("ipv4_cidr cannot be empty")
+	}
+	if c.IPv6CIDR == "" {
+		return errors.New("ipv6_cidr cannot be empty")
 	}
 	if c.ListenPort == 0 {
 		return errors.New("listen_port cannot be zero")
@@ -59,19 +78,6 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
-}
-
-func (c *Config) WithDefaultValues() *Config {
-	key, err := NewPrivateKey()
-	if err != nil {
-		panic(err)
-	}
-
-	c.Interface = "wg0"
-	c.ListenPort = randutil.RandomPort()
-	c.PrivateKey = key.String()
-
-	return c
 }
 
 func (c *Config) SaveToPath(path string) error {

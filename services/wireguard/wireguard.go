@@ -1,22 +1,20 @@
 package wireguard
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/spf13/viper"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
-	"github.com/sentinel-official/dvpn-node/types"
+	nodetypes "github.com/sentinel-official/dvpn-node/types"
 )
 
 const (
@@ -24,30 +22,30 @@ const (
 )
 
 var (
-	_ types.Service = (*WireGuard)(nil)
+	_ nodetypes.Service = (*WireGuard)(nil)
 )
 
 type WireGuard struct {
 	info  []byte
 	cfg   *wgtypes.Config
+	log   tmlog.Logger
 	peers *wgtypes.Peers
 	pool  *wgtypes.IPPool
 }
 
-func NewWireGuard(pool *wgtypes.IPPool) types.Service {
+func NewWireGuard() nodetypes.Service {
 	return &WireGuard{
-		pool:  pool,
 		cfg:   wgtypes.NewConfig(),
 		info:  make([]byte, InfoLen),
 		peers: wgtypes.NewPeers(),
 	}
 }
 
-func (w *WireGuard) Type() uint64 {
-	return wgtypes.Type
-}
+func (w *WireGuard) Type() uint64                                { return wgtypes.Type }
+func (w *WireGuard) Info() []byte                                { return w.info }
+func (w *WireGuard) WithLogger(v tmlog.Logger) nodetypes.Service { w.log = v; return w }
 
-func (w *WireGuard) Init(home string) (err error) {
+func (w *WireGuard) PreInit(home string) (err error) {
 	v := viper.New()
 	v.SetConfigFile(filepath.Join(home, wgtypes.ConfigFileName))
 
@@ -56,21 +54,27 @@ func (w *WireGuard) Init(home string) (err error) {
 		return err
 	}
 
-	t, err := template.New("").Parse(configTemplate)
+	if err := w.cfg.Validate(); err != nil {
+		return err
+	}
+
+	w.log.Info("Creating IPv4 pool", "CIDR", w.cfg.IPv4CIDR, "type", w.Type())
+	v4, err := wgtypes.NewIPv4PoolFromCIDR(w.cfg.IPv4CIDR)
 	if err != nil {
 		return err
 	}
 
-	var buffer bytes.Buffer
-	if err := t.Execute(&buffer, w.cfg); err != nil {
+	w.log.Info("Creating IPv6 pool", "CIDR", w.cfg.IPv6CIDR, "type", w.Type())
+	v6, err := wgtypes.NewIPv6PoolFromCIDR(w.cfg.IPv6CIDR)
+	if err != nil {
 		return err
 	}
 
-	path := fmt.Sprintf("/etc/wireguard/%s.conf", w.cfg.Interface)
-	if err := ioutil.WriteFile(path, buffer.Bytes(), 0600); err != nil {
-		return err
-	}
+	w.pool = wgtypes.NewIPPool(v4, v6)
+	return nil
+}
 
+func (w *WireGuard) PostInit(_ string) error {
 	key, err := wgtypes.KeyFromString(w.cfg.PrivateKey)
 	if err != nil {
 		return err
@@ -82,26 +86,74 @@ func (w *WireGuard) Init(home string) (err error) {
 	return nil
 }
 
-func (w *WireGuard) Info() []byte {
-	return w.info
+func (w *WireGuard) PostUp() error {
+	commands := [][]string{
+		{"iptables", fmt.Sprintf(`-A FORWARD -i %s -j ACCEPT`, w.cfg.IFace)},
+		{"iptables", fmt.Sprintf(`-A POSTROUTING -t nat -o %s -j MASQUERADE`, w.cfg.IFaceWAN)},
+		{"ip6tables", fmt.Sprintf(`-A FORWARD -i %s -j ACCEPT`, w.cfg.IFace)},
+		{"ip6tables", fmt.Sprintf(`-A POSTROUTING -t nat -o %s -j MASQUERADE`, w.cfg.IFaceWAN)},
+	}
+
+	for _, item := range commands {
+		cmd := exec.Command(item[0], strings.Split(item[1], " ")...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (w *WireGuard) PostDown() error {
+	commands := [][]string{
+		{"iptables", fmt.Sprintf(`-D FORWARD -i %s -j ACCEPT`, w.cfg.IFace)},
+		{"iptables", fmt.Sprintf(`-D POSTROUTING -t nat -o %s -j MASQUERADE`, w.cfg.IFaceWAN)},
+		{"ip6tables", fmt.Sprintf(`-D FORWARD -i %s -j ACCEPT`, w.cfg.IFace)},
+		{"ip6tables", fmt.Sprintf(`-D POSTROUTING -t nat -o %s -j MASQUERADE`, w.cfg.IFaceWAN)},
+	}
+
+	for _, item := range commands {
+		cmd := exec.Command(item[0], strings.Split(item[1], " ")...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (w *WireGuard) Start() error {
-	cmd := exec.Command("wg-quick", strings.Split(
-		fmt.Sprintf("up %s", w.cfg.Interface), " ")...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if err := w.PreUp(); err != nil {
+		return err
+	}
+	if err := w.Up(); err != nil {
+		return err
+	}
+	if err := w.PostUp(); err != nil {
+		return err
+	}
 
-	return cmd.Run()
+	return nil
 }
 
 func (w *WireGuard) Stop() error {
-	cmd := exec.Command("wg-quick", strings.Split(
-		fmt.Sprintf("down %s", w.cfg.Interface), " ")...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if err := w.PreDown(); err != nil {
+		return err
+	}
+	if err := w.Down(); err != nil {
+		return err
+	}
+	if err := w.PostDown(); err != nil {
+		return err
+	}
 
-	return cmd.Run()
+	return nil
 }
 
 func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
@@ -114,7 +166,7 @@ func (w *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 
 	cmd := exec.Command("wg", strings.Split(
 		fmt.Sprintf(`set %s peer %s allowed-ips %s/32,%s/128`,
-			w.cfg.Interface, identity, v4.IP(), v6.IP()), " ")...)
+			w.cfg.IFace, identity, v4.IP(), v6.IP()), " ")...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -146,7 +198,7 @@ func (w *WireGuard) RemovePeer(data []byte) error {
 
 	cmd := exec.Command("wg", strings.Split(
 		fmt.Sprintf(`set %s peer %s remove`,
-			w.cfg.Interface, identity), " ")...)
+			w.cfg.IFace, identity), " ")...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -162,16 +214,16 @@ func (w *WireGuard) RemovePeer(data []byte) error {
 	return nil
 }
 
-func (w *WireGuard) Peers() ([]types.Peer, error) {
+func (w *WireGuard) Peers() ([]nodetypes.Peer, error) {
 	output, err := exec.Command("wg", strings.Split(
-		fmt.Sprintf("show %s transfer", w.cfg.Interface), " ")...).Output()
+		fmt.Sprintf("show %s transfer", w.cfg.IFace), " ")...).Output()
 	if err != nil {
 		return nil, err
 	}
 
 	// nolint: prealloc
 	var (
-		items []types.Peer
+		items []nodetypes.Peer
 		lines = strings.Split(string(output), "\n")
 	)
 
@@ -192,7 +244,7 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 		}
 
 		items = append(items,
-			types.Peer{
+			nodetypes.Peer{
 				Key:      columns[0],
 				Upload:   upload,
 				Download: download,
@@ -203,6 +255,6 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 	return items, nil
 }
 
-func (w *WireGuard) PeersCount() int {
+func (w *WireGuard) PeersLen() int {
 	return w.peers.Len()
 }

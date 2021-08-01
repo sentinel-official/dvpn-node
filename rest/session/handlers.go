@@ -236,7 +236,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			return
 		}
 
-		if ctx.Service().PeersCount() >= ctx.Config().QOS.MaxPeers {
+		if ctx.Service().PeersLen() >= ctx.Config().QOS.MaxPeers {
 			err := fmt.Errorf("reached maximum peers limit; maximum %d", ctx.Config().QOS.MaxPeers)
 			utils.WriteErrorToResponse(w, http.StatusBadRequest, 11, err.Error())
 			return
@@ -247,7 +247,7 @@ func handlerAddSession(ctx *context.Context) http.HandlerFunc {
 			utils.WriteErrorToResponse(w, http.StatusInternalServerError, 12, err.Error())
 			return
 		}
-		ctx.Log().Info("Added a new peer", "key", body.Key, "count", ctx.Service().PeersCount())
+		ctx.Log().Info("Added a new peer", "key", body.Key, "count", ctx.Service().PeersLen())
 
 		ctx.Database().Model(
 			&types.Session{},

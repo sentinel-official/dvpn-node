@@ -29,7 +29,6 @@ import (
 	"github.com/sentinel-official/dvpn-node/node"
 	"github.com/sentinel-official/dvpn-node/rest"
 	"github.com/sentinel-official/dvpn-node/services/wireguard"
-	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 	"github.com/sentinel-official/dvpn-node/utils"
 )
@@ -78,21 +77,9 @@ func StartCmd() *cobra.Command {
 				}
 			}
 
-			log.Info("Creating IPv4 pool", "CIDR", types.IPv4CIDR)
-			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.IPv4CIDR)
-			if err != nil {
-				return err
-			}
-
-			log.Info("Creating IPv6 pool", "CIDR", types.IPv6CIDR)
-			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.IPv6CIDR)
-			if err != nil {
-				return err
-			}
-
 			var (
 				encoding = params.MakeEncodingConfig()
-				service  = wireguard.NewWireGuard(wgtypes.NewIPPool(ipv4Pool, ipv6Pool))
+				service  = wireguard.NewWireGuard().WithLogger(log)
 				reader   = bufio.NewReader(cmd.InOrStdin())
 			)
 
@@ -167,8 +154,18 @@ func StartCmd() *cobra.Command {
 				}()
 			}
 
-			log.Info("Initializing VPN service", "type", service.Type())
+			log.Info("Pre-initializing the VPN service", "type", service.Type())
+			if err := service.PreInit(home); err != nil {
+				return err
+			}
+
+			log.Info("Initializing the VPN service", "type", service.Type())
 			if err := service.Init(home); err != nil {
+				return err
+			}
+
+			log.Info("Post-initializing the VPN service", "type", service.Type())
+			if err := service.PostInit(home); err != nil {
 				return err
 			}
 

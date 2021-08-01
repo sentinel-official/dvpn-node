@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
-	"github.com/sentinel-official/dvpn-node/types"
+	nodetypes "github.com/sentinel-official/dvpn-node/types"
 )
 
 func configCmd() *cobra.Command {
@@ -38,7 +38,7 @@ func configInit() *cobra.Command {
 				path = filepath.Join(home, wgtypes.ConfigFileName)
 			)
 
-			force, err := cmd.Flags().GetBool(types.FlagForce)
+			force, err := cmd.Flags().GetBool(nodetypes.FlagForce)
 			if err != nil {
 				return err
 			}
@@ -58,7 +58,7 @@ func configInit() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(types.FlagForce, false, "force")
+	cmd.Flags().Bool(nodetypes.FlagForce, false, "force initialize the default configuration")
 
 	return cmd
 }

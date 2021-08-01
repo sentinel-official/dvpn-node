@@ -15,7 +15,7 @@ import (
 func main() {
 	hubtypes.GetConfig().Seal()
 	root := &cobra.Command{
-		Use:          "sentinel-dvpn-node",
+		Use:          "sentinelnode",
 		SilenceUsage: true,
 	}
 
@@ -27,9 +27,9 @@ func main() {
 		version.NewVersionCommand(),
 	)
 
-	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home")
-	root.PersistentFlags().String(flags.FlagLogFormat, "plain", "log format")
-	root.PersistentFlags().String(flags.FlagLogLevel, "info", "log level")
+	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home directory of the application")
+	root.PersistentFlags().String(flags.FlagLogFormat, "plain", "log output format")
+	root.PersistentFlags().String(flags.FlagLogLevel, "info", "log output level")
 
 	_ = viper.BindPFlag(flags.FlagHome, root.PersistentFlags().Lookup(flags.FlagHome))
 	_ = viper.BindPFlag(flags.FlagLogFormat, root.PersistentFlags().Lookup(flags.FlagLogFormat))
