@@ -38,9 +38,9 @@ func KeysCmd() *cobra.Command {
 
 func keysAdd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add",
+		Use:   "add (name)",
 		Short: "Add a key",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
 				home       = viper.GetString(flags.FlagHome)
@@ -82,16 +82,21 @@ func keysAdd() *cobra.Command {
 			}
 
 			var (
+				name   = config.Keyring.From
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
+
+			if len(args) > 0 {
+				name = args[0]
+			}
 
 			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			if _, err = kr.Key(args[0]); err == nil {
-				return fmt.Errorf("key already exists with name %s", args[0])
+			if _, err = kr.Key(name); err == nil {
+				return fmt.Errorf("key already exists with name %s", name)
 			}
 
 			entropy, err := bip39.NewEntropy(256)
@@ -125,7 +130,7 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			key, err := kr.NewAccount(config.Keyring.From, mnemonic, "", hdPath.String(), algorithm)
+			key, err := kr.NewAccount(name, mnemonic, "", hdPath.String(), algorithm)
 			if err != nil {
 				return err
 			}
@@ -150,9 +155,9 @@ func keysAdd() *cobra.Command {
 
 func keysShow() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "show [name]",
+		Use:   "show (name)",
 		Short: "Show a key",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
 				home       = viper.GetString(flags.FlagHome)
@@ -179,15 +184,20 @@ func keysShow() *cobra.Command {
 			}
 
 			var (
+				name   = config.Keyring.From
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
+
+			if len(args) > 0 {
+				name = args[0]
+			}
 
 			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			key, err := kr.Key(args[0])
+			key, err := kr.Key(name)
 			if err != nil {
 				return err
 			}
@@ -267,9 +277,9 @@ func keysList() *cobra.Command {
 
 func keysDelete() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delete [name]",
+		Use:   "delete (name)",
 		Short: "Delete a key",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
 				home       = viper.GetString(flags.FlagHome)
@@ -296,15 +306,20 @@ func keysDelete() *cobra.Command {
 			}
 
 			var (
+				name   = config.Keyring.From
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
+
+			if len(args) > 0 {
+				name = args[0]
+			}
 
 			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			return kr.Delete(args[0])
+			return kr.Delete(name)
 		},
 	}
 
