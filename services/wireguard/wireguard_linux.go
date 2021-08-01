@@ -11,10 +11,12 @@ import (
 	"os/exec"
 	"strings"
 	"text/template"
+
+	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 )
 
 func (w *WireGuard) Init(_ string) (err error) {
-	t, err := template.New("").Parse(configTemplate)
+	t, err := template.New("").Parse(wgtypes.ConfigTemplate)
 	if err != nil {
 		return err
 	}

@@ -1,14 +1,14 @@
 // +build linux
 // +build !openwrt
 
-package wireguard
+package types
 
 import (
 	"strings"
 )
 
 var (
-	configTemplate = strings.TrimSpace(`
+	ConfigTemplate = strings.TrimSpace(`
 [Interface]
 Address = {{ .IPv4CIDR }},{{ .IPv6CIDR }}
 ListenPort = {{ .ListenPort }}
