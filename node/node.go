@@ -1,13 +1,13 @@
 package node
 
 import (
-	"net/http"
 	"path"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/context"
+	httputils "github.com/sentinel-official/dvpn-node/utils/http"
 )
 
 type Node struct {
@@ -59,5 +59,10 @@ func (n *Node) Start() error {
 		keyFile  = path.Join(viper.GetString(flags.FlagHome), "tls.key")
 	)
 
-	return http.ListenAndServeTLS(n.ListenOn(), certFile, keyFile, n.Handler())
+	return httputils.ListenAndServeTLS(
+		n.ListenOn(),
+		certFile,
+		keyFile,
+		n.Handler(),
+	)
 }

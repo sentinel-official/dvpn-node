@@ -13,6 +13,7 @@ require (
 	github.com/rs/zerolog v1.23.0
 	github.com/sentinel-official/hub v0.7.0
 	github.com/showwin/speedtest-go v1.1.2
+	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/tendermint/tendermint v0.34.11
