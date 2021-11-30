@@ -9,6 +9,7 @@ require (
 	github.com/go-kit/kit v0.11.0
 	github.com/gorilla/mux v1.8.0
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/cors v1.8.0
 	github.com/rs/zerolog v1.23.0
 	github.com/sentinel-official/hub v0.7.0
