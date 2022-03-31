@@ -1,4 +1,4 @@
-FROM golang:alpine3.13 AS build
+FROM golang:alpine3.15 AS build
 
 COPY . /go/src/github.com/sentinel-official/dvpn-node/
 
@@ -8,11 +8,11 @@ RUN apk add git gcc linux-headers make musl-dev && \
 
 RUN cd /root/ && \
     apk add autoconf automake file g++ git libtool make unbound-dev && \
-    git clone https://github.com/handshake-org/hnsd.git --branch=v1.0.0 --depth=1 && \
+    git clone https://github.com/handshake-org/hnsd.git --branch=master --depth=1 && \
     cd /root/hnsd/ && \
     bash autogen.sh && sh configure && make --jobs=$(nproc)
 
-FROM alpine:3.13
+FROM alpine:3.15
 
 COPY --from=build /go/bin/sentinelnode /usr/local/bin/process
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
