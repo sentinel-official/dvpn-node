@@ -14,7 +14,7 @@ func Bandwidth() (*hubtypes.Bandwidth, error) {
 		return nil, err
 	}
 
-	list, err := speedtest.FetchServerList(user)
+	list, err := speedtest.FetchServers(user)
 	if err != nil {
 		return nil, err
 	}
