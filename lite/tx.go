@@ -26,7 +26,7 @@ func (c *Client) prepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err erro
 		WithSequence(account.GetSequence())
 
 	if c.SimulateAndExecute() {
-		_, adjusted, err := tx.CalculateGas(c.ctx.QueryWithData, txf, messages...)
+		_, adjusted, err := tx.CalculateGas(c.ctx, txf, messages...)
 		if err != nil {
 			return txf, err
 		}
