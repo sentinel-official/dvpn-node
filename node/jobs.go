@@ -5,6 +5,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
+	sessiontypes "github.com/sentinel-official/hub/x/session/types"
+	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -105,10 +107,24 @@ func (n *Node) jobUpdateSessions() error {
 			if err != nil {
 				return err
 			}
+			if session == nil {
+				session = &sessiontypes.Session{
+					Id:           items[i].ID,
+					Subscription: items[i].Subscription,
+					Bandwidth:    hubtypes.NewBandwidthFromInt64(items[i].Upload, items[i].Download),
+					Status:       hubtypes.Inactive,
+				}
+			}
 
 			subscription, err := n.Client().QuerySubscription(session.Subscription)
 			if err != nil {
 				return err
+			}
+			if subscription == nil {
+				subscription = &subscriptiontypes.Subscription{
+					Id:     items[i].Subscription,
+					Status: hubtypes.Inactive,
+				}
 			}
 
 			var (
