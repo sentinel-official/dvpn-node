@@ -269,7 +269,7 @@ func (c *NodeConfig) Validate() error {
 		return errors.New("either price or provider must be empty")
 	}
 	if c.Price != "" {
-		if _, err := sdk.ParseCoinNormalized(c.Price); err != nil {
+		if _, err := sdk.ParseCoinsNormalized(c.Price); err != nil {
 			return errors.Wrap(err, "invalid price")
 		}
 	}

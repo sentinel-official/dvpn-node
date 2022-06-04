@@ -150,7 +150,7 @@ func StartCmd() *cobra.Command {
 			log.Info("GeoIP location info", "city", location.City, "country", location.Country)
 
 			log.Info("Performing internet speed test...")
-			bandwidth, err := utils.Bandwidth()
+			bandwidth, err := utils.FindInternetSpeed()
 			if err != nil {
 				return err
 			}
