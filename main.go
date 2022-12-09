@@ -15,7 +15,7 @@ import (
 func main() {
 	hubtypes.GetConfig().Seal()
 	root := &cobra.Command{
-		Use:          "sentinel-dvpn-node",
+		Use:          "sentinelnode",
 		SilenceUsage: true,
 	}
 
