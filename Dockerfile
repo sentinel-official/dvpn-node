@@ -1,4 +1,4 @@
-FROM golang:alpine3.16 AS build
+FROM golang:1.19-alpine3.17 AS build
 
 COPY . /go/src/github.com/sentinel-official/dvpn-node/
 
@@ -12,7 +12,7 @@ RUN cd /root/ && \
     cd /root/hnsd/ && \
     bash autogen.sh && sh configure && make --jobs=$(nproc)
 
-FROM alpine:3.16
+FROM alpine:3.17
 
 COPY --from=build /go/bin/sentinelnode /usr/local/bin/process
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
