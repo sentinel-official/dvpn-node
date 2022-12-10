@@ -9,11 +9,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
-	hubtypes "github.com/sentinel-official/hub/types"
-
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/types"
 	"github.com/sentinel-official/dvpn-node/utils"
+	hubtypes "github.com/sentinel-official/hub/types"
 )
 
 func handlerAddSession(ctx *context.Context) http.HandlerFunc {

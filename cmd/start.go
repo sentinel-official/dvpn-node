@@ -15,15 +15,6 @@ import (
 	"github.com/go-kit/kit/transport/http/jsonrpc"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"github.com/sentinel-official/hub"
-	"github.com/sentinel-official/hub/params"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/node"
@@ -32,6 +23,14 @@ import (
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 	"github.com/sentinel-official/dvpn-node/utils"
+	"github.com/sentinel-official/hub"
+	"github.com/sentinel-official/hub/params"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func runHandshake(peers uint64) error {

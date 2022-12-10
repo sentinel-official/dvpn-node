@@ -13,19 +13,16 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/spf13/viper"
-
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/spf13/viper"
 )
 
 const (
 	InfoLen = 2 + 32
 )
 
-var (
-	_ types.Service = (*WireGuard)(nil)
-)
+var _ types.Service = (*WireGuard)(nil)
 
 type WireGuard struct {
 	info  []byte
@@ -67,7 +64,7 @@ func (w *WireGuard) Init(home string) (err error) {
 	}
 
 	path := fmt.Sprintf("/etc/wireguard/%s.conf", w.cfg.Interface)
-	if err := ioutil.WriteFile(path, buffer.Bytes(), 0600); err != nil {
+	if err := ioutil.WriteFile(path, buffer.Bytes(), 0o600); err != nil {
 		return err
 	}
 
@@ -169,7 +166,7 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 		return nil, err
 	}
 
-	// nolint: prealloc
+	//nolint: prealloc
 	var (
 		items []types.Peer
 		lines = strings.Split(string(output), "\n")

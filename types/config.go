@@ -12,10 +12,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
+	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
-
-	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 const (
@@ -384,7 +383,7 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, buffer.Bytes(), 0600)
+	return ioutil.WriteFile(path, buffer.Bytes(), 0o600)
 }
 
 func (c *Config) String() string {

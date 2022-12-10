@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-// nolint:lll
+//nolint:lll
 var (
 	configTemplate = strings.TrimSpace(`
 [Interface]

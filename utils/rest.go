@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/transport/http/jsonrpc"
-
 	"github.com/sentinel-official/dvpn-node/types"
 )
 

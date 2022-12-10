@@ -1,7 +1,7 @@
 run:
   concurrency: 16
   timeout: 5m
-  tests: false
+  tests: true
   allow-parallel-runners: true
 
 linters:

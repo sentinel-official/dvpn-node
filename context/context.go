@@ -5,12 +5,11 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/sentinel-official/dvpn-node/lite"
+	"github.com/sentinel-official/dvpn-node/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"gorm.io/gorm"
-
-	"github.com/sentinel-official/dvpn-node/lite"
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 type Context struct {

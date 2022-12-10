@@ -7,9 +7,8 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
-
 	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -80,7 +79,7 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, buffer.Bytes(), 0600)
+	return ioutil.WriteFile(path, buffer.Bytes(), 0o600)
 }
 
 func (c *Config) String() string {

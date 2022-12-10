@@ -63,9 +63,7 @@ func (c *Client) Tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	var (
-		txf tx.Factory
-	)
+	var txf tx.Factory
 
 	c.Log().Info("Preparing the transaction", "messages", len(messages))
 	if err := retry.Do(func() error {

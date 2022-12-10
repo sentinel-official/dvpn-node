@@ -2,11 +2,10 @@ package context
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/sentinel-official/dvpn-node/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	nodetypes "github.com/sentinel-official/hub/x/node/types"
 	sessiontypes "github.com/sentinel-official/hub/x/session/types"
-
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func (c *Context) RegisterNode() error {

@@ -4,11 +4,10 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/sentinel-official/dvpn-node/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	sessiontypes "github.com/sentinel-official/hub/x/session/types"
 	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
-
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func (n *Node) jobSetSessions() error {
