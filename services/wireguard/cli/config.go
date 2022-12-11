@@ -6,11 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func configCmd() *cobra.Command {
@@ -49,7 +48,7 @@ func configInit() *cobra.Command {
 				}
 			}
 
-			if err := os.MkdirAll(home, 0700); err != nil {
+			if err := os.MkdirAll(home, 0o700); err != nil {
 				return err
 			}
 

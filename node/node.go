@@ -4,10 +4,9 @@ import (
 	"path"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/spf13/viper"
-
 	"github.com/sentinel-official/dvpn-node/context"
 	httputils "github.com/sentinel-official/dvpn-node/utils/http"
+	"github.com/spf13/viper"
 )
 
 type Node struct {

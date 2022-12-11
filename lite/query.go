@@ -5,14 +5,13 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/sentinel-official/dvpn-node/utils"
 	hubtypes "github.com/sentinel-official/hub/types"
 	nodetypes "github.com/sentinel-official/hub/x/node/types"
 	plantypes "github.com/sentinel-official/hub/x/plan/types"
 	sessiontypes "github.com/sentinel-official/hub/x/session/types"
 	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 	vpntypes "github.com/sentinel-official/hub/x/vpn/types"
-
-	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error) {
@@ -38,9 +37,7 @@ func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error
 }
 
 func (c *Client) QueryNode(address hubtypes.NodeAddress) (*nodetypes.Node, error) {
-	var (
-		qc = nodetypes.NewQueryServiceClient(c.ctx)
-	)
+	qc := nodetypes.NewQueryServiceClient(c.ctx)
 
 	c.Log().Info("Querying node", "address", address)
 	res, err := qc.QueryNode(
@@ -55,9 +52,7 @@ func (c *Client) QueryNode(address hubtypes.NodeAddress) (*nodetypes.Node, error
 }
 
 func (c *Client) QuerySubscription(id uint64) (*subscriptiontypes.Subscription, error) {
-	var (
-		qc = subscriptiontypes.NewQueryServiceClient(c.ctx)
-	)
+	qc := subscriptiontypes.NewQueryServiceClient(c.ctx)
 
 	c.Log().Info("Querying subscription", "id", id)
 	res, err := qc.QuerySubscription(
@@ -72,9 +67,7 @@ func (c *Client) QuerySubscription(id uint64) (*subscriptiontypes.Subscription, 
 }
 
 func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontypes.Quota, error) {
-	var (
-		qc = subscriptiontypes.NewQueryServiceClient(c.ctx)
-	)
+	qc := subscriptiontypes.NewQueryServiceClient(c.ctx)
 
 	c.Log().Info("Querying quota", "id", id, "address", address)
 	res, err := qc.QueryQuota(
@@ -89,9 +82,7 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontyp
 }
 
 func (c *Client) QuerySession(id uint64) (*sessiontypes.Session, error) {
-	var (
-		qc = sessiontypes.NewQueryServiceClient(c.ctx)
-	)
+	qc := sessiontypes.NewQueryServiceClient(c.ctx)
 
 	c.Log().Info("Querying session", "id", id)
 	res, err := qc.QuerySession(

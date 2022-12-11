@@ -3,13 +3,12 @@ package main
 import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
-	hubtypes "github.com/sentinel-official/hub/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	"github.com/sentinel-official/dvpn-node/cmd"
 	wireguard "github.com/sentinel-official/dvpn-node/services/wireguard/cli"
 	"github.com/sentinel-official/dvpn-node/types"
+	hubtypes "github.com/sentinel-official/hub/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func main() {

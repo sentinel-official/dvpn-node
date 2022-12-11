@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-
 	"github.com/sentinel-official/dvpn-node/context"
 )
 

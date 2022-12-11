@@ -2,7 +2,6 @@ package rest
 
 import (
 	"github.com/gorilla/mux"
-
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/rest/session"
 	"github.com/sentinel-official/dvpn-node/rest/status"

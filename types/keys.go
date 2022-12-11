@@ -17,13 +17,11 @@ const (
 	FlagForce = "force"
 )
 
-var (
-	DefaultHomeDirectory = func() string {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			panic(err)
-		}
+var DefaultHomeDirectory = func() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
 
-		return filepath.Join(home, ".sentinelnode")
-	}()
-)
+	return filepath.Join(home, ".sentinelnode")
+}()

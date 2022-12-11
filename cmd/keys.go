@@ -13,11 +13,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
+	"github.com/sentinel-official/dvpn-node/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func KeysCmd() *cobra.Command {
@@ -243,9 +242,7 @@ func keysList() *cobra.Command {
 				}
 			}
 
-			var (
-				reader = bufio.NewReader(cmd.InOrStdin())
-			)
+			reader := bufio.NewReader(cmd.InOrStdin())
 
 			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
