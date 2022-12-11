@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -11,12 +12,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/std"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/go-kit/kit/transport/http/jsonrpc"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"github.com/sentinel-official/hub"
 	"github.com/sentinel-official/hub/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/lite"
@@ -28,14 +34,22 @@ import (
 	"github.com/sentinel-official/dvpn-node/utils"
 )
 
+func runHandshake(peers uint64) error {
+	return exec.Command("hnsd",
+		strings.Split(fmt.Sprintf("--log-file /dev/null "+
+			"--pool-size %d "+
+			"--rs-host 0.0.0.0:53", peers), " ")...).Run()
+}
+
 func StartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start VPN node",
+		Short: "Start the VPN node",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home         = viper.GetString(flags.FlagHome)
+				configPath   = filepath.Join(home, types.ConfigFileName)
+				databasePath = filepath.Join(home, types.DatabaseFileName)
 			)
 
 			log, err := utils.PrepareLogger()
@@ -44,27 +58,34 @@ func StartCmd() *cobra.Command {
 			}
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			log.Info("Reading configuration file", "path", path)
-			cfg, err := types.ReadInConfig(v)
+			log.Info("Reading the configuration file", "path", configPath)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
-			log.Info("Validating configuration", "data", cfg)
-			if err := cfg.Validate(); err != nil {
-				return err
-			}
-
-			log.Info("Creating IPv4 pool", "CIDR", types.DefaultIPv4CIDR)
-			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.DefaultIPv4CIDR)
+			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			log.Info("Creating IPv6 pool", "CIDR", types.DefaultIPv6CIDR)
-			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.DefaultIPv6CIDR)
+			if validateConfig {
+				log.Info("Validating the configuration", "data", config)
+				if err := config.Validate(); err != nil {
+					return err
+				}
+			}
+
+			log.Info("Creating IPv4 pool", "CIDR", types.IPv4CIDR)
+			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.IPv4CIDR)
+			if err != nil {
+				return err
+			}
+
+			log.Info("Creating IPv6 pool", "CIDR", types.IPv6CIDR)
+			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.IPv6CIDR)
 			if err != nil {
 				return err
 			}
@@ -78,39 +99,39 @@ func StartCmd() *cobra.Command {
 			std.RegisterInterfaces(encoding.InterfaceRegistry)
 			hub.ModuleBasics.RegisterInterfaces(encoding.InterfaceRegistry)
 
-			log.Info("Initializing RPC HTTP client", "address", cfg.Chain.RPCAddress, "endpoint", "/websocket")
-			rpcclient, err := rpchttp.New(cfg.Chain.RPCAddress, "/websocket")
+			log.Info("Initializing RPC HTTP client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
+			rpcclient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
 			if err != nil {
 				return err
 			}
 
-			log.Info("Initializing keyring", "name", types.KeyringName, "backend", cfg.Keyring.Backend)
-			kr, err := keyring.New(types.KeyringName, cfg.Keyring.Backend, home, reader)
+			log.Info("Initializing keyring", "name", types.KeyringName, "backend", config.Keyring.Backend)
+			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			info, err := kr.Key(cfg.Keyring.From)
+			info, err := kr.Key(config.Keyring.From)
 			if err != nil {
 				return err
 			}
 
 			client := lite.NewDefaultClient().
 				WithAccountRetriever(authtypes.AccountRetriever{}).
-				WithChainID(cfg.Chain.ID).
+				WithChainID(config.Chain.ID).
 				WithClient(rpcclient).
-				WithFrom(cfg.Keyring.From).
+				WithFrom(config.Keyring.From).
 				WithFromAddress(info.GetAddress()).
-				WithFromName(cfg.Keyring.From).
-				WithGas(cfg.Chain.Gas).
-				WithGasAdjustment(cfg.Chain.GasAdjustment).
-				WithGasPrices(cfg.Chain.GasPrices).
+				WithFromName(config.Keyring.From).
+				WithGas(config.Chain.Gas).
+				WithGasAdjustment(config.Chain.GasAdjustment).
+				WithGasPrices(config.Chain.GasPrices).
 				WithInterfaceRegistry(encoding.InterfaceRegistry).
 				WithKeyring(kr).
 				WithLegacyAmino(encoding.Amino).
 				WithLogger(log).
-				WithNodeURI(cfg.Chain.RPCAddress).
-				WithSimulateAndExecute(cfg.Chain.SimulateAndExecute).
+				WithNodeURI(config.Chain.RPCAddress).
+				WithSimulateAndExecute(config.Chain.SimulateAndExecute).
 				WithTxConfig(encoding.TxConfig)
 
 			account, err := client.QueryAccount(info.GetAddress())
@@ -129,43 +150,76 @@ func StartCmd() *cobra.Command {
 			log.Info("GeoIP location info", "city", location.City, "country", location.Country)
 
 			log.Info("Performing internet speed test...")
-			bandwidth, err := utils.Bandwidth()
+			bandwidth, err := utils.FindInternetSpeed()
 			if err != nil {
 				return err
 			}
 			log.Info("Internet speed test result", "data", bandwidth)
 
-			if cfg.Handshake.Enable {
-				if err := runHandshakeDaemon(cfg.Handshake.Peers); err != nil {
-					return err
-				}
+			if config.Handshake.Enable {
+				go func() {
+					for {
+						log.Info("Starting the Handshake process...")
+						if err := runHandshake(config.Handshake.Peers); err != nil {
+							log.Error("Handshake process exited unexpectedly", "error", err)
+						}
+					}
+				}()
 			}
 
-			log.Info("Initializing underlying VPN service", "type", service.Type())
+			log.Info("Initializing VPN service", "type", service.Type())
 			if err := service.Init(home); err != nil {
 				return err
 			}
 
-			log.Info("Starting underlying VPN service", "type", service.Type())
+			log.Info("Starting VPN service", "type", service.Type())
 			if err := service.Start(); err != nil {
 				return err
 			}
 
+			log.Info("Opening the database", "path", databasePath)
+			database, err := gorm.Open(
+				sqlite.Open(databasePath),
+				&gorm.Config{
+					Logger:      logger.Discard,
+					PrepareStmt: false,
+				},
+			)
+			if err != nil {
+				return err
+			}
+
+			log.Info("Migrating database models...")
+			if err := database.AutoMigrate(&types.Session{}); err != nil {
+				return err
+			}
+
 			var (
-				ctx    = context.NewContext()
-				router = mux.NewRouter()
+				corsRouter = cors.New(
+					cors.Options{
+						AllowedMethods: []string{
+							http.MethodGet,
+							http.MethodPost,
+						},
+						AllowedHeaders: []string{
+							jsonrpc.ContentType,
+						},
+					},
+				)
+				ctx       = context.NewContext()
+				muxRouter = mux.NewRouter()
 			)
 
-			rest.RegisterRoutes(ctx, router)
+			rest.RegisterRoutes(ctx, muxRouter)
 
 			ctx = ctx.
 				WithLogger(log).
 				WithService(service).
-				WithRouter(router).
-				WithConfig(cfg).
+				WithHandler(corsRouter.Handler(muxRouter)).
+				WithConfig(config).
 				WithClient(client).
 				WithLocation(location).
-				WithSessions(types.NewSessions()).
+				WithDatabase(database).
 				WithBandwidth(bandwidth)
 
 			n := node.NewNode(ctx)
@@ -177,13 +231,7 @@ func StartCmd() *cobra.Command {
 		},
 	}
 
-	return cmd
-}
+	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
 
-func runHandshakeDaemon(peers uint64) error {
-	return exec.Command("hnsd",
-		strings.Split(fmt.Sprintf("--daemon "+
-			"--log-file /dev/null "+
-			"--pool-size %d "+
-			"--rs-host 0.0.0.0:53", peers), " ")...).Start()
+	return cmd
 }

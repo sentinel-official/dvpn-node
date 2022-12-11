@@ -48,26 +48,26 @@ func (c *Client) Copy() *Client {
 	}
 }
 
-func (c *Client) WithBroadcastMode(v string) *Client              { c.ctx.BroadcastMode = v; return c }
-func (c *Client) WithClient(v rpcclient.Client) *Client           { c.ctx.Client = v; return c }
-func (c *Client) WithFrom(v string) *Client                       { c.ctx.From = v; return c }
-func (c *Client) WithFromAddress(v sdk.AccAddress) *Client        { c.ctx.FromAddress = v; return c }
-func (c *Client) WithFromName(v string) *Client                   { c.ctx.FromName = v; return c }
-func (c *Client) WithGenerateOnly(v bool) *Client                 { c.ctx.GenerateOnly = v; return c }
-func (c *Client) WithHeight(v int64) *Client                      { c.ctx.Height = v; return c }
-func (c *Client) WithHomeDir(v string) *Client                    { c.ctx.HomeDir = v; return c }
-func (c *Client) WithInput(v io.Reader) *Client                   { c.ctx.Input = v; return c }
-func (c *Client) WithJSONMarshaler(v codec.JSONMarshaler) *Client { c.ctx.JSONMarshaler = v; return c }
-func (c *Client) WithKeyringDir(v string) *Client                 { c.ctx.KeyringDir = v; return c }
-func (c *Client) WithLegacyAmino(v *codec.LegacyAmino) *Client    { c.ctx.LegacyAmino = v; return c }
-func (c *Client) WithLogger(v tmlog.Logger) *Client               { c.logger = v; return c }
-func (c *Client) WithNodeURI(v string) *Client                    { c.ctx.NodeURI = v; return c }
-func (c *Client) WithOffline(v bool) *Client                      { c.ctx.Offline = v; return c }
-func (c *Client) WithOutput(v io.Writer) *Client                  { c.ctx.Output = v; return c }
-func (c *Client) WithOutputFormat(v string) *Client               { c.ctx.OutputFormat = v; return c }
-func (c *Client) WithSimulate(v bool) *Client                     { c.ctx.Simulate = v; return c }
-func (c *Client) WithSkipConfirm(v bool) *Client                  { c.ctx.SkipConfirm = v; return c }
-func (c *Client) WithUseLedger(v bool) *Client                    { c.ctx.UseLedger = v; return c }
+func (c *Client) WithBroadcastMode(v string) *Client           { c.ctx.BroadcastMode = v; return c }
+func (c *Client) WithClient(v rpcclient.Client) *Client        { c.ctx.Client = v; return c }
+func (c *Client) WithFrom(v string) *Client                    { c.ctx.From = v; return c }
+func (c *Client) WithFromAddress(v sdk.AccAddress) *Client     { c.ctx.FromAddress = v; return c }
+func (c *Client) WithFromName(v string) *Client                { c.ctx.FromName = v; return c }
+func (c *Client) WithGenerateOnly(v bool) *Client              { c.ctx.GenerateOnly = v; return c }
+func (c *Client) WithHeight(v int64) *Client                   { c.ctx.Height = v; return c }
+func (c *Client) WithHomeDir(v string) *Client                 { c.ctx.HomeDir = v; return c }
+func (c *Client) WithInput(v io.Reader) *Client                { c.ctx.Input = v; return c }
+func (c *Client) WithJSONCodec(v codec.JSONCodec) *Client      { c.ctx.JSONCodec = v; return c }
+func (c *Client) WithKeyringDir(v string) *Client              { c.ctx.KeyringDir = v; return c }
+func (c *Client) WithLegacyAmino(v *codec.LegacyAmino) *Client { c.ctx.LegacyAmino = v; return c }
+func (c *Client) WithLogger(v tmlog.Logger) *Client            { c.logger = v; return c }
+func (c *Client) WithNodeURI(v string) *Client                 { c.ctx.NodeURI = v; return c }
+func (c *Client) WithOffline(v bool) *Client                   { c.ctx.Offline = v; return c }
+func (c *Client) WithOutput(v io.Writer) *Client               { c.ctx.Output = v; return c }
+func (c *Client) WithOutputFormat(v string) *Client            { c.ctx.OutputFormat = v; return c }
+func (c *Client) WithSimulate(v bool) *Client                  { c.ctx.Simulate = v; return c }
+func (c *Client) WithSkipConfirm(v bool) *Client               { c.ctx.SkipConfirm = v; return c }
+func (c *Client) WithUseLedger(v bool) *Client                 { c.ctx.UseLedger = v; return c }
 
 func (c *Client) WithAccountRetriever(v client.AccountRetriever) *Client {
 	c.ctx.AccountRetriever = v

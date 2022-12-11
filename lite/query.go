@@ -2,7 +2,6 @@ package lite
 
 import (
 	"context"
-	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -23,8 +22,10 @@ func (c *Client) QueryAccount(address sdk.AccAddress) (authtypes.AccountI, error
 	)
 
 	c.Log().Info("Querying account", "address", address)
-	res, err := qc.Account(context.Background(),
-		&authtypes.QueryAccountRequest{Address: address.String()})
+	res, err := qc.Account(
+		context.Background(),
+		&authtypes.QueryAccountRequest{Address: address.String()},
+	)
 	if err != nil {
 		return nil, utils.ValidError(err)
 	}
@@ -42,8 +43,10 @@ func (c *Client) QueryNode(address hubtypes.NodeAddress) (*nodetypes.Node, error
 	)
 
 	c.Log().Info("Querying node", "address", address)
-	res, err := qc.QueryNode(context.Background(),
-		nodetypes.NewQueryNodeRequest(address))
+	res, err := qc.QueryNode(
+		context.Background(),
+		nodetypes.NewQueryNodeRequest(address),
+	)
 	if err != nil {
 		return nil, utils.ValidError(err)
 	}
@@ -57,8 +60,10 @@ func (c *Client) QuerySubscription(id uint64) (*subscriptiontypes.Subscription, 
 	)
 
 	c.Log().Info("Querying subscription", "id", id)
-	res, err := qc.QuerySubscription(context.Background(),
-		subscriptiontypes.NewQuerySubscriptionRequest(id))
+	res, err := qc.QuerySubscription(
+		context.Background(),
+		subscriptiontypes.NewQuerySubscriptionRequest(id),
+	)
 	if err != nil {
 		return nil, utils.ValidError(err)
 	}
@@ -72,8 +77,10 @@ func (c *Client) QueryQuota(id uint64, address sdk.AccAddress) (*subscriptiontyp
 	)
 
 	c.Log().Info("Querying quota", "id", id, "address", address)
-	res, err := qc.QueryQuota(context.Background(),
-		subscriptiontypes.NewQueryQuotaRequest(id, address))
+	res, err := qc.QueryQuota(
+		context.Background(),
+		subscriptiontypes.NewQueryQuotaRequest(id, address),
+	)
 	if err != nil {
 		return nil, utils.ValidError(err)
 	}
@@ -87,8 +94,10 @@ func (c *Client) QuerySession(id uint64) (*sessiontypes.Session, error) {
 	)
 
 	c.Log().Info("Querying session", "id", id)
-	res, err := qc.QuerySession(context.Background(),
-		sessiontypes.NewQuerySessionRequest(id))
+	res, err := qc.QuerySession(
+		context.Background(),
+		sessiontypes.NewQuerySessionRequest(id),
+	)
 	if err != nil {
 		return nil, utils.ValidError(err)
 	}
@@ -97,12 +106,17 @@ func (c *Client) QuerySession(id uint64) (*sessiontypes.Session, error) {
 }
 
 func (c *Client) HasNodeForPlan(id uint64, address hubtypes.NodeAddress) (bool, error) {
-	res, _, err := c.ctx.QueryStore(plantypes.NodeForPlanKey(id, address),
-		fmt.Sprintf("%s/%s", vpntypes.ModuleName, plantypes.ModuleName))
+	value, _, err := c.ctx.QueryStore(
+		append(
+			[]byte(plantypes.ModuleName+"/"),
+			plantypes.NodeForPlanKey(id, address)...,
+		),
+		vpntypes.ModuleName,
+	)
 	if err != nil {
 		return false, err
 	}
-	if res == nil {
+	if value == nil {
 		return false, nil
 	}
 

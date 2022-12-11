@@ -5,7 +5,4 @@
 [![Licence](https://img.shields.io/github/license/sentinel-official/dvpn-node.svg)](https://github.com/sentinel-official/dvpn-node/blob/development/LICENSE)
 [![LoC](https://tokei.rs/b1/github/sentinel-official/dvpn-node)](https://github.com/sentinel-official/dvpn-node)
 
-* [Setup](https://github.com/sentinel-official/docs/tree/master/guides/nodes/dVPN/SETUP.md "Setup")
-* [Configuration](https://github.com/sentinel-official/docs/tree/master/guides/nodes/dVPN/CONFIGURATION.md "Configuration")
-* [Start](https://github.com/sentinel-official/docs/tree/master/guides/nodes/dVPN/START.md "Start")
-* [Troubleshoot](https://github.com/sentinel-official/docs/tree/master/guides/nodes/dVPN/TROUBLESHOOT.md "Troubleshoot")
+For documentation click [here](https://docs.sentinel.co/dVPN-node/setup "here")

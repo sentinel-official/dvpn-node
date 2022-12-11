@@ -5,12 +5,14 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	hubtypes "github.com/sentinel-official/hub/types"
+	sessiontypes "github.com/sentinel-official/hub/x/session/types"
+	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func (n *Node) jobSetSessions() error {
-	n.Log().Info("Starting job", "name", "set_sessions", "interval", n.IntervalSetSessions())
+	n.Log().Info("Starting a job", "name", "set_sessions", "interval", n.IntervalSetSessions())
 
 	t := time.NewTicker(n.IntervalSetSessions())
 	for ; ; <-t.C {
@@ -18,27 +20,54 @@ func (n *Node) jobSetSessions() error {
 		if err != nil {
 			return err
 		}
-		n.Log().Info("Connected peers", "count", len(peers))
 
-		for i := 0; i < len(peers); i++ {
-			item := n.Sessions().GetByKey(peers[i].Key)
-			if item.Empty() {
-				n.Log().Error("Unknown connected peer", "peer", peers[i])
+		count := len(peers)
+		if count > 0 {
+			n.Log().Info("Validating the usage of connected peers", "count", count)
+		}
+
+		for i := 0; i < count; i++ {
+			var item types.Session
+			n.Database().Model(
+				&types.Session{},
+			).Where(
+				&types.Session{
+					Key: peers[i].Key,
+				},
+			).First(&item)
+
+			if item.ID == 0 {
+				n.Log().Info("Unknown connected peer", "key", peers[i].Key)
 				if err := n.RemovePeer(peers[i].Key); err != nil {
 					return err
 				}
 
 				continue
 			}
+			if peers[i].Download == item.Download {
+				continue
+			}
 
-			item.Upload = peers[i].Upload
-			item.Download = peers[i].Download
-			n.Sessions().Update(item)
+			n.Database().Model(
+				&types.Session{},
+			).Where(
+				&types.Session{
+					ID: item.ID,
+				},
+			).Updates(
+				&types.Session{
+					Upload:   peers[i].Upload,
+					Download: peers[i].Download,
+				},
+			)
 
-			consumed := sdk.NewInt(item.Upload + item.Download)
-			if consumed.GT(item.Available) {
-				n.Log().Info("Peer quota exceeded", "id", item.ID,
-					"available", item.Available, "consumed", consumed)
+			var (
+				available = sdk.NewInt(item.Available)
+				consumed  = sdk.NewInt(peers[i].Upload + peers[i].Download)
+			)
+
+			if consumed.GT(available) {
+				n.Log().Info("Peer quota exceeded", "key", peers[i].Key)
 				if err := n.RemovePeer(item.Key); err != nil {
 					return err
 				}
@@ -48,61 +77,109 @@ func (n *Node) jobSetSessions() error {
 }
 
 func (n *Node) jobUpdateStatus() error {
-	n.Log().Info("Starting job", "name", "update_status", "interval", n.IntervalSetStatus())
+	n.Log().Info("Starting a job", "name", "update_status", "interval", n.IntervalUpdateStatus())
 
-	t := time.NewTicker(n.IntervalSetStatus())
+	t := time.NewTicker(n.IntervalUpdateStatus())
 	for ; ; <-t.C {
-		if err := n.updateStatus(); err != nil {
+		if err := n.UpdateNodeStatus(); err != nil {
 			return err
 		}
 	}
 }
 
 func (n *Node) jobUpdateSessions() error {
-	n.Log().Info("Starting job", "name", "update_sessions", "interval", n.IntervalUpdateSessions())
+	n.Log().Info("Starting a job", "name", "update_sessions", "interval", n.IntervalUpdateSessions())
 
 	t := time.NewTicker(n.IntervalUpdateSessions())
 	for ; ; <-t.C {
 		var items []types.Session
-		n.Sessions().Iterate(func(v types.Session) bool {
-			items = append(items, v)
-			return false
-		})
-		n.Log().Info("Iterated sessions", "count", len(items))
+		n.Database().Model(
+			&types.Session{},
+		).Find(&items)
 
-		for i := len(items) - 1; i >= 0; i-- {
+		count := len(items)
+		if count > 0 {
+			n.Log().Info("Validating the saved sessions", "count", count)
+		}
+
+		for i := count - 1; i >= 0; i-- {
 			session, err := n.Client().QuerySession(items[i].ID)
 			if err != nil {
 				return err
+			}
+			if session == nil {
+				session = &sessiontypes.Session{
+					Id:           items[i].ID,
+					Subscription: items[i].Subscription,
+					Bandwidth:    hubtypes.NewBandwidthFromInt64(items[i].Upload, items[i].Download),
+					Status:       hubtypes.Inactive,
+				}
 			}
 
 			subscription, err := n.Client().QuerySubscription(session.Subscription)
 			if err != nil {
 				return err
 			}
-
-			remove, skip := func() (bool, bool) {
-				switch {
-				case !subscription.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid subscription status", "id", items[i].ID)
-					return true, subscription.Status.Equal(hubtypes.StatusInactive)
-				case !session.Status.Equal(hubtypes.StatusActive):
-					n.Log().Info("Invalid session status", "id", items[i].ID)
-					return true, session.Status.Equal(hubtypes.StatusInactive)
-				case items[i].Download == session.Bandwidth.Upload.Int64() && items[i].ConnectedAt.Before(session.StatusAt):
-					n.Log().Info("Stale peer connection", "id", items[i].ID)
-					return true, false
-				default:
-					return false, false
+			if subscription == nil {
+				subscription = &subscriptiontypes.Subscription{
+					Id:     items[i].Subscription,
+					Status: hubtypes.Inactive,
 				}
-			}()
+			}
 
-			if remove {
-				if err := n.RemovePeerAndSession(items[i]); err != nil {
+			var (
+				removePeer    = false
+				removeSession = false
+				skipUpdate    = false
+			)
+
+			if items[i].Download == session.Bandwidth.Upload.Int64() {
+				skipUpdate = true
+				if items[i].CreatedAt.Before(session.StatusAt) {
+					removePeer = true
+				}
+
+				n.Log().Info("Stale peer connection", "session", session.Id,
+					"key", items[i].Key, "created_at", items[i].CreatedAt, "status_at", session.StatusAt)
+			}
+			if !subscription.Status.Equal(hubtypes.StatusActive) {
+				removePeer = true
+				if subscription.Status.Equal(hubtypes.StatusInactive) {
+					removeSession, skipUpdate = true, true
+				}
+
+				n.Log().Info("Invalid subscription status", "session", session.Id,
+					"key", items[i].Key, "subscription", subscription.Id, "status", subscription.Status)
+			}
+			if !session.Status.Equal(hubtypes.StatusActive) {
+				removePeer = true
+				if session.Status.Equal(hubtypes.StatusInactive) {
+					removeSession, skipUpdate = true, true
+				}
+
+				n.Log().Info("Invalid session status", "session", session.Id,
+					"key", items[i].Key, "status", session.Status)
+			}
+
+			if removePeer {
+				if err := n.RemovePeer(items[i].Key); err != nil {
 					return err
 				}
 			}
-			if skip {
+
+			if removeSession {
+				n.Database().Model(
+					&types.Session{},
+				).Where(
+					&types.Session{
+						ID: items[i].ID,
+					},
+				).Unscoped().Delete(
+					&types.Session{},
+				)
+			}
+
+			if skipUpdate {
 				items = append(items[:i], items[i+1:]...)
 			}
 		}
@@ -110,7 +187,8 @@ func (n *Node) jobUpdateSessions() error {
 		if len(items) == 0 {
 			continue
 		}
-		if err := n.updateSessions(items...); err != nil {
+
+		if err := n.UpdateSessions(items...); err != nil {
 			return err
 		}
 	}

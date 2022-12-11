@@ -2,10 +2,9 @@ package types
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
-	"math/big"
+	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -15,6 +14,21 @@ import (
 	"github.com/pkg/errors"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
+
+	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
+)
+
+const (
+	MinPeers                  = 1
+	MaxPeers                  = 250
+	MinMonikerLength          = 4
+	MaxMonikerLength          = 32
+	MinIntervalSetSessions    = 10 * time.Second
+	MaxIntervalSetSessions    = 10 * time.Minute
+	MinIntervalUpdateSessions = (2 * time.Hour) / 2
+	MaxIntervalUpdateSessions = (2 * time.Hour) - (5 * time.Minute)
+	MinIntervalUpdateStatus   = (1 * time.Hour) / 2
+	MaxIntervalUpdateStatus   = (1 * time.Hour) - (5 * time.Minute)
 )
 
 var (
@@ -56,11 +70,11 @@ from = "{{ .Keyring.From }}"
 # Time interval between each set_sessions operation
 interval_set_sessions = "{{ .Node.IntervalSetSessions }}"
 
-# Time interval between each set_status transaction
-interval_set_status = "{{ .Node.IntervalSetStatus }}"
-
 # Time interval between each update_sessions transaction
 interval_update_sessions = "{{ .Node.IntervalUpdateSessions }}"
+
+# Time interval between each set_status transaction
+interval_update_status = "{{ .Node.IntervalUpdateStatus }}"
 
 # API listen-address
 listen_on = "{{ .Node.ListenOn }}"
@@ -76,6 +90,10 @@ provider = "{{ .Node.Provider }}"
 
 # Public URL of the node
 remote_url = "{{ .Node.RemoteURL }}"
+
+[qos]
+# Limit max number of concurrent peers
+max_peers = {{ .QOS.MaxPeers }}
 	`)
 
 	t = func() *template.Template {
@@ -118,6 +136,17 @@ func (c *ChainConfig) Validate() error {
 		return errors.New("rpc_address cannot be empty")
 	}
 
+	rpcAddress, err := url.ParseRequestURI(c.RPCAddress)
+	if err != nil {
+		return errors.Wrap(err, "invalid rpc_address")
+	}
+	if rpcAddress.Scheme != "http" && rpcAddress.Scheme != "https" {
+		return errors.New("rpc_address scheme must be either http or https")
+	}
+	if rpcAddress.Port() == "" {
+		return errors.New("rpc_address port cannot be empty")
+	}
+
 	return nil
 }
 
@@ -125,7 +154,7 @@ func (c *ChainConfig) WithDefaultValues() *ChainConfig {
 	c.GasAdjustment = 1.05
 	c.GasPrices = "0.1udvpn"
 	c.Gas = 200000
-	c.ID = ""
+	c.ID = "sentinelhub-2"
 	c.RPCAddress = "https://rpc.sentinel.co:443"
 	c.SimulateAndExecute = true
 
@@ -172,7 +201,7 @@ func (c *KeyringConfig) Validate() error {
 		return errors.New("backend cannot be empty")
 	}
 	if c.Backend != keyring.BackendFile && c.Backend != keyring.BackendTest {
-		return fmt.Errorf("unknown backend %s", c.Backend)
+		return fmt.Errorf("backend must be either %s or %s", keyring.BackendFile, keyring.BackendTest)
 	}
 	if c.From == "" {
 		return errors.New("from cannot be empty")
@@ -189,8 +218,8 @@ func (c *KeyringConfig) WithDefaultValues() *KeyringConfig {
 
 type NodeConfig struct {
 	IntervalSetSessions    time.Duration `json:"interval_set_sessions" mapstructure:"interval_set_sessions"`
-	IntervalSetStatus      time.Duration `json:"interval_set_status" mapstructure:"interval_set_status"`
 	IntervalUpdateSessions time.Duration `json:"interval_update_sessions" mapstructure:"interval_update_sessions"`
+	IntervalUpdateStatus   time.Duration `json:"interval_update_status" mapstructure:"interval_update_status"`
 	ListenOn               string        `json:"listen_on" mapstructure:"listen_on"`
 	Moniker                string        `json:"moniker" mapstructure:"moniker"`
 	Price                  string        `json:"price" mapstructure:"price"`
@@ -203,17 +232,35 @@ func NewNodeConfig() *NodeConfig {
 }
 
 func (c *NodeConfig) Validate() error {
-	if c.IntervalSetSessions <= 0 {
-		return errors.New("interval_set_sessions must be positive")
+	if c.IntervalSetSessions < MinIntervalSetSessions {
+		return fmt.Errorf("interval_set_sessions cannot be less than %s", MinIntervalSetSessions)
 	}
-	if c.IntervalSetStatus <= 0 {
-		return errors.New("interval_set_status must be positive")
+	if c.IntervalSetSessions > MaxIntervalSetSessions {
+		return fmt.Errorf("interval_set_sessions cannot be greater than %s", MaxIntervalSetSessions)
 	}
-	if c.IntervalUpdateSessions <= 0 {
-		return errors.New("interval_update_sessions must be positive")
+	if c.IntervalUpdateSessions < MinIntervalUpdateSessions {
+		return fmt.Errorf("interval_update_sessions cannot be less than %s", MinIntervalUpdateSessions)
+	}
+	if c.IntervalUpdateSessions > MaxIntervalUpdateSessions {
+		return fmt.Errorf("interval_update_sessions cannot be greater than %s", MaxIntervalUpdateSessions)
+	}
+	if c.IntervalUpdateStatus < MinIntervalUpdateStatus {
+		return fmt.Errorf("interval_set_sessions cannot be less than %s", MinIntervalUpdateStatus)
+	}
+	if c.IntervalUpdateStatus > MaxIntervalUpdateStatus {
+		return fmt.Errorf("interval_set_sessions cannot be greater than %s", MaxIntervalUpdateStatus)
 	}
 	if c.ListenOn == "" {
 		return errors.New("listen_on cannot be empty")
+	}
+	if c.Moniker == "" {
+		return errors.New("moniker cannot be empty")
+	}
+	if len(c.Moniker) < MinMonikerLength {
+		return fmt.Errorf("moniker length cannot be less than %d", MinMonikerLength)
+	}
+	if len(c.Moniker) > MaxMonikerLength {
+		return fmt.Errorf("moniker length cannot be greater than %d", MaxMonikerLength)
 	}
 	if c.Price == "" && c.Provider == "" {
 		return errors.New("both price and provider cannot be empty")
@@ -222,7 +269,7 @@ func (c *NodeConfig) Validate() error {
 		return errors.New("either price or provider must be empty")
 	}
 	if c.Price != "" {
-		if _, err := sdk.ParseCoinNormalized(c.Price); err != nil {
+		if _, err := sdk.ParseCoinsNormalized(c.Price); err != nil {
 			return errors.Wrap(err, "invalid price")
 		}
 	}
@@ -235,20 +282,50 @@ func (c *NodeConfig) Validate() error {
 		return errors.New("remote_url cannot be empty")
 	}
 
+	remoteURL, err := url.ParseRequestURI(c.RemoteURL)
+	if err != nil {
+		return errors.Wrap(err, "invalid remote_url")
+	}
+	if remoteURL.Scheme != "https" {
+		return errors.New("remote_url scheme must be https")
+	}
+	if remoteURL.Port() == "" {
+		return errors.New("remote_url port cannot be empty")
+	}
+
 	return nil
 }
 
 func (c *NodeConfig) WithDefaultValues() *NodeConfig {
-	c.IntervalSetSessions = 1 * 120 * time.Second
-	c.IntervalSetStatus = 0.9 * 60 * time.Minute
-	c.IntervalUpdateSessions = 0.9 * 120 * time.Minute
+	c.IntervalSetSessions = 2 * time.Minute
+	c.IntervalUpdateSessions = MaxIntervalUpdateSessions
+	c.IntervalUpdateStatus = MaxIntervalUpdateStatus
+	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
 
-	n, err := rand.Int(rand.Reader, big.NewInt(1<<16-1<<10))
-	if err != nil {
-		panic(err)
+	return c
+}
+
+type QOSConfig struct {
+	MaxPeers int `json:"max_peers" mapstructure:"max_peers"`
+}
+
+func NewQOSConfig() *QOSConfig {
+	return &QOSConfig{}
+}
+
+func (c *QOSConfig) Validate() error {
+	if c.MaxPeers < MinPeers {
+		return fmt.Errorf("max_peers cannot be less than %d", MinPeers)
+	}
+	if c.MaxPeers > MaxPeers {
+		return fmt.Errorf("max_peers cannot be greater than %d", MaxPeers)
 	}
 
-	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", uint16(n.Int64()+1<<10))
+	return nil
+}
+
+func (c *QOSConfig) WithDefaultValues() *QOSConfig {
+	c.MaxPeers = MaxPeers
 
 	return c
 }
@@ -258,6 +335,7 @@ type Config struct {
 	Handshake *HandshakeConfig `json:"handshake" mapstructure:"handshake"`
 	Keyring   *KeyringConfig   `json:"keyring" mapstructure:"keyring"`
 	Node      *NodeConfig      `json:"node" mapstructure:"node"`
+	QOS       *QOSConfig       `json:"qos" mapstructure:"qos"`
 }
 
 func NewConfig() *Config {
@@ -266,6 +344,7 @@ func NewConfig() *Config {
 		Handshake: NewHandshakeConfig(),
 		Keyring:   NewKeyringConfig(),
 		Node:      NewNodeConfig(),
+		QOS:       NewQOSConfig(),
 	}
 }
 
@@ -282,6 +361,9 @@ func (c *Config) Validate() error {
 	if err := c.Node.Validate(); err != nil {
 		return errors.Wrapf(err, "invalid section node")
 	}
+	if err := c.QOS.Validate(); err != nil {
+		return errors.Wrapf(err, "invalid section qos")
+	}
 
 	return nil
 }
@@ -291,6 +373,7 @@ func (c *Config) WithDefaultValues() *Config {
 	c.Handshake = c.Handshake.WithDefaultValues()
 	c.Keyring = c.Keyring.WithDefaultValues()
 	c.Node = c.Node.WithDefaultValues()
+	c.QOS = c.QOS.WithDefaultValues()
 
 	return c
 }

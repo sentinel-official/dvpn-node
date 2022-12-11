@@ -19,6 +19,9 @@ type (
 		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
 	}
+	QOS struct {
+		MaxPeers int `json:"max_peers"`
+	}
 )
 
 type (
@@ -27,14 +30,15 @@ type (
 		Bandwidth              *Bandwidth    `json:"bandwidth"`
 		Handshake              *Handshake    `json:"handshake"`
 		IntervalSetSessions    time.Duration `json:"interval_set_sessions"`
-		IntervalSetStatus      time.Duration `json:"interval_set_status"`
 		IntervalUpdateSessions time.Duration `json:"interval_update_sessions"`
+		IntervalUpdateStatus   time.Duration `json:"interval_update_status"`
 		Location               *Location     `json:"location"`
 		Moniker                string        `json:"moniker"`
 		Operator               string        `json:"operator"`
 		Peers                  int           `json:"peers"`
 		Price                  string        `json:"price"`
 		Provider               string        `json:"provider"`
+		QOS                    *QOS          `json:"qos"`
 		Type                   uint64        `json:"type"`
 		Version                string        `json:"version"`
 	}

@@ -38,42 +38,65 @@ func KeysCmd() *cobra.Command {
 
 func keysAdd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add [name]",
+		Use:   "add (name)",
 		Short: "Add a key",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			if err != nil {
 				return err
 			}
 
-			recovery, err := cmd.Flags().GetBool(flagRecover)
+			if validateConfig {
+				if err := config.Validate(); err != nil {
+					return err
+				}
+			}
+
+			account, err := cmd.Flags().GetUint32(flagAccount)
+			if err != nil {
+				return err
+			}
+
+			index, err := cmd.Flags().GetUint32(flagIndex)
+			if err != nil {
+				return err
+			}
+
+			recoverKey, err := cmd.Flags().GetBool(flagRecover)
 			if err != nil {
 				return err
 			}
 
 			var (
+				name   = config.Keyring.From
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
+			if len(args) > 0 {
+				name = args[0]
+			}
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			if _, err = kr.Key(args[0]); err == nil {
-				return fmt.Errorf("key already exists with name %s", args[0])
+			if _, err = kr.Key(name); err == nil {
+				return fmt.Errorf("key already exists with name %s", name)
 			}
 
 			entropy, err := bip39.NewEntropy(256)
@@ -86,7 +109,7 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			if recovery {
+			if recoverKey {
 				mnemonic, err = input.GetString("Enter your bip39 mnemonic", reader)
 				if err != nil {
 					return err
@@ -98,77 +121,95 @@ func keysAdd() *cobra.Command {
 			}
 
 			var (
-				hdPath                 = hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
-				supportedAlgorithms, _ = kr.SupportedAlgorithms()
+				hdPath        = hd.CreateHDPath(sdk.GetConfig().GetCoinType(), account, index)
+				algorithms, _ = kr.SupportedAlgorithms()
 			)
 
-			signingAlgorithm, err := keyring.NewSigningAlgoFromString(string(hd.Secp256k1Type), supportedAlgorithms)
+			algorithm, err := keyring.NewSigningAlgoFromString(string(hd.Secp256k1Type), algorithms)
 			if err != nil {
 				return err
 			}
 
-			info, err := kr.NewAccount(args[0], mnemonic, "", hdPath.String(), signingAlgorithm)
+			key, err := kr.NewAccount(name, mnemonic, "", hdPath.String(), algorithm)
 			if err != nil {
 				return err
 			}
 
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "operator: %s\n", info.GetAddress())
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "address: %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "")
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "**Important** write this mnemonic phrase in a safe place")
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), mnemonic)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "operator: %s\n", key.GetAddress())
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "address: %s\n", hubtypes.NodeAddress(key.GetAddress()))
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "\n")
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "**Important** write this mnemonic phrase in a safe place\n")
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", mnemonic)
 
 			return nil
 		},
 	}
 
-	cmd.Flags().Bool(flagRecover, false, "recover")
+	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagRecover, false, "provide mnemonic phrase to recover an existing key")
+	cmd.Flags().Uint32(flagAccount, 0, "account number for HD derivation")
+	cmd.Flags().Uint32(flagIndex, 0, "address index number for HD derivation")
 
 	return cmd
 }
 
 func keysShow() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "show [name]",
+		Use:   "show (name)",
 		Short: "Show a key",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if validateConfig {
+				if err := config.Validate(); err != nil {
+					return err
+				}
 			}
 
 			var (
+				name   = config.Keyring.From
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
+			if len(args) > 0 {
+				name = args[0]
+			}
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			info, err := kr.Key(args[0])
+			key, err := kr.Key(name)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("operator: %s\n", info.GetAddress())
-			fmt.Printf("address: %s\n", hubtypes.NodeAddress(info.GetAddress().Bytes()))
+			fmt.Printf("operator: %s\n", key.GetAddress())
+			fmt.Printf("address: %s\n", hubtypes.NodeAddress(key.GetAddress()))
 
 			return nil
 		},
 	}
+
+	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
 
 	return cmd
 }
@@ -179,82 +220,110 @@ func keysList() *cobra.Command {
 		Short: "List all the keys",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if validateConfig {
+				if err := config.Validate(); err != nil {
+					return err
+				}
 			}
 
 			var (
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
+			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			infos, err := kr.List()
+			keys, err := kr.List()
 			if err != nil {
 				return err
 			}
 
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 1, 1, ' ', 0)
-			for _, info := range infos {
-				fmt.Fprintf(w, "%s\t%s\t%s\n",
-					info.GetName(), info.GetAddress(), hubtypes.NodeAddress(info.GetAddress().Bytes()))
+			for _, key := range keys {
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n",
+					key.GetName(),
+					key.GetAddress(),
+					hubtypes.NodeAddress(key.GetAddress().Bytes()),
+				)
 			}
 
 			return w.Flush()
 		},
 	}
 
+	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+
 	return cmd
 }
 
 func keysDelete() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delete [name]",
+		Use:   "delete (name)",
 		Short: "Delete a key",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				home = viper.GetString(flags.FlagHome)
-				path = filepath.Join(home, types.ConfigFileName)
+				home       = viper.GetString(flags.FlagHome)
+				configPath = filepath.Join(home, types.ConfigFileName)
 			)
 
 			v := viper.New()
-			v.SetConfigFile(path)
+			v.SetConfigFile(configPath)
 
-			cfg, err := types.ReadInConfig(v)
+			config, err := types.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
-			if err := cfg.Validate(); err != nil {
+
+			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			if err != nil {
 				return err
+			}
+
+			if validateConfig {
+				if err := config.Validate(); err != nil {
+					return err
+				}
 			}
 
 			var (
+				name   = config.Keyring.From
 				reader = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			kr, err := keyring.New(sdk.KeyringServiceName(), cfg.Keyring.Backend, home, reader)
+			if len(args) > 0 {
+				name = args[0]
+			}
+
+			kr, err := keyring.New(sdk.KeyringServiceName(), config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
 			}
 
-			return kr.Delete(args[0])
+			return kr.Delete(name)
 		},
 	}
+
+	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
 
 	return cmd
 }

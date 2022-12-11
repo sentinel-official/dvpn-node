@@ -22,8 +22,8 @@ func HandlerGetStatus(ctx *context.Context) http.HandlerFunc {
 				Peers:  ctx.Config().Handshake.Peers,
 			},
 			IntervalSetSessions:    ctx.IntervalSetSessions(),
-			IntervalSetStatus:      ctx.IntervalSetStatus(),
 			IntervalUpdateSessions: ctx.IntervalUpdateSessions(),
+			IntervalUpdateStatus:   ctx.IntervalUpdateStatus(),
 			Location: &Location{
 				City:      ctx.Location().City,
 				Country:   ctx.Location().Country,
@@ -35,8 +35,11 @@ func HandlerGetStatus(ctx *context.Context) http.HandlerFunc {
 			Peers:    ctx.Service().PeersCount(),
 			Price:    ctx.Price().String(),
 			Provider: ctx.Provider().String(),
-			Type:     ctx.Service().Type(),
-			Version:  version.Version,
+			QOS: &QOS{
+				MaxPeers: ctx.Config().QOS.MaxPeers,
+			},
+			Type:    ctx.Service().Type(),
+			Version: version.Version,
 		})
 	}
 }
