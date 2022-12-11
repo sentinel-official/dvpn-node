@@ -1,5 +1,6 @@
 // this is a total hack.  It is here so that I can work through how to best integrate v2ray. -jacob
-
+//
+//nolint:unused
 package v2ray
 
 import (
