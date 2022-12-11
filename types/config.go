@@ -3,8 +3,8 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -383,7 +383,7 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, buffer.Bytes(), 0o600)
+	return os.WriteFile(path, buffer.Bytes(), 0o600)
 }
 
 func (c *Config) String() string {

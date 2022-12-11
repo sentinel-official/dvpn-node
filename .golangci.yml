@@ -7,6 +7,18 @@ run:
 linters:
   enable-all: true
   disable:
+    - goerr113
+    - noctx
+    - nlreturn
+    - wsl
+    - ireturn
+    - contextcheck
+    - gomnd
+    - funlen
+    - gomoddirectives
+    - exhaustruct
+    - funlen
+    - forbidigo
     - gochecknoglobals
     - varnamelen
     - prealloc
@@ -14,6 +26,7 @@ linters:
     - deadcode
     - varcheck
     - structcheck
+    - exhaustivestruct
     - golint
     - nosnakecase
     - exhaustivestruct
@@ -21,7 +34,10 @@ linters:
     - maligned
     - scopelint
     - rowserrcheck
+    - nonamedreturns
+    - tagliatelle
     - sqlclosecheck
     - structcheck
     - wastedassign
+    - wrapcheck
   fast: false

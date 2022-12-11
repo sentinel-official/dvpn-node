@@ -57,7 +57,7 @@ func (c *Client) WithGenerateOnly(v bool) *Client              { c.ctx.GenerateO
 func (c *Client) WithHeight(v int64) *Client                   { c.ctx.Height = v; return c }
 func (c *Client) WithHomeDir(v string) *Client                 { c.ctx.HomeDir = v; return c }
 func (c *Client) WithInput(v io.Reader) *Client                { c.ctx.Input = v; return c }
-func (c *Client) WithJSONCodec(v codec.JSONCodec) *Client      { c.ctx.JSONCodec = v; return c }
+func (c *Client) WithJSONCodec(v codec.Codec) *Client          { c.ctx.Codec = v; return c }
 func (c *Client) WithKeyringDir(v string) *Client              { c.ctx.KeyringDir = v; return c }
 func (c *Client) WithLegacyAmino(v *codec.LegacyAmino) *Client { c.ctx.LegacyAmino = v; return c }
 func (c *Client) WithLogger(v tmlog.Logger) *Client            { c.logger = v; return c }

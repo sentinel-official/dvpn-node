@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -64,7 +63,7 @@ func (w *WireGuard) Init(home string) (err error) {
 	}
 
 	path := fmt.Sprintf("/etc/wireguard/%s.conf", w.cfg.Interface)
-	if err := ioutil.WriteFile(path, buffer.Bytes(), 0o600); err != nil {
+	if err := os.WriteFile(path, buffer.Bytes(), 0o600); err != nil {
 		return err
 	}
 

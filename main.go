@@ -9,6 +9,7 @@ import (
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	_ "github.com/v2fly/v2ray-core/v5/main/distro/all"
 )
 
 func main() {
