@@ -7,7 +7,12 @@ run:
 linters:
   enable-all: true
   disable:
+    - cyclop
+    - dupword
+    - gocyclo
+    - gocognit
     - goerr113
+    - maintidx
     - noctx
     - nlreturn
     - wsl

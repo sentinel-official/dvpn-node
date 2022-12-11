@@ -34,7 +34,7 @@ import (
 )
 
 func runHandshake(peers uint64) error {
-	return exec.Command("hnsd",
+	return exec.Command("hnsd", //nolint:gosec // this is how we start handshake for dns
 		strings.Split(fmt.Sprintf("--log-file /dev/null "+
 			"--pool-size %d "+
 			"--rs-host 0.0.0.0:53", peers), " ")...).Run()

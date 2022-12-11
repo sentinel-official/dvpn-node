@@ -27,7 +27,7 @@ func ListenAndServeTLS(address, certFile, keyFile string, handler http.Handler) 
 	)
 
 	go func() {
-		if err := http.Serve(
+		if err := http.Serve( //nolint:gosec
 			anyMux,
 			handler,
 		); err != nil {
@@ -36,10 +36,10 @@ func ListenAndServeTLS(address, certFile, keyFile string, handler http.Handler) 
 	}()
 
 	go func() {
-		if err := http.Serve(
+		if err := http.Serve( //nolint:gosec
 			tls.NewListener(
 				tlsMux,
-				&tls.Config{
+				&tls.Config{ //nolint:gosec
 					Certificates: []tls.Certificate{
 						cert,
 					},
