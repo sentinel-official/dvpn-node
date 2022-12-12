@@ -1,4 +1,6 @@
 // this is a total hack.  It is here so that I can work through how to best integrate v2ray. -jacob
+// the goal is to start v2ray with either a generic config, or maybe the config from the original docs.
+// I guess it is best to have the new node generate a config though, because we don't want to allow aribitrary access.
 //
 //nolint:unused
 package v2ray
