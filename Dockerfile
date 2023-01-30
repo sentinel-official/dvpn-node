@@ -3,7 +3,6 @@ FROM golang:1.19-alpine3.17 AS build
 COPY . /go/src/github.com/sentinel-official/dvpn-node/
 
 RUN apk add git gcc linux-headers make musl-dev && \
-    wget https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.$(arch).a -O /lib/libwasmvm_muslc.a && \
     cd /go/src/github.com/sentinel-official/dvpn-node/ && \
     make install --jobs=$(nproc)
 

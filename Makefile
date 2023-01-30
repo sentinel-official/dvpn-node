@@ -2,8 +2,8 @@ PACKAGES := $(shell go list ./...)
 VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
 COMMIT := $(shell git log -1 --format='%H')
 
-BUILD_TAGS := $(strip muslc,netgo)
-LD_FLAGS := -linkmode=external -extldflags '-Wl,-z,muldefs -static' -s -w \
+BUILD_TAGS := $(strip netgo)
+LD_FLAGS := -s -w \
 	-X github.com/cosmos/cosmos-sdk/version.Name=sentinel \
 	-X github.com/cosmos/cosmos-sdk/version.AppName=sentinelnode \
 	-X github.com/cosmos/cosmos-sdk/version.Version=${VERSION} \
