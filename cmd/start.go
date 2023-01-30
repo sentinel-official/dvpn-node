@@ -10,13 +10,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/std"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/go-kit/kit/transport/http/jsonrpc"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"github.com/sentinel-official/hub"
-	"github.com/sentinel-official/hub/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -91,13 +88,10 @@ func StartCmd() *cobra.Command {
 			}
 
 			var (
-				encoding = params.MakeEncodingConfig()
+				encoding = types.MakeEncodingConfig()
 				service  = wireguard.NewWireGuard(wgtypes.NewIPPool(ipv4Pool, ipv6Pool))
 				reader   = bufio.NewReader(cmd.InOrStdin())
 			)
-
-			std.RegisterInterfaces(encoding.InterfaceRegistry)
-			hub.ModuleBasics.RegisterInterfaces(encoding.InterfaceRegistry)
 
 			log.Info("Initializing RPC HTTP client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
 			rpcclient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
