@@ -2,24 +2,26 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	tmstrings "github.com/tendermint/tendermint/libs/strings"
 
 	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
 
 var (
 	ct = strings.TrimSpace(`
-# Name of the transmission protocol
-protocol = "{{ .Protocol }}"
-
 [vmess]
 # Port number to accept the incoming connections
 listen_port = {{ .VMess.ListenPort }}
+
+# Name of the transport protocol
+protocol = "{{ .VMess.Protocol }}"
 	`)
 
 	t = func() *template.Template {
@@ -34,6 +36,7 @@ listen_port = {{ .VMess.ListenPort }}
 
 type VMessConfig struct {
 	ListenPort uint16 `json:"listen_port" mapstructure:"listen_port"`
+	Protocol   string `json:"protocol" mapstructure:"protocol"`
 }
 
 func NewVMessConfig() *VMessConfig {
@@ -42,6 +45,7 @@ func NewVMessConfig() *VMessConfig {
 
 func (c *VMessConfig) WithDefaultValues() *VMessConfig {
 	c.ListenPort = randutil.RandomPort()
+	c.Protocol = "grpc"
 
 	return c
 }
@@ -50,13 +54,18 @@ func (c *VMessConfig) Validate() error {
 	if c.ListenPort == 0 {
 		return errors.New("listen_port cannot be zero")
 	}
+	if c.Protocol == "" {
+		return errors.New("protocol cannot be empty")
+	}
+	if !tmstrings.StringInSlice(c.Protocol, TransportProtocols) {
+		return fmt.Errorf("protocol must be one of %#v", TransportProtocols)
+	}
 
 	return nil
 }
 
 type Config struct {
-	Protocol string       `json:"protocol" mapstructure:"protocol"`
-	VMess    *VMessConfig `json:"vmess" mapstructure:"vmess"`
+	VMess *VMessConfig `json:"vmess" mapstructure:"vmess"`
 }
 
 func NewConfig() *Config {
@@ -66,13 +75,6 @@ func NewConfig() *Config {
 }
 
 func (c *Config) Validate() error {
-	if c.Protocol == "" {
-		return errors.New("protocol cannot be empty")
-	}
-	if c.Protocol != "vmess" {
-		return errors.New("protocol must be vmess")
-	}
-
 	if err := c.VMess.Validate(); err != nil {
 		return errors.Wrapf(err, "invalid section vmess")
 	}
@@ -81,20 +83,18 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) WithDefaultValues() *Config {
-	c.Protocol = "vmess"
-
 	c.VMess = c.VMess.WithDefaultValues()
 
 	return c
 }
 
 func (c *Config) SaveToPath(path string) error {
-	var buffer bytes.Buffer
-	if err := t.Execute(&buffer, c); err != nil {
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, c); err != nil {
 		return err
 	}
 
-	return os.WriteFile(path, buffer.Bytes(), 0600)
+	return os.WriteFile(path, buf.Bytes(), 0600)
 }
 
 func (c *Config) String() string {
