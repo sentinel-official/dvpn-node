@@ -2,14 +2,12 @@ package types
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	tmstrings "github.com/tendermint/tendermint/libs/strings"
 
 	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
 )
@@ -21,7 +19,7 @@ var (
 listen_port = {{ .VMess.ListenPort }}
 
 # Name of the transport protocol
-protocol = "{{ .VMess.Protocol }}"
+transport = "{{ .VMess.Transport }}"
 	`)
 
 	t = func() *template.Template {
@@ -36,7 +34,7 @@ protocol = "{{ .VMess.Protocol }}"
 
 type VMessConfig struct {
 	ListenPort uint16 `json:"listen_port" mapstructure:"listen_port"`
-	Protocol   string `json:"protocol" mapstructure:"protocol"`
+	Transport  string `json:"transport" mapstructure:"transport"`
 }
 
 func NewVMessConfig() *VMessConfig {
@@ -45,7 +43,7 @@ func NewVMessConfig() *VMessConfig {
 
 func (c *VMessConfig) WithDefaultValues() *VMessConfig {
 	c.ListenPort = randutil.RandomPort()
-	c.Protocol = "grpc"
+	c.Transport = "grpc"
 
 	return c
 }
@@ -54,11 +52,13 @@ func (c *VMessConfig) Validate() error {
 	if c.ListenPort == 0 {
 		return errors.New("listen_port cannot be zero")
 	}
-	if c.Protocol == "" {
-		return errors.New("protocol cannot be empty")
+	if c.Transport == "" {
+		return errors.New("transport cannot be empty")
 	}
-	if !tmstrings.StringInSlice(c.Protocol, TransportProtocols) {
-		return fmt.Errorf("protocol must be one of %#v", TransportProtocols)
+
+	t := NewTransportFromString(c.Transport)
+	if !t.IsValid() {
+		return errors.New("invalid transport")
 	}
 
 	return nil
@@ -107,13 +107,13 @@ func (c *Config) String() string {
 }
 
 func ReadInConfig(v *viper.Viper) (*Config, error) {
-	cfg := NewConfig().WithDefaultValues()
+	config := NewConfig().WithDefaultValues()
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
-	if err := v.Unmarshal(cfg); err != nil {
+	if err := v.Unmarshal(config); err != nil {
 		return nil, err
 	}
 
-	return cfg, nil
+	return config, nil
 }
