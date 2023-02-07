@@ -26,13 +26,12 @@ var (
             "tag": "api"
         },
         {
-            "listen": "{{ .VMess.ListenAddress }}",
             "port": "{{ .VMess.ListenPort }}",
             "protocol": "vmess",
             "streamSettings": {
                 "network": "{{ .VMess.Transport }}"
             },
-			"tag": "vmess"
+            "tag": "vmess"
         }
     ],
     "outbounds": [

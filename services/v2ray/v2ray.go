@@ -206,43 +206,60 @@ func (s *V2Ray) Peers() ([]types.Peer, error) {
 		return nil, err
 	}
 
-	var items []types.Peer
-	err = s.peers.Iterate(
-		func(key string, _ v2raytypes.Peer) (bool, error) {
-			req := &statscommand.GetStatsRequest{
-				Name:   fmt.Sprintf("user>>>%s>>>traffic>>>downlink", key),
-				Reset_: false,
-			}
-
-			rDownload, err := client.GetStats(context.TODO(), req)
-			if err != nil {
-				return false, err
-			}
-
-			req = &statscommand.GetStatsRequest{
-				Name:   fmt.Sprintf("user>>>%s>>>traffic>>>uplink", key),
-				Reset_: false,
-			}
-
-			rUpload, err := client.GetStats(context.TODO(), req)
-			if err != nil {
-				return false, err
-			}
-
-			items = append(
-				items,
-				types.Peer{
-					Key:      key,
-					Download: rDownload.GetStat().GetValue(),
-					Upload:   rUpload.GetStat().GetValue(),
-				},
-			)
-
-			return false, nil
+	req := &statscommand.QueryStatsRequest{
+		Reset_: false,
+		Patterns: []string{
+			"user>>>",
 		},
-	)
+		Regexp: false,
+	}
+
+	res, err := client.QueryStats(context.TODO(), req)
 	if err != nil {
 		return nil, err
+	}
+
+	var (
+		upLink   = make(map[string]int64)
+		downLink = make(map[string]int64)
+	)
+
+	for _, stat := range res.GetStat() {
+		name := strings.Split(stat.GetName(), ">>>")
+		if len(name) != 4 {
+			continue
+		}
+
+		var (
+			link = name[3]
+			uid  = name[1]
+		)
+
+		if _, ok := upLink[uid]; !ok {
+			upLink[uid] = 0
+		}
+		if _, ok := downLink[uid]; !ok {
+			downLink[uid] = 0
+		}
+
+		value := stat.GetValue()
+		if link == "uplink" {
+			upLink[uid] = value
+		} else if link == "downlink" {
+			downLink[uid] = value
+		}
+	}
+
+	var items []types.Peer
+	for key := range upLink {
+		items = append(
+			items,
+			types.Peer{
+				Key:      key,
+				Upload:   upLink[key],
+				Download: downLink[key],
+			},
+		)
 	}
 
 	return items, nil
