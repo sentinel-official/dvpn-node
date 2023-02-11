@@ -137,8 +137,8 @@ func (s *V2Ray) statsServiceClient() (statscommand.StatsServiceClient, error) {
 }
 
 func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
-	if len(data) != 1 {
-		return nil, errors.New("data length must be 1 byte")
+	if len(data) != 1+16 {
+		return nil, errors.New("data length must be 17 bytes")
 	}
 
 	client, err := s.handlerServiceClient()
@@ -147,8 +147,8 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 	}
 
 	var (
-		proxy = v2raytypes.Proxy(data[0])
-		uid   = uuid.New()
+		proxy  = v2raytypes.Proxy(data[0])
+		uid, _ = uuid.ParseBytes(data[1:])
 	)
 
 	req := &proxymancommand.AlterInboundRequest{
@@ -175,7 +175,6 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 		},
 	)
 
-	result = append(result, uid.Bytes()...)
 	return result, nil
 }
 
