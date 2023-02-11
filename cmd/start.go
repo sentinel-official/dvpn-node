@@ -101,7 +101,7 @@ func StartCmd() *cobra.Command {
 			)
 
 			log.Info("Initializing RPC HTTP client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
-			rpcclient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
+			rpcClient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
 			if err != nil {
 				return err
 			}
@@ -120,7 +120,7 @@ func StartCmd() *cobra.Command {
 			client := lite.NewDefaultClient().
 				WithAccountRetriever(authtypes.AccountRetriever{}).
 				WithChainID(config.Chain.ID).
-				WithClient(rpcclient).
+				WithClient(rpcClient).
 				WithFrom(config.Keyring.From).
 				WithFromAddress(info.GetAddress()).
 				WithFromName(config.Keyring.From).
@@ -157,7 +157,7 @@ func StartCmd() *cobra.Command {
 			}
 			log.Info("Internet speed test result", "data", bandwidth)
 
-			if config.Handshake.Enable {
+			if config.Node.Type == "wireguard" && config.Handshake.Enable {
 				go func() {
 					for {
 						log.Info("Starting the Handshake process...")
