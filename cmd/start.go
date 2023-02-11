@@ -11,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/go-kit/kit/transport/http/jsonrpc"
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -196,27 +196,29 @@ func StartCmd() *cobra.Command {
 			}
 
 			var (
-				corsRouter = cors.New(
-					cors.Options{
-						AllowedMethods: []string{
+				ctx            = context.NewContext()
+				router         = gin.Default()
+				corsMiddleware = cors.New(
+					cors.Config{
+						AllowAllOrigins: true,
+						AllowMethods: []string{
 							http.MethodGet,
 							http.MethodPost,
 						},
-						AllowedHeaders: []string{
+						AllowHeaders: []string{
 							jsonrpc.ContentType,
 						},
 					},
 				)
-				ctx       = context.NewContext()
-				muxRouter = mux.NewRouter()
 			)
 
-			rest.RegisterRoutes(ctx, muxRouter)
+			router.Use(corsMiddleware)
+			rest.RegisterRoutes(ctx, router)
 
 			ctx = ctx.
 				WithLogger(log).
 				WithService(service).
-				WithHandler(corsRouter.Handler(muxRouter)).
+				WithHandler(router).
 				WithConfig(config).
 				WithClient(client).
 				WithLocation(location).

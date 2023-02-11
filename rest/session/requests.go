@@ -2,39 +2,51 @@ package session
 
 import (
 	"encoding/base64"
-	"encoding/json"
-	"net/http"
 
-	"github.com/pkg/errors"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gin-gonic/gin"
 )
 
 type RequestAddSession struct {
-	Key       string `json:"key"`
-	Signature string `json:"signature"`
+	accAddress sdk.AccAddress
+	id         uint64
+	key        []byte
+	signature  []byte
+
+	URI struct {
+		AccAddress string `uri:"acc_address"`
+		ID         uint64 `uri:"id" binding:"gt=0"`
+	}
+	Body struct {
+		Key       string `json:"key"`
+		Signature string `json:"signature"`
+	}
 }
 
-func NewRequestAddSession(r *http.Request) (*RequestAddSession, error) {
-	var body RequestAddSession
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+func NewRequestAddSession(c *gin.Context) (req *RequestAddSession, err error) {
+	req = &RequestAddSession{}
+	if err = c.ShouldBindUri(&req.URI); err != nil {
+		return nil, err
+	}
+	if err = c.ShouldBindJSON(&req.Body); err != nil {
 		return nil, err
 	}
 
-	return &body, nil
-}
-
-func (r *RequestAddSession) Validate() error {
-	if r.Key == "" {
-		return errors.New("key cannot be empty")
-	}
-	if _, err := base64.StdEncoding.DecodeString(r.Key); err != nil {
-		return errors.Wrap(err, "invalid key")
-	}
-	if r.Signature == "" {
-		return errors.New("signature cannot be empty")
-	}
-	if _, err := base64.StdEncoding.DecodeString(r.Signature); err != nil {
-		return errors.Wrap(err, "invalid signature")
+	req.accAddress, err = sdk.AccAddressFromBech32(req.URI.AccAddress)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	req.id = req.URI.ID
+
+	req.key, err = base64.StdEncoding.DecodeString(req.Body.Key)
+	if err != nil {
+		return nil, err
+	}
+	req.signature, err = base64.StdEncoding.DecodeString(req.Body.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }

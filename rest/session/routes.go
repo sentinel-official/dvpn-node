@@ -1,15 +1,11 @@
 package session
 
 import (
-	"net/http"
-
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 
 	"github.com/sentinel-official/dvpn-node/context"
 )
 
-func RegisterRoutes(ctx *context.Context, r *mux.Router) {
-	r.Name("AddSession").
-		Methods(http.MethodPost).Path("/accounts/{address}/sessions/{id}").
-		HandlerFunc(handlerAddSession(ctx))
+func RegisterRoutes(ctx *context.Context, router gin.IRouter) {
+	router.POST("/accounts/:acc_address/sessions/:id", HandlerAddSession(ctx))
 }

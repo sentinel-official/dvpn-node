@@ -1,15 +1,11 @@
 package status
 
 import (
-	"net/http"
-
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 
 	"github.com/sentinel-official/dvpn-node/context"
 )
 
-func RegisterRoutes(ctx *context.Context, r *mux.Router) {
-	r.Name("GetStatus").
-		Methods(http.MethodGet).Path("/status").
-		HandlerFunc(HandlerGetStatus(ctx))
+func RegisterRoutes(ctx *context.Context, r gin.IRouter) {
+	r.GET("/status", HandlerGetStatus(ctx))
 }
