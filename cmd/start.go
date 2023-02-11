@@ -21,10 +21,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/sentinel-official/dvpn-node/api"
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/node"
-	"github.com/sentinel-official/dvpn-node/rest"
 	"github.com/sentinel-official/dvpn-node/services/v2ray"
 	"github.com/sentinel-official/dvpn-node/services/wireguard"
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
@@ -213,10 +213,9 @@ func StartCmd() *cobra.Command {
 			)
 
 			router.Use(corsMiddleware)
-			rest.RegisterRoutes(ctx, router)
+			api.RegisterRoutes(ctx, router)
 
-			ctx = ctx.
-				WithLogger(log).
+			ctx = ctx.WithLogger(log).
 				WithService(service).
 				WithHandler(router).
 				WithConfig(config).
