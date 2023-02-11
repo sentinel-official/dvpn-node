@@ -55,12 +55,12 @@ func keysAdd() *cobra.Command {
 				return err
 			}
 
-			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if validateConfig {
+			if !skipConfigValidation {
 				if err := config.Validate(); err != nil {
 					return err
 				}
@@ -145,7 +145,7 @@ func keysAdd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration")
 	cmd.Flags().Bool(flagRecover, false, "provide mnemonic phrase to recover an existing key")
 	cmd.Flags().Uint32(flagAccount, 0, "account number for HD derivation")
 	cmd.Flags().Uint32(flagIndex, 0, "address index number for HD derivation")
@@ -172,12 +172,12 @@ func keysShow() *cobra.Command {
 				return err
 			}
 
-			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if validateConfig {
+			if !skipConfigValidation {
 				if err := config.Validate(); err != nil {
 					return err
 				}
@@ -209,7 +209,7 @@ func keysShow() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration")
 
 	return cmd
 }
@@ -232,12 +232,12 @@ func keysList() *cobra.Command {
 				return err
 			}
 
-			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if validateConfig {
+			if !skipConfigValidation {
 				if err := config.Validate(); err != nil {
 					return err
 				}
@@ -270,7 +270,7 @@ func keysList() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration")
 
 	return cmd
 }
@@ -294,12 +294,12 @@ func keysDelete() *cobra.Command {
 				return err
 			}
 
-			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if validateConfig {
+			if !skipConfigValidation {
 				if err := config.Validate(); err != nil {
 					return err
 				}
@@ -323,7 +323,7 @@ func keysDelete() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration")
 
 	return cmd
 }

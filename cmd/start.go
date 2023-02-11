@@ -64,12 +64,12 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if validateConfig {
+			if !skipConfigValidation {
 				log.Info("Validating the configuration", "data", config)
 				if err := config.Validate(); err != nil {
 					return err
@@ -233,7 +233,7 @@ func StartCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration")
 
 	return cmd
 }
