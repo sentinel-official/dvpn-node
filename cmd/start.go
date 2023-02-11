@@ -32,6 +32,10 @@ import (
 	"github.com/sentinel-official/dvpn-node/utils"
 )
 
+func init() {
+	gin.SetMode(gin.ReleaseMode)
+}
+
 func runHandshake(peers uint64) error {
 	return exec.Command("hnsd",
 		strings.Split(fmt.Sprintf("--log-file /dev/null "+
@@ -157,7 +161,7 @@ func StartCmd() *cobra.Command {
 			}
 			log.Info("Internet speed test result", "data", bandwidth)
 
-			if config.Node.Type == "wireguard" && config.Handshake.Enable {
+			if config.Handshake.Enable {
 				go func() {
 					for {
 						log.Info("Starting the Handshake process...")
@@ -197,7 +201,7 @@ func StartCmd() *cobra.Command {
 
 			var (
 				ctx            = context.NewContext()
-				router         = gin.Default()
+				router         = gin.New()
 				corsMiddleware = cors.New(
 					cors.Config{
 						AllowAllOrigins: true,

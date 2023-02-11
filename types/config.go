@@ -378,6 +378,12 @@ func (c *Config) Validate() error {
 		return errors.Wrapf(err, "invalid section qos")
 	}
 
+	if c.Node.Type == "v2ray" {
+		if c.Handshake.Enable {
+			return errors.Wrapf(errors.New("must be disabled"), "invalid section handshake")
+		}
+	}
+
 	return nil
 }
 
