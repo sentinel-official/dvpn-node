@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	proxymancommand "github.com/v2fly/v2ray-core/v5/app/proxyman/command"
 	statscommand "github.com/v2fly/v2ray-core/v5/app/stats/command"
@@ -91,7 +92,7 @@ func (s *V2Ray) Init(home string) (err error) {
 
 func (s *V2Ray) Start() error {
 	s.cmd = exec.Command("v2ray", strings.Split(
-		fmt.Sprintf("--config %s", s.configFilePath()), " ")...)
+		fmt.Sprintf("run --config %s", s.configFilePath()), " ")...)
 	s.cmd.Stdout = os.Stdout
 	s.cmd.Stderr = os.Stderr
 
@@ -99,6 +100,10 @@ func (s *V2Ray) Start() error {
 }
 
 func (s *V2Ray) Stop() error {
+	if s.cmd == nil {
+		return errors.New("command is nil")
+	}
+
 	return s.cmd.Process.Kill()
 }
 
@@ -132,6 +137,10 @@ func (s *V2Ray) statsServiceClient() (statscommand.StatsServiceClient, error) {
 }
 
 func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
+	if len(data) != 1 {
+		return nil, errors.New("data length must be 1 byte")
+	}
+
 	client, err := s.handlerServiceClient()
 	if err != nil {
 		return nil, err
@@ -171,6 +180,10 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 }
 
 func (s *V2Ray) RemovePeer(data []byte) error {
+	if len(data) != 1+16 {
+		return errors.New("data length must be 17 bytes")
+	}
+
 	client, err := s.handlerServiceClient()
 	if err != nil {
 		return err
