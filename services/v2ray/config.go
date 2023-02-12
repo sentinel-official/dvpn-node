@@ -34,6 +34,11 @@ var (
             "tag": "vmess"
         }
     ],
+    "log": {
+        "access": "none",
+        "error": "none",
+        "loglevel": "none"
+    },
     "outbounds": [
         {
             "protocol": "freedom"
