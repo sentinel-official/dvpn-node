@@ -3,8 +3,8 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -90,6 +90,9 @@ provider = "{{ .Node.Provider }}"
 
 # Public URL of the node
 remote_url = "{{ .Node.RemoteURL }}"
+
+# Type of node
+type = "{{ .Node.Type }}"
 
 [qos]
 # Limit max number of concurrent peers
@@ -212,6 +215,7 @@ func (c *KeyringConfig) Validate() error {
 
 func (c *KeyringConfig) WithDefaultValues() *KeyringConfig {
 	c.Backend = keyring.BackendFile
+	c.From = "operator"
 
 	return c
 }
@@ -225,6 +229,7 @@ type NodeConfig struct {
 	Price                  string        `json:"price" mapstructure:"price"`
 	Provider               string        `json:"provider" mapstructure:"provider"`
 	RemoteURL              string        `json:"remote_url" mapstructure:"remote_url"`
+	Type                   string        `json:"type" mapstructure:"type"`
 }
 
 func NewNodeConfig() *NodeConfig {
@@ -293,6 +298,13 @@ func (c *NodeConfig) Validate() error {
 		return errors.New("remote_url port cannot be empty")
 	}
 
+	if c.Type == "" {
+		return errors.New("type cannot be empty")
+	}
+	if c.Type != "wireguard" && c.Type != "v2ray" {
+		return errors.New("type must be either wireguard or v2ray")
+	}
+
 	return nil
 }
 
@@ -301,6 +313,7 @@ func (c *NodeConfig) WithDefaultValues() *NodeConfig {
 	c.IntervalUpdateSessions = MaxIntervalUpdateSessions
 	c.IntervalUpdateStatus = MaxIntervalUpdateStatus
 	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
+	c.Type = "wireguard"
 
 	return c
 }
@@ -365,6 +378,12 @@ func (c *Config) Validate() error {
 		return errors.Wrapf(err, "invalid section qos")
 	}
 
+	if c.Node.Type == "v2ray" {
+		if c.Handshake.Enable {
+			return errors.Wrapf(errors.New("must be disabled"), "invalid section handshake")
+		}
+	}
+
 	return nil
 }
 
@@ -384,16 +403,16 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, buffer.Bytes(), 0600)
+	return os.WriteFile(path, buffer.Bytes(), 0600)
 }
 
 func (c *Config) String() string {
-	var buffer bytes.Buffer
-	if err := t.Execute(&buffer, c); err != nil {
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, c); err != nil {
 		panic(err)
 	}
 
-	return buffer.String()
+	return buf.String()
 }
 
 func ReadInConfig(v *viper.Viper) (*Config, error) {

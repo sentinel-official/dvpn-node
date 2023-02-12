@@ -11,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/go-kit/kit/transport/http/jsonrpc"
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -21,15 +21,20 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/sentinel-official/dvpn-node/api"
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/node"
-	"github.com/sentinel-official/dvpn-node/rest"
+	"github.com/sentinel-official/dvpn-node/services/v2ray"
 	"github.com/sentinel-official/dvpn-node/services/wireguard"
 	wgtypes "github.com/sentinel-official/dvpn-node/services/wireguard/types"
 	"github.com/sentinel-official/dvpn-node/types"
 	"github.com/sentinel-official/dvpn-node/utils"
 )
+
+func init() {
+	gin.SetMode(gin.ReleaseMode)
+}
 
 func runHandshake(peers uint64) error {
 	return exec.Command("hnsd",
@@ -63,38 +68,44 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			validateConfig, err := cmd.Flags().GetBool(flagEnableConfigValidation)
+			skipConfigValidation, err := cmd.Flags().GetBool(flagSkipConfigValidation)
 			if err != nil {
 				return err
 			}
 
-			if validateConfig {
+			if !skipConfigValidation {
 				log.Info("Validating the configuration", "data", config)
 				if err := config.Validate(); err != nil {
 					return err
 				}
 			}
 
-			log.Info("Creating IPv4 pool", "CIDR", types.IPv4CIDR)
-			ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.IPv4CIDR)
-			if err != nil {
-				return err
-			}
+			var service types.Service
+			if config.Node.Type == "wireguard" {
+				log.Info("Creating IPv4 pool", "CIDR", types.IPv4CIDR)
+				ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.IPv4CIDR)
+				if err != nil {
+					return err
+				}
 
-			log.Info("Creating IPv6 pool", "CIDR", types.IPv6CIDR)
-			ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.IPv6CIDR)
-			if err != nil {
-				return err
+				log.Info("Creating IPv6 pool", "CIDR", types.IPv6CIDR)
+				ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.IPv6CIDR)
+				if err != nil {
+					return err
+				}
+
+				service = wireguard.NewWireGuard(wgtypes.NewIPPool(ipv4Pool, ipv6Pool))
+			} else if config.Node.Type == "v2ray" {
+				service = v2ray.NewV2Ray()
 			}
 
 			var (
 				encoding = types.MakeEncodingConfig()
-				service  = wireguard.NewWireGuard(wgtypes.NewIPPool(ipv4Pool, ipv6Pool))
 				reader   = bufio.NewReader(cmd.InOrStdin())
 			)
 
 			log.Info("Initializing RPC HTTP client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
-			rpcclient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
+			rpcClient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
 			if err != nil {
 				return err
 			}
@@ -113,7 +124,7 @@ func StartCmd() *cobra.Command {
 			client := lite.NewDefaultClient().
 				WithAccountRetriever(authtypes.AccountRetriever{}).
 				WithChainID(config.Chain.ID).
-				WithClient(rpcclient).
+				WithClient(rpcClient).
 				WithFrom(config.Keyring.From).
 				WithFromAddress(info.GetAddress()).
 				WithFromName(config.Keyring.From).
@@ -189,27 +200,28 @@ func StartCmd() *cobra.Command {
 			}
 
 			var (
-				corsRouter = cors.New(
-					cors.Options{
-						AllowedMethods: []string{
+				ctx            = context.NewContext()
+				router         = gin.New()
+				corsMiddleware = cors.New(
+					cors.Config{
+						AllowAllOrigins: true,
+						AllowMethods: []string{
 							http.MethodGet,
 							http.MethodPost,
 						},
-						AllowedHeaders: []string{
+						AllowHeaders: []string{
 							jsonrpc.ContentType,
 						},
 					},
 				)
-				ctx       = context.NewContext()
-				muxRouter = mux.NewRouter()
 			)
 
-			rest.RegisterRoutes(ctx, muxRouter)
+			router.Use(corsMiddleware)
+			api.RegisterRoutes(ctx, router)
 
-			ctx = ctx.
-				WithLogger(log).
+			ctx = ctx.WithLogger(log).
 				WithService(service).
-				WithHandler(corsRouter.Handler(muxRouter)).
+				WithHandler(router).
 				WithConfig(config).
 				WithClient(client).
 				WithLocation(location).
@@ -225,7 +237,7 @@ func StartCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagEnableConfigValidation, true, "enable the validation of configuration")
+	cmd.Flags().Bool(flagSkipConfigValidation, false, "skip the validation of configuration")
 
 	return cmd
 }

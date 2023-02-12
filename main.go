@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/cmd"
+	v2ray "github.com/sentinel-official/dvpn-node/services/v2ray/cli"
 	wireguard "github.com/sentinel-official/dvpn-node/services/wireguard/cli"
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -22,6 +23,7 @@ func main() {
 	root.AddCommand(
 		cmd.ConfigCmd(),
 		cmd.KeysCmd(),
+		v2ray.Command(),
 		wireguard.Command(),
 		cmd.StartCmd(),
 		version.NewVersionCommand(),

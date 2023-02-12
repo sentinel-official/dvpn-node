@@ -22,9 +22,6 @@ type (
 	QOS struct {
 		MaxPeers int `json:"max_peers"`
 	}
-)
-
-type (
 	ResponseGetStatus struct {
 		Address                string        `json:"address"`
 		Bandwidth              *Bandwidth    `json:"bandwidth"`
