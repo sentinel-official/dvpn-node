@@ -212,7 +212,7 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 	return nil
 }
 
-func (s *V2Ray) Peers() ([]types.Peer, error) {
+func (s *V2Ray) Peers() (items []types.Peer, err error) {
 	client, err := s.statsServiceClient()
 	if err != nil {
 		return nil, err
@@ -262,7 +262,6 @@ func (s *V2Ray) Peers() ([]types.Peer, error) {
 		}
 	}
 
-	var items []types.Peer
 	for key := range upLink {
 		items = append(
 			items,

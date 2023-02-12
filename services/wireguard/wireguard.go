@@ -180,12 +180,12 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 			continue
 		}
 
-		download, err := strconv.ParseInt(columns[1], 10, 64)
+		upload, err := strconv.ParseInt(columns[1], 10, 64)
 		if err != nil {
 			return nil, err
 		}
 
-		upload, err := strconv.ParseInt(columns[2], 10, 64)
+		download, err := strconv.ParseInt(columns[2], 10, 64)
 		if err != nil {
 			return nil, err
 		}
