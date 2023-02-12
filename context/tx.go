@@ -75,7 +75,7 @@ func (c *Context) UpdateSessions(items ...types.Session) error {
 				sessiontypes.Proof{
 					Id:        item.ID,
 					Duration:  item.UpdatedAt.Sub(item.CreatedAt),
-					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Download, item.Upload),
+					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Upload, item.Download),
 				},
 				nil,
 			),
