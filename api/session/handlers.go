@@ -1,7 +1,6 @@
 package session
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,16 +8,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gin-gonic/gin"
 	hubtypes "github.com/sentinel-official/hub/types"
-	"github.com/v2fly/v2ray-core/v5/common/uuid"
 
 	"github.com/sentinel-official/dvpn-node/context"
-	v2raytypes "github.com/sentinel-official/dvpn-node/services/v2ray/types"
 	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if ctx.Service().PeersCount() >= ctx.Config().QOS.MaxPeers {
+		if ctx.Service().PeersLen() >= ctx.Config().QOS.MaxPeers {
 			err := fmt.Errorf("reached maximum peers limit; maximum %d", ctx.Config().QOS.MaxPeers)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
 			return
@@ -28,17 +25,6 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, types.NewResponseError(2, err))
 			return
-		}
-
-		key := base64.StdEncoding.EncodeToString(req.key)
-		if ctx.Service().Type() == v2raytypes.Type {
-			uid, err := uuid.ParseBytes(req.key[1:])
-			if err != nil {
-				c.JSON(http.StatusBadRequest, types.NewResponseError(2, err))
-				return
-			}
-
-			key = uid.String()
 		}
 
 		item := types.Session{}
@@ -61,12 +47,12 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			&types.Session{},
 		).Where(
 			&types.Session{
-				Key: key,
+				Key: req.Body.Key,
 			},
 		).First(&item)
 
 		if item.ID != 0 {
-			err = fmt.Errorf("key %s for service already exist", key)
+			err = fmt.Errorf("key %s for service already exist", req.Body.Key)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(3, err))
 			return
 		}
@@ -205,7 +191,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(11, err))
 			return
 		}
-		ctx.Log().Info("Added a new peer", "key", key, "count", ctx.Service().PeersCount())
+		ctx.Log().Info("Added a new peer", "key", req.Body.Key, "count", ctx.Service().PeersLen())
 
 		ctx.Database().Model(
 			&types.Session{},
@@ -213,7 +199,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			&types.Session{
 				ID:           req.id,
 				Subscription: subscription.Id,
-				Key:          key,
+				Key:          req.Body.Key,
 				Address:      req.URI.AccAddress,
 				Available:    quota.Allocated.Sub(quota.Consumed).Int64(),
 			},

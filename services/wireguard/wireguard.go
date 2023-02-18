@@ -202,6 +202,6 @@ func (w *WireGuard) Peers() ([]types.Peer, error) {
 	return items, nil
 }
 
-func (w *WireGuard) PeersCount() int {
+func (w *WireGuard) PeersLen() int {
 	return w.peers.Len()
 }

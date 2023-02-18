@@ -3,6 +3,7 @@ package v2ray
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -171,7 +172,7 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 
 	s.peers.Put(
 		v2raytypes.Peer{
-			Identity: uid.String(),
+			Identity: base64.StdEncoding.EncodeToString(data),
 		},
 	)
 
@@ -204,10 +205,13 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 
 	_, err = client.AlterInbound(context.TODO(), req)
 	if err != nil {
-		return err
+		if !strings.Contains(err.Error(), "not found") {
+			return err
+		}
 	}
 
-	s.peers.Delete(uid.String())
+	identity := base64.StdEncoding.EncodeToString(data)
+	s.peers.Delete(identity)
 
 	return nil
 }
@@ -276,6 +280,6 @@ func (s *V2Ray) Peers() (items []types.Peer, err error) {
 	return items, nil
 }
 
-func (s *V2Ray) PeersCount() int {
+func (s *V2Ray) PeersLen() int {
 	return s.peers.Len()
 }
