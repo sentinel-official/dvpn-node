@@ -21,12 +21,7 @@ func (n *Node) jobSetSessions() error {
 			return err
 		}
 
-		count := len(peers)
-		if count > 0 {
-			n.Log().Info("Validating the peers", "count", count)
-		}
-
-		for i := 0; i < count; i++ {
+		for i := 0; i < len(peers); i++ {
 			var item types.Session
 			n.Database().Model(
 				&types.Session{},
@@ -159,7 +154,7 @@ func (n *Node) jobUpdateSessions() error {
 			}
 
 			if removePeer {
-				if err := n.RemovePeer(items[i].Key); err != nil {
+				if err = n.RemovePeer(items[i].Key); err != nil {
 					return err
 				}
 			}
