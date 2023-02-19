@@ -82,13 +82,13 @@ func StartCmd() *cobra.Command {
 
 			var service types.Service
 			if config.Node.Type == "wireguard" {
-				log.Info("Creating IPv4 pool", "CIDR", types.IPv4CIDR)
+				log.Info("Creating the IPv4 pool", "CIDR", types.IPv4CIDR)
 				ipv4Pool, err := wgtypes.NewIPv4PoolFromCIDR(types.IPv4CIDR)
 				if err != nil {
 					return err
 				}
 
-				log.Info("Creating IPv6 pool", "CIDR", types.IPv6CIDR)
+				log.Info("Creating the IPv6 pool", "CIDR", types.IPv6CIDR)
 				ipv6Pool, err := wgtypes.NewIPv6PoolFromCIDR(types.IPv6CIDR)
 				if err != nil {
 					return err
@@ -104,13 +104,13 @@ func StartCmd() *cobra.Command {
 				reader   = bufio.NewReader(cmd.InOrStdin())
 			)
 
-			log.Info("Initializing RPC HTTP client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
+			log.Info("Initializing the RPC client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
 			rpcClient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
 			if err != nil {
 				return err
 			}
 
-			log.Info("Initializing keyring", "name", types.KeyringName, "backend", config.Keyring.Backend)
+			log.Info("Initializing the keyring", "name", types.KeyringName, "backend", config.Keyring.Backend)
 			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, reader)
 			if err != nil {
 				return err
@@ -147,14 +147,14 @@ func StartCmd() *cobra.Command {
 				return fmt.Errorf("account does not exist with address %s", client.FromAddress())
 			}
 
-			log.Info("Fetching GeoIP location info...")
+			log.Info("Fetching the GeoIP location info...")
 			location, err := utils.FetchGeoIPLocation()
 			if err != nil {
 				return err
 			}
 			log.Info("GeoIP location info", "city", location.City, "country", location.Country)
 
-			log.Info("Performing internet speed test...")
+			log.Info("Performing the internet speed test...")
 			bandwidth, err := utils.FindInternetSpeed()
 			if err != nil {
 				return err
@@ -172,12 +172,12 @@ func StartCmd() *cobra.Command {
 				}()
 			}
 
-			log.Info("Initializing VPN service", "type", service.Type())
+			log.Info("Initializing the VPN service", "type", service.Type())
 			if err := service.Init(home); err != nil {
 				return err
 			}
 
-			log.Info("Starting VPN service", "type", service.Type())
+			log.Info("Starting the VPN service", "type", service.Type())
 			if err := service.Start(); err != nil {
 				return err
 			}
@@ -194,7 +194,7 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			log.Info("Migrating database models...")
+			log.Info("Migrating the database models...")
 			if err := database.AutoMigrate(&types.Session{}); err != nil {
 				return err
 			}

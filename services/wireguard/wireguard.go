@@ -111,6 +111,12 @@ func (s *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 		return nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			s.pool.Release(v4, v6)
+		}
+	}()
+
 	cmd := exec.Command("wg", strings.Split(
 		fmt.Sprintf(`set %s peer %s allowed-ips %s/32,%s/128`,
 			s.cfg.Interface, identity, v4.IP(), v6.IP()), " ")...)
@@ -118,13 +124,7 @@ func (s *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 	cmd.Stderr = os.Stderr
 
 	if err = cmd.Run(); err != nil {
-		s.pool.Release(v4, v6)
 		return nil, err
-	}
-
-	if v := s.peers.Get(identity); !v.Empty() {
-		s.peers.Delete(v.Identity)
-		s.pool.Release(v.IPv4, v.IPv6)
 	}
 
 	s.peers.Put(
