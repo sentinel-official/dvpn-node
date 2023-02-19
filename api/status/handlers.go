@@ -33,7 +33,7 @@ func HandlerGetStatus(ctx *context.Context) gin.HandlerFunc {
 			},
 			Moniker:  ctx.Moniker(),
 			Operator: ctx.Operator().String(),
-			Peers:    ctx.Service().PeersLen(),
+			Peers:    ctx.Service().PeerCount(),
 			Price:    ctx.Price().String(),
 			Provider: ctx.Provider().String(),
 			QOS: &QOS{

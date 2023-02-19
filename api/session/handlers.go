@@ -15,7 +15,7 @@ import (
 
 func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if ctx.Service().PeersLen() >= ctx.Config().QOS.MaxPeers {
+		if ctx.Service().PeerCount() >= ctx.Config().QOS.MaxPeers {
 			err := fmt.Errorf("reached maximum peers limit; maximum %d", ctx.Config().QOS.MaxPeers)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
 			return
@@ -52,7 +52,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 		).First(&item)
 
 		if item.ID != 0 {
-			err = fmt.Errorf("key %s for service already exist", req.Body.Key)
+			err = fmt.Errorf("peer %s for service already exist", req.Body.Key)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(3, err))
 			return
 		}
@@ -156,16 +156,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 		).Find(&items)
 
 		for i := 0; i < len(items); i++ {
-			session, err := ctx.Client().QuerySession(items[i].ID)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, types.NewResponseError(9, err))
-				return
-			}
-			if session == nil {
-				continue
-			}
-
-			if err = ctx.RemovePeer(items[i].Key); err != nil {
+			if err = ctx.RemovePeerIfExists(items[i].Key); err != nil {
 				c.JSON(http.StatusInternalServerError, types.NewResponseError(9, err))
 				return
 			}
@@ -191,7 +182,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(11, err))
 			return
 		}
-		ctx.Log().Info("Added a new peer", "key", req.Body.Key, "count", ctx.Service().PeersLen())
+		ctx.Log().Info("Added a new peer", "key", req.Body.Key, "count", ctx.Service().PeerCount())
 
 		ctx.Database().Model(
 			&types.Session{},

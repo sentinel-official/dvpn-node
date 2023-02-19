@@ -180,6 +180,15 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 	return result, nil
 }
 
+func (s *V2Ray) HasPeer(data []byte) bool {
+	var (
+		email = base64.StdEncoding.EncodeToString(data)
+		peer  = s.peers.Get(email)
+	)
+
+	return !peer.Empty()
+}
+
 func (s *V2Ray) RemovePeer(data []byte) error {
 	if len(data) != 1+16 {
 		return errors.New("data length must be 17 bytes")
@@ -277,6 +286,6 @@ func (s *V2Ray) Peers() (items []types.Peer, err error) {
 	return items, nil
 }
 
-func (s *V2Ray) PeersLen() int {
+func (s *V2Ray) PeerCount() int {
 	return s.peers.Len()
 }
