@@ -3,6 +3,7 @@ package v2ray
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -147,6 +148,7 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 	}
 
 	var (
+		email  = base64.StdEncoding.EncodeToString(data)
 		proxy  = v2raytypes.Proxy(data[0])
 		uid, _ = uuid.ParseBytes(data[1:])
 	)
@@ -157,7 +159,7 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 			&proxymancommand.AddUserOperation{
 				User: &protocol.User{
 					Level:   0,
-					Email:   uid.String(),
+					Email:   email,
 					Account: proxy.Account(uid),
 				},
 			},
@@ -171,11 +173,20 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 
 	s.peers.Put(
 		v2raytypes.Peer{
-			Identity: uid.String(),
+			Email: email,
 		},
 	)
 
 	return result, nil
+}
+
+func (s *V2Ray) HasPeer(data []byte) bool {
+	var (
+		email = base64.StdEncoding.EncodeToString(data)
+		peer  = s.peers.Get(email)
+	)
+
+	return !peer.Empty()
 }
 
 func (s *V2Ray) RemovePeer(data []byte) error {
@@ -189,25 +200,27 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 	}
 
 	var (
-		proxy  = v2raytypes.Proxy(data[0])
-		uid, _ = uuid.ParseBytes(data[1:])
+		email = base64.StdEncoding.EncodeToString(data)
+		proxy = v2raytypes.Proxy(data[0])
 	)
 
 	req := &proxymancommand.AlterInboundRequest{
 		Tag: proxy.Tag(),
 		Operation: serial.ToTypedMessage(
 			&proxymancommand.RemoveUserOperation{
-				Email: uid.String(),
+				Email: email,
 			},
 		),
 	}
 
 	_, err = client.AlterInbound(context.TODO(), req)
 	if err != nil {
-		return err
+		if !strings.Contains(err.Error(), "not found") {
+			return err
+		}
 	}
 
-	s.peers.Delete(uid.String())
+	s.peers.Delete(email)
 
 	return nil
 }
@@ -218,64 +231,61 @@ func (s *V2Ray) Peers() (items []types.Peer, err error) {
 		return nil, err
 	}
 
-	req := &statscommand.QueryStatsRequest{
-		Reset_: false,
-		Patterns: []string{
-			"user>>>",
+	err = s.peers.Iterate(
+		func(key string, _ v2raytypes.Peer) (bool, error) {
+			req := &statscommand.GetStatsRequest{
+				Reset_: false,
+				Name:   fmt.Sprintf("user>>>%s>>>traffic>>>uplink", key),
+			}
+
+			res, err := client.GetStats(context.TODO(), req)
+			if err != nil {
+				if !strings.Contains(err.Error(), "not found") {
+					return false, err
+				}
+			}
+
+			upLink := res.GetStat()
+			if upLink == nil {
+				upLink = &statscommand.Stat{}
+			}
+
+			req = &statscommand.GetStatsRequest{
+				Reset_: false,
+				Name:   fmt.Sprintf("user>>>%s>>>traffic>>>downlink", key),
+			}
+
+			res, err = client.GetStats(context.TODO(), req)
+			if err != nil {
+				if !strings.Contains(err.Error(), "not found") {
+					return false, err
+				}
+			}
+
+			downLink := res.GetStat()
+			if downLink == nil {
+				downLink = &statscommand.Stat{}
+			}
+
+			items = append(
+				items,
+				types.Peer{
+					Key:      key,
+					Upload:   upLink.GetValue(),
+					Download: downLink.GetValue(),
+				},
+			)
+			return false, nil
 		},
-		Regexp: false,
-	}
-
-	res, err := client.QueryStats(context.TODO(), req)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		upLink   = make(map[string]int64)
-		downLink = make(map[string]int64)
 	)
 
-	for _, stat := range res.GetStat() {
-		name := strings.Split(stat.GetName(), ">>>")
-		if len(name) != 4 {
-			continue
-		}
-
-		var (
-			link = name[3]
-			uid  = name[1]
-		)
-
-		if _, ok := upLink[uid]; !ok {
-			upLink[uid] = 0
-		}
-		if _, ok := downLink[uid]; !ok {
-			downLink[uid] = 0
-		}
-
-		value := stat.GetValue()
-		if link == "uplink" {
-			upLink[uid] = value
-		} else if link == "downlink" {
-			downLink[uid] = value
-		}
-	}
-
-	for key := range upLink {
-		items = append(
-			items,
-			types.Peer{
-				Key:      key,
-				Upload:   upLink[key],
-				Download: downLink[key],
-			},
-		)
+	if err != nil {
+		return nil, err
 	}
 
 	return items, nil
 }
 
-func (s *V2Ray) PeersCount() int {
+func (s *V2Ray) PeerCount() int {
 	return s.peers.Len()
 }

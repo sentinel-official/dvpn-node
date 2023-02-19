@@ -7,9 +7,10 @@ type Service interface {
 	Start() error
 	Stop() error
 	AddPeer(data []byte) ([]byte, error)
+	HasPeer(data []byte) bool
 	RemovePeer(data []byte) error
 	Peers() ([]Peer, error)
-	PeersCount() int
+	PeerCount() int
 }
 
 type Peer struct {

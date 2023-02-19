@@ -34,8 +34,6 @@ func (n *Node) Initialize() error {
 }
 
 func (n *Node) Start() error {
-	n.Log().Info("Starting...")
-
 	go func() {
 		if err := n.jobSetSessions(); err != nil {
 			panic(err)

@@ -6,7 +6,7 @@ import (
 )
 
 type Session struct {
-	*gorm.Model
+	gorm.Model
 	ID           uint64 `gorm:"primaryKey;uniqueIndex:idx_sessions_id"`
 	Subscription uint64 `gorm:"index:idx_sessions_subscription_for_address"`
 	Key          string `gorm:"uniqueIndex:idx_sessions_key"`

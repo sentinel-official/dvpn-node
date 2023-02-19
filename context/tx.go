@@ -10,7 +10,7 @@ import (
 )
 
 func (c *Context) RegisterNode() error {
-	c.Log().Info("Registering node...")
+	c.Log().Info("Registering the node...")
 
 	_, err := c.Client().Tx(
 		nodetypes.NewMsgRegisterRequest(
@@ -21,7 +21,7 @@ func (c *Context) RegisterNode() error {
 		),
 	)
 	if err != nil {
-		c.Log().Error("Failed to register node", "error", err)
+		c.Log().Error("Failed to register the node", "error", err)
 		return err
 	}
 
@@ -29,7 +29,7 @@ func (c *Context) RegisterNode() error {
 }
 
 func (c *Context) UpdateNodeInfo() error {
-	c.Log().Info("Updating node info...")
+	c.Log().Info("Updating the node info...")
 
 	_, err := c.Client().Tx(
 		nodetypes.NewMsgUpdateRequest(
@@ -40,7 +40,7 @@ func (c *Context) UpdateNodeInfo() error {
 		),
 	)
 	if err != nil {
-		c.Log().Error("Failed to update node info", "error", err)
+		c.Log().Error("Failed to update the node info", "error", err)
 		return err
 	}
 
@@ -48,7 +48,7 @@ func (c *Context) UpdateNodeInfo() error {
 }
 
 func (c *Context) UpdateNodeStatus() error {
-	c.Log().Info("Updating node status...")
+	c.Log().Info("Updating the node status...")
 
 	_, err := c.Client().Tx(
 		nodetypes.NewMsgSetStatusRequest(
@@ -57,7 +57,7 @@ func (c *Context) UpdateNodeStatus() error {
 		),
 	)
 	if err != nil {
-		c.Log().Error("Failed to update node status", "error", err)
+		c.Log().Error("Failed to update the node status", "error", err)
 		return err
 	}
 
@@ -65,7 +65,7 @@ func (c *Context) UpdateNodeStatus() error {
 }
 
 func (c *Context) UpdateSessions(items ...types.Session) error {
-	c.Log().Info("Updating sessions...")
+	c.Log().Info("Updating the sessions...")
 
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
@@ -86,7 +86,7 @@ func (c *Context) UpdateSessions(items ...types.Session) error {
 		messages...,
 	)
 	if err != nil {
-		c.Log().Error("Failed to update sessions", "error", err)
+		c.Log().Error("Failed to update the sessions", "error", err)
 		return err
 	}
 
