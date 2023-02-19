@@ -23,11 +23,11 @@ const (
 	MaxPeers                  = 250
 	MinMonikerLength          = 4
 	MaxMonikerLength          = 32
-	MinIntervalSetSessions    = 10 * time.Second
-	MaxIntervalSetSessions    = 10 * time.Minute
-	MinIntervalUpdateSessions = (2 * time.Hour) / 2
+	MinIntervalSetSessions    = 2 * time.Second
+	MaxIntervalSetSessions    = 2 * time.Minute
+	MinIntervalUpdateSessions = (1 * time.Hour) - (5 * time.Minute)
 	MaxIntervalUpdateSessions = (2 * time.Hour) - (5 * time.Minute)
-	MinIntervalUpdateStatus   = (1 * time.Hour) / 2
+	MinIntervalUpdateStatus   = (30 * time.Minute) - (5 * time.Minute)
 	MaxIntervalUpdateStatus   = (1 * time.Hour) - (5 * time.Minute)
 )
 
@@ -309,7 +309,7 @@ func (c *NodeConfig) Validate() error {
 }
 
 func (c *NodeConfig) WithDefaultValues() *NodeConfig {
-	c.IntervalSetSessions = 2 * time.Minute
+	c.IntervalSetSessions = 10 * time.Second
 	c.IntervalUpdateSessions = MaxIntervalUpdateSessions
 	c.IntervalUpdateStatus = MaxIntervalUpdateStatus
 	c.ListenOn = fmt.Sprintf("0.0.0.0:%d", randutil.RandomPort())
