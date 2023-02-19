@@ -130,7 +130,7 @@ func (n *Node) jobUpdateSessions() error {
 				skipUpdate    = false
 			)
 
-			if items[i].Download == session.Bandwidth.Upload.Int64() {
+			if items[i].Upload == session.Bandwidth.Upload.Int64() {
 				skipUpdate = true
 				if items[i].CreatedAt.Before(session.StatusAt) {
 					removePeer = true
