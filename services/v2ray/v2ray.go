@@ -148,6 +148,7 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 	}
 
 	var (
+		email  = base64.StdEncoding.EncodeToString(data)
 		proxy  = v2raytypes.Proxy(data[0])
 		uid, _ = uuid.ParseBytes(data[1:])
 	)
@@ -158,7 +159,7 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 			&proxymancommand.AddUserOperation{
 				User: &protocol.User{
 					Level:   0,
-					Email:   uid.String(),
+					Email:   email,
 					Account: proxy.Account(uid),
 				},
 			},
@@ -172,7 +173,7 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 
 	s.peers.Put(
 		v2raytypes.Peer{
-			Identity: base64.StdEncoding.EncodeToString(data),
+			Email: email,
 		},
 	)
 
@@ -190,15 +191,15 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 	}
 
 	var (
-		proxy  = v2raytypes.Proxy(data[0])
-		uid, _ = uuid.ParseBytes(data[1:])
+		email = base64.StdEncoding.EncodeToString(data)
+		proxy = v2raytypes.Proxy(data[0])
 	)
 
 	req := &proxymancommand.AlterInboundRequest{
 		Tag: proxy.Tag(),
 		Operation: serial.ToTypedMessage(
 			&proxymancommand.RemoveUserOperation{
-				Email: uid.String(),
+				Email: email,
 			},
 		),
 	}
@@ -210,8 +211,7 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 		}
 	}
 
-	identity := base64.StdEncoding.EncodeToString(data)
-	s.peers.Delete(identity)
+	s.peers.Delete(email)
 
 	return nil
 }
@@ -247,22 +247,22 @@ func (s *V2Ray) Peers() (items []types.Peer, err error) {
 		}
 
 		var (
-			link = name[3]
-			uid  = name[1]
+			email = name[1]
+			link  = name[3]
 		)
 
-		if _, ok := upLink[uid]; !ok {
-			upLink[uid] = 0
+		if _, ok := upLink[email]; !ok {
+			upLink[email] = 0
 		}
-		if _, ok := downLink[uid]; !ok {
-			downLink[uid] = 0
+		if _, ok := downLink[email]; !ok {
+			downLink[email] = 0
 		}
 
 		value := stat.GetValue()
 		if link == "uplink" {
-			upLink[uid] = value
+			upLink[email] = value
 		} else if link == "downlink" {
-			downLink[uid] = value
+			downLink[email] = value
 		}
 	}
 

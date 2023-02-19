@@ -5,11 +5,11 @@ import (
 )
 
 type Peer struct {
-	Identity string
+	Email string
 }
 
 func (p Peer) Empty() bool {
-	return p.Identity == ""
+	return p.Email == ""
 }
 
 type Peers struct {
@@ -39,12 +39,12 @@ func (p *Peers) Put(v Peer) {
 	p.Lock()
 	defer p.Unlock()
 
-	_, ok := p.m[v.Identity]
+	_, ok := p.m[v.Email]
 	if ok {
 		return
 	}
 
-	p.m[v.Identity] = v
+	p.m[v.Email] = v
 }
 
 func (p *Peers) Delete(v string) {
