@@ -222,59 +222,56 @@ func (s *V2Ray) Peers() (items []types.Peer, err error) {
 		return nil, err
 	}
 
-	req := &statscommand.QueryStatsRequest{
-		Reset_: false,
-		Patterns: []string{
-			"user>>>",
+	err = s.peers.Iterate(
+		func(key string, _ v2raytypes.Peer) (bool, error) {
+			req := &statscommand.GetStatsRequest{
+				Reset_: false,
+				Name:   fmt.Sprintf("user>>>%s>>>traffic>>>uplink", key),
+			}
+
+			res, err := client.GetStats(context.TODO(), req)
+			if err != nil {
+				if !strings.Contains(err.Error(), "not found") {
+					return false, err
+				}
+			}
+
+			upLink := res.GetStat()
+			if upLink == nil {
+				upLink = &statscommand.Stat{}
+			}
+
+			req = &statscommand.GetStatsRequest{
+				Reset_: false,
+				Name:   fmt.Sprintf("user>>>%s>>>traffic>>>downlink", key),
+			}
+
+			res, err = client.GetStats(context.TODO(), req)
+			if err != nil {
+				if !strings.Contains(err.Error(), "not found") {
+					return false, err
+				}
+			}
+
+			downLink := res.GetStat()
+			if downLink == nil {
+				downLink = &statscommand.Stat{}
+			}
+
+			items = append(
+				items,
+				types.Peer{
+					Key:      key,
+					Upload:   upLink.GetValue(),
+					Download: downLink.GetValue(),
+				},
+			)
+			return false, nil
 		},
-		Regexp: false,
-	}
-
-	res, err := client.QueryStats(context.TODO(), req)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		upLink   = make(map[string]int64)
-		downLink = make(map[string]int64)
 	)
 
-	for _, stat := range res.GetStat() {
-		name := strings.Split(stat.GetName(), ">>>")
-		if len(name) != 4 {
-			continue
-		}
-
-		var (
-			email = name[1]
-			link  = name[3]
-		)
-
-		if _, ok := upLink[email]; !ok {
-			upLink[email] = 0
-		}
-		if _, ok := downLink[email]; !ok {
-			downLink[email] = 0
-		}
-
-		value := stat.GetValue()
-		if link == "uplink" {
-			upLink[email] = value
-		} else if link == "downlink" {
-			downLink[email] = value
-		}
-	}
-
-	for key := range upLink {
-		items = append(
-			items,
-			types.Peer{
-				Key:      key,
-				Upload:   upLink[key],
-				Download: downLink[key],
-			},
-		)
+	if err != nil {
+		return nil, err
 	}
 
 	return items, nil
