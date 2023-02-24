@@ -94,7 +94,7 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, buf.Bytes(), 0600)
+	return os.WriteFile(path, buf.Bytes(), 0666)
 }
 
 func (c *Config) String() string {

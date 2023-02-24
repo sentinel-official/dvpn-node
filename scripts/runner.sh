@@ -332,7 +332,7 @@ function setup {
     echo "Installing the packages ${*}"
     for name in "${@}"; do
       if ! dpkg -s "${name}" &>/dev/null; then
-        apt-get install --yes "${name}"
+        DEBIAN_FRONTEND=noninteractive apt-get install --yes "${name}"
       fi
     done
   }
@@ -360,9 +360,9 @@ EOF
   }
 
   function setup_iptables {
-    install_package iptables-persistent &&
-      rule="POSTROUTING -s 2001:db8:1::/64 ! -o docker0 -j MASQUERADE" &&
-      ip6tables -t nat -C "${rule}" || ip6tables -t nat -A "${rule}" &&
+    install_packages iptables-persistent &&
+      rule=(POSTROUTING -s 2001:db8:1::/64 ! -o docker0 -j MASQUERADE) &&
+      ip6tables -t nat -C "${rule[@]}" 2>/dev/null || ip6tables -t nat -A "${rule[@]}" &&
       ip6tables-save >/etc/iptables/rules.v6
   }
 
