@@ -80,7 +80,7 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, buffer.Bytes(), 0666)
+	return os.WriteFile(path, buffer.Bytes(), 0644)
 }
 
 func (c *Config) String() string {

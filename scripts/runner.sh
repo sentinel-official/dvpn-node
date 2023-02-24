@@ -20,8 +20,9 @@ function help {
   echo "  attach     Attach to the already running node"
   echo "  help       Print the help message"
   echo "  init       Initialize the configuration"
-  echo "  setup      Install the dependencies and setup the requirements"
+  echo "  setup      Install the dependencies and set up the requirements"
   echo "  start      Start the node"
+  echo "  status     Display the node's status along with the last 20 lines of the log"
   echo "  stop       Stop the node"
   echo "  remove     Remove the node container"
   echo "  restart    Restart the node"
@@ -494,6 +495,22 @@ function start {
   fi
 }
 
+function status {
+  id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
+  if [[ -n "${id}" ]]; then
+    running=$(docker container inspect --format "{{ .State.Running }}" "${CONTAINER_NAME}")
+    if [[ "${running}" == "true" ]]; then
+      echo "Node is running..."
+    else
+      exit_code=$(docker container inspect --format "{{ .State.ExitCode }}" "${CONTAINER_NAME}")
+      echo "Node is not running and has exited with code ${exit_code}"
+    fi
+    docker logs --details --tail 20 "${CONTAINER_NAME}"
+  else
+    echo "Error: node container does not exist"
+  fi
+}
+
 function stop {
   id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
   if [[ -n "${id}" ]]; then
@@ -565,6 +582,10 @@ case "${1}" in
   "start")
     shift
     start "${@}"
+    ;;
+  "status")
+    shift
+    status "${@}"
     ;;
   "stop")
     shift
