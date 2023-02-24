@@ -117,24 +117,24 @@ func (s *V2Ray) clientConn() (*grpc.ClientConn, error) {
 	)
 }
 
-func (s *V2Ray) handlerServiceClient() (proxymancommand.HandlerServiceClient, error) {
+func (s *V2Ray) handlerServiceClient() (*grpc.ClientConn, proxymancommand.HandlerServiceClient, error) {
 	conn, err := s.clientConn()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	client := proxymancommand.NewHandlerServiceClient(conn)
-	return client, nil
+	return conn, client, nil
 }
 
-func (s *V2Ray) statsServiceClient() (statscommand.StatsServiceClient, error) {
+func (s *V2Ray) statsServiceClient() (*grpc.ClientConn, statscommand.StatsServiceClient, error) {
 	conn, err := s.clientConn()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	client := statscommand.NewStatsServiceClient(conn)
-	return client, nil
+	return conn, client, nil
 }
 
 func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
@@ -142,10 +142,16 @@ func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 		return nil, errors.New("data length must be 17 bytes")
 	}
 
-	client, err := s.handlerServiceClient()
+	conn, client, err := s.handlerServiceClient()
 	if err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if err = conn.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	var (
 		email  = base64.StdEncoding.EncodeToString(data)
@@ -194,10 +200,16 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 		return errors.New("data length must be 17 bytes")
 	}
 
-	client, err := s.handlerServiceClient()
+	conn, client, err := s.handlerServiceClient()
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if err = conn.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	var (
 		email = base64.StdEncoding.EncodeToString(data)
@@ -226,10 +238,16 @@ func (s *V2Ray) RemovePeer(data []byte) error {
 }
 
 func (s *V2Ray) Peers() (items []types.Peer, err error) {
-	client, err := s.statsServiceClient()
+	conn, client, err := s.statsServiceClient()
 	if err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if err = conn.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	err = s.peers.Iterate(
 		func(key string, _ v2raytypes.Peer) (bool, error) {
