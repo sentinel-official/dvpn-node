@@ -1,6 +1,7 @@
 package context
 
 import (
+	"net"
 	"net/http"
 	"time"
 
@@ -55,6 +56,15 @@ func (c *Context) Database() *gorm.DB                  { return c.database }
 
 func (c *Context) IntervalUpdateSessions() time.Duration {
 	return c.Config().Node.IntervalUpdateSessions
+}
+
+func (c *Context) IPv4Address() net.IP {
+	addr := c.Config().Node.IPv4Address
+	if addr == "" {
+		addr = c.Location().IP
+	}
+
+	return net.ParseIP(addr).To4()
 }
 
 func (c *Context) Provider() hubtypes.ProvAddress {
