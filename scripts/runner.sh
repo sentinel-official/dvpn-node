@@ -114,6 +114,7 @@ function cmd_init {
     local chain_rpc_address=https://rpc.sentinel.co:443
     local handshake_enable=false
     local keyring_backend=file
+    local node_ipv4_address=
     local node_listen_on="0.0.0.0:${PORTS[0]}"
     local node_moniker=
     local node_price=
@@ -136,7 +137,11 @@ function cmd_init {
     if [[ -n "${input}" ]]; then keyring_backend="${input}"; fi
     config_set "keyring.backend" "${keyring_backend}"
 
-    read -p "Enter node_listen_on[$node_listen_on]:" -r input
+    read -p "Enter node_ipv4_address:" -r input
+    if [[ -n "${input}" ]]; then node_ipv4_address="${input}"; fi
+    config_set "node.ipv4_address" "${node_ipv4_address}"
+
+    read -p "Enter node_listen_on[${node_listen_on}]:" -r input
     if [[ -n "${input}" ]]; then node_listen_on="${input}"; fi
     config_set "node.listen_on" "${node_listen_on}"
 
