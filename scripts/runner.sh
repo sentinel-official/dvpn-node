@@ -1,19 +1,34 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 CONTAINER_NAME=sentinelnode
 NODE_DIR="${HOME}/.sentinelnode"
 NODE_IMAGE=ghcr.io/sentinel-official/dvpn-node:latest
 
-function attach {
-  id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
+function stop {
+  id=$(docker ps --filter name="${CONTAINER_NAME}" --quiet)
   if [[ -n "${id}" ]]; then
-    docker attach "${id}"
-  else
-    echo "Error: node is not running" && exit 1
+    docker stop "${id}"
   fi
 }
 
-function help {
+function remove {
+  id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
+  if [[ -n "${id}" ]]; then
+    docker rm --force --volumes "${id}"
+  fi
+}
+
+function cmd_attach {
+  id=$(docker ps --filter name="${CONTAINER_NAME}" --quiet)
+  if [[ -n "${id}" ]]; then
+    docker attach "${id}"
+  else
+    echo "Error: node is not running" && return 1
+  fi
+}
+
+function cmd_help {
   echo "Usage: ${0} [COMMAND]"
   echo ""
   echo "Commands:"
@@ -27,10 +42,9 @@ function help {
   echo "  remove     Remove the node container"
   echo "  restart    Restart the node"
   echo "  update     Update the node to the latest version"
-  exit 0
 }
 
-function init {
+function cmd_init {
   NODE_TYPE=wireguard
   mapfile -t PORTS < <(shuf -i 1024-65535 -n 2)
 
@@ -45,15 +59,11 @@ function init {
 
   function must_run {
     output=$(run "${@}")
-    code="${?}"
-    if [[ "${code}" -ne 0 ]]; then
-      exit 125
-    fi
     if [[ -n "${output}" ]]; then
       echo "${output}"
     fi
     if [[ "${output}" == *"Error"* ]]; then
-      exit 1
+      return 1
     fi
   }
 
@@ -72,8 +82,8 @@ function init {
     must_run wireguard config set "${1}" "${2}"
   }
 
-  function init_config {
-    function help {
+  function cmd_init_config {
+    function cmd_help {
       echo "Usage: ${0} init config COMMAND OPTIONS"
       echo ""
       echo "Commands:"
@@ -81,7 +91,6 @@ function init {
       echo ""
       echo "Options:"
       echo "  -f, --force    Force the initialization"
-      exit 0
     }
 
     local force=0
@@ -92,16 +101,15 @@ function init {
           force=1
           ;;
         "help")
-          help
+          cmd_help && return 0
           ;;
         *)
-          echo "Error: invalid command or option \"${1}\""
-          exit 1
+          echo "Error: invalid command or option \"${1}\"" && return 1
           ;;
       esac
     fi
 
-    PUBLIC_IP=$(curl --silent https://icanhazip.com)
+    PUBLIC_IP=$(curl --silent https://ifconfig.me)
 
     local chain_rpc_address=https://rpc.sentinel.co:443
     local handshake_enable=false
@@ -156,7 +164,7 @@ function init {
     config_set "node.type" "${node_type}"
   }
 
-  function init_keys {
+  function cmd_init_keys {
     read -p "Recover the existing account?:" -r input
     if [[ "${input}" == "yes" ]]; then
       must_run keys add --recover
@@ -165,8 +173,8 @@ function init {
     fi
   }
 
-  function init_v2ray {
-    function help {
+  function cmd_init_v2ray {
+    function cmd_help {
       echo "Usage: ${0} init v2ray COMMAND OPTIONS"
       echo ""
       echo "Commands:"
@@ -174,7 +182,6 @@ function init {
       echo ""
       echo "Options:"
       echo "  -f, --force    Force the initialization"
-      exit 0
     }
 
     local force=0
@@ -185,11 +192,10 @@ function init {
           force=1
           ;;
         "help")
-          help
+          cmd_help && return 0
           ;;
         *)
-          echo "Error: invalid command or option \"${1}\""
-          exit 1
+          echo "Error: invalid command or option \"${1}\"" && return 1
           ;;
       esac
     fi
@@ -209,8 +215,8 @@ function init {
     v2ray_config_set "vmess.transport" "${transport}"
   }
 
-  function init_wireguard {
-    function help {
+  function cmd_init_wireguard {
+    function cmd_help {
       echo "Usage: ${0} init wireguard COMMAND OPTIONS"
       echo ""
       echo "Commands:"
@@ -218,7 +224,6 @@ function init {
       echo ""
       echo "Options:"
       echo "  -f, --force    Force the initialization"
-      exit 0
     }
 
     local force=0
@@ -229,11 +234,10 @@ function init {
           force=1
           ;;
         "help")
-          help
+          cmd_help && return 0
           ;;
         *)
-          echo "Error: invalid command or option \"${1}\""
-          exit 1
+          echo "Error: invalid command or option \"${1}\"" && return 1
           ;;
       esac
     fi
@@ -248,8 +252,8 @@ function init {
     wireguard_config_set "listen_port" "${listen_port}"
   }
 
-  function init_all {
-    function help {
+  function cmd_init_all {
+    function cmd_help {
       echo "Usage: ${0} init all COMMAND OPTIONS"
       echo ""
       echo "Commands:"
@@ -257,30 +261,27 @@ function init {
       echo ""
       echo "Options:"
       echo "  -f, --force    Force the initialization"
-      exit 0
     }
 
     if [[ "${#}" -gt 0 ]]; then
       case "${1}" in
         "-f" | "--force") ;;
-
         "help")
-          help
+          cmd_help && return 0
           ;;
         *)
-          echo "Error: invalid command or option \"${1}\""
-          exit 1
+          echo "Error: invalid command or option \"${1}\"" && return 1
           ;;
       esac
     fi
 
-    init_config "${@}"
-    if [[ "${NODE_TYPE}" == "v2ray" ]]; then init_v2ray "${@}"; fi
-    if [[ "${NODE_TYPE}" == "wireguard" ]]; then init_wireguard "${@}"; fi
-    init_keys
+    cmd_init_config "${@}"
+    if [[ "${NODE_TYPE}" == "v2ray" ]]; then cmd_init_v2ray "${@}"; fi
+    if [[ "${NODE_TYPE}" == "wireguard" ]]; then cmd_init_wireguard "${@}"; fi
+    cmd_init_keys "${@}"
   }
 
-  function help {
+  function cmd_help {
     echo "Usage: ${0} init [COMMAND]"
     echo ""
     echo "Commands:"
@@ -290,59 +291,56 @@ function init {
     echo "  keys         Initialize the keys"
     echo "  v2ray        Initialize the v2ray.toml file"
     echo "  wireguard    Initialize the wireguard.toml file"
-    exit 0
   }
 
-  case "${1}" in
-    "all")
-      shift
-      init_all "${@}"
-      ;;
-    "config")
-      shift
-      init_config "${@}"
-      ;;
-    "" | "help")
-      help
-      ;;
-    "keys")
-      init_keys
-      ;;
-    "v2ray")
-      shift
-      init_v2ray "${@}"
-      ;;
-    "wireguard")
-      shift
-      init_wireguard "${@}"
-      ;;
-    *)
-      echo "Error: invalid command or option \"${1}\""
-      exit 1
-      ;;
-  esac
+  if [[ "${#}" -gt 0 ]]; then
+    case "${1}" in
+      "all")
+        shift
+        cmd_init_all "${@}"
+        ;;
+      "config")
+        shift
+        cmd_init_config "${@}"
+        ;;
+      "help")
+        cmd_help
+        ;;
+      "keys")
+        cmd_init_keys "${@}"
+        ;;
+      "v2ray")
+        shift
+        cmd_init_v2ray "${@}"
+        ;;
+      "wireguard")
+        shift
+        cmd_init_wireguard "${@}"
+        ;;
+      *)
+        echo "Error: invalid command or option \"${1}\"" && return 1
+        ;;
+    esac
+  else
+    cmd_help
+  fi
 }
 
-function setup {
+function cmd_setup {
   if [[ "$EUID" -ne 0 ]]; then
-    echo "Error: please run this command with sudo privileges"
-    exit 1
+    echo "Error: please run this command with sudo privileges" && return 1
   fi
 
   function install_packages {
     echo "Installing the packages ${*}"
-    for name in "${@}"; do
-      if ! dpkg -s "${name}" &>/dev/null; then
-        DEBIAN_FRONTEND=noninteractive apt-get install --yes "${name}"
-      fi
-    done
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes "${@}"
   }
 
   function setup_docker {
     function install {
       if ! command -v docker &>/dev/null; then
-        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh &&
-          sh /tmp/get-docker.sh
+        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+        sh /tmp/get-docker.sh
       fi
     }
 
@@ -355,16 +353,16 @@ function setup {
 EOF
     }
 
-    install &&
-      setup_ipv6 &&
-      systemctl restart docker
+    install
+    setup_ipv6
+    systemctl restart docker
   }
 
   function setup_iptables {
-    install_packages iptables-persistent &&
-      rule=(POSTROUTING -s 2001:db8:1::/64 ! -o docker0 -j MASQUERADE) &&
-      ip6tables -t nat -C "${rule[@]}" 2>/dev/null || ip6tables -t nat -A "${rule[@]}" &&
-      ip6tables-save >/etc/iptables/rules.v6
+    install_packages iptables-persistent
+    rule=(POSTROUTING -s 2001:db8:1::/64 ! -o docker0 -j MASQUERADE)
+    ip6tables -t nat -C "${rule[@]}" 2>/dev/null || ip6tables -t nat -A "${rule[@]}"
+    ip6tables-save >/etc/iptables/rules.v6
   }
 
   function generate_tls {
@@ -380,16 +378,16 @@ EOF
       -keyout "${1}/tls.key"
   }
 
-  apt-get update &&
-    install_packages curl git openssl &&
-    setup_docker &&
-    setup_iptables &&
-    mkdir -p "${NODE_DIR}" && generate_tls "${NODE_DIR}" &&
-    docker pull "${NODE_IMAGE}"
+  apt-get update
+  install_packages curl git openssl
+  setup_docker
+  setup_iptables
+  mkdir -p "${NODE_DIR}" && generate_tls "${NODE_DIR}"
+  docker pull "${NODE_IMAGE}"
 }
 
-function start {
-  function help {
+function cmd_start {
+  function cmd_help {
     echo "Usage: ${0} start COMMAND OPTIONS"
     echo ""
     echo "Commands:"
@@ -397,7 +395,6 @@ function start {
     echo ""
     echo "Options:"
     echo "  -a, --attach    Start the node container attached"
-    exit 0
   }
 
   local detach=1
@@ -410,11 +407,10 @@ function start {
         rm=1
         ;;
       "help")
-        help
+        cmd_help && return 0
         ;;
       *)
-        echo "Error: invalid command or option \"${1}\""
-        exit 1
+        echo "Error: invalid command or option \"${1}\"" && return 1
         ;;
     esac
   fi
@@ -460,42 +456,42 @@ function start {
 
   read_config
   if [[ "${NODE_TYPE}" == "v2ray" ]]; then
-    read_v2ray_config &&
-      docker run \
-        --detach="${detach}" \
-        --name="${CONTAINER_NAME}" \
-        --rm="${rm}" \
-        --tty \
-        --volume "${NODE_DIR}:/root/.sentinelnode" \
-        --publish "${node_api_port}:${node_api_port}/tcp" \
-        --publish "${v2ray_vmess_port}:${v2ray_vmess_port}/tcp" \
-        "${NODE_IMAGE}" process start
+    read_v2ray_config
+    docker run \
+      --detach="${detach}" \
+      --name="${CONTAINER_NAME}" \
+      --rm="${rm}" \
+      --tty \
+      --volume "${NODE_DIR}:/root/.sentinelnode" \
+      --publish "${node_api_port}:${node_api_port}/tcp" \
+      --publish "${v2ray_vmess_port}:${v2ray_vmess_port}/tcp" \
+      "${NODE_IMAGE}" process start
   fi
   if [[ "${NODE_TYPE}" == "wireguard" ]]; then
-    read_wireguard_config &&
-      docker run \
-        --detach="${detach}" \
-        --name="${CONTAINER_NAME}" \
-        --rm="${rm}" \
-        --tty \
-        --volume /lib/modules:/lib/modules \
-        --volume "${NODE_DIR}:/root/.sentinelnode" \
-        --cap-drop ALL \
-        --cap-add NET_ADMIN \
-        --cap-add NET_BIND_SERVICE \
-        --cap-add NET_RAW \
-        --cap-add SYS_MODULE \
-        --sysctl net.ipv4.ip_forward=1 \
-        --sysctl net.ipv6.conf.all.disable_ipv6=0 \
-        --sysctl net.ipv6.conf.all.forwarding=1 \
-        --sysctl net.ipv6.conf.default.forwarding=1 \
-        --publish "${node_api_port}:${node_api_port}/tcp" \
-        --publish "${wireguard_port}:${wireguard_port}/udp" \
-        "${NODE_IMAGE}" process start
+    read_wireguard_config
+    docker run \
+      --detach="${detach}" \
+      --name="${CONTAINER_NAME}" \
+      --rm="${rm}" \
+      --tty \
+      --volume /lib/modules:/lib/modules \
+      --volume "${NODE_DIR}:/root/.sentinelnode" \
+      --cap-drop ALL \
+      --cap-add NET_ADMIN \
+      --cap-add NET_BIND_SERVICE \
+      --cap-add NET_RAW \
+      --cap-add SYS_MODULE \
+      --sysctl net.ipv4.ip_forward=1 \
+      --sysctl net.ipv6.conf.all.disable_ipv6=0 \
+      --sysctl net.ipv6.conf.all.forwarding=1 \
+      --sysctl net.ipv6.conf.default.forwarding=1 \
+      --publish "${node_api_port}:${node_api_port}/tcp" \
+      --publish "${wireguard_port}:${wireguard_port}/udp" \
+      "${NODE_IMAGE}" process start
   fi
 }
 
-function status {
+function cmd_status {
   id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
   if [[ -n "${id}" ]]; then
     running=$(docker container inspect --format "{{ .State.Running }}" "${CONTAINER_NAME}")
@@ -505,28 +501,32 @@ function status {
       exit_code=$(docker container inspect --format "{{ .State.ExitCode }}" "${CONTAINER_NAME}")
       echo "Node is not running and has exited with code ${exit_code}"
     fi
-    docker logs --details --tail 20 "${CONTAINER_NAME}"
+    docker logs --tail 20 "${CONTAINER_NAME}"
   else
-    echo "Error: node container does not exist"
+    echo "Error: node container does not exist" && return 1
   fi
 }
 
-function stop {
-  id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
+function cmd_stop {
+  id=$(docker ps --filter name="${CONTAINER_NAME}" --quiet)
   if [[ -n "${id}" ]]; then
     docker stop "${id}"
+  else
+    echo "Error: node is not running" && return 1
   fi
 }
 
-function remove {
+function cmd_remove {
   id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
   if [[ -n "${id}" ]]; then
     docker rm --force --volumes "${id}"
+  else
+    echo "Error: node container does not exist" && return 1
   fi
 }
 
-function restart {
-  function help {
+function cmd_restart {
+  function cmd_help {
     echo "Usage: ${0} restart COMMAND OPTIONS"
     echo ""
     echo "Commands:"
@@ -534,81 +534,78 @@ function restart {
     echo ""
     echo "Options:"
     echo "  -a, --attach    Start the node container attached"
-    exit 0
   }
 
   if [[ "${#}" -gt 0 ]]; then
     case "${1}" in
       "-a" | "--attach") ;;
       "help")
-        help
+        cmd_help && return 0
         ;;
       *)
-        echo "Error: invalid command or option \"${1}\""
-        exit 1
+        echo "Error: invalid command or option \"${1}\"" && return 1
         ;;
     esac
   fi
 
-  stop &&
-    remove &&
-    start "${@}"
+  stop
+  remove
+  cmd_start "${@}"
 }
 
-function update {
-  stop &&
-    remove &&
-    docker rmi --force "${NODE_IMAGE}" &&
-    docker pull "${NODE_IMAGE}"
+function cmd_update {
+  stop
+  remove
+  docker rmi --force "${NODE_IMAGE}"
+  docker pull "${NODE_IMAGE}"
 }
 
-case "${1}" in
-  "attach")
-    shift
-    attach "${@}"
-    ;;
-  "" | "help")
-    shift
-    help
-    ;;
-  "init")
-    shift
-    init "${@}"
-    ;;
-  "setup")
-    shift
-    setup "${@}"
-    ;;
-  "start")
-    shift
-    start "${@}"
-    ;;
-  "status")
-    shift
-    status "${@}"
-    ;;
-  "stop")
-    shift
-    stop "${@}"
-    ;;
-  "remove")
-    shift
-    remove "${@}"
-    ;;
-  "restart")
-    shift
-    restart "${@}"
-    ;;
-  "run")
-    shift
-    must_run "${@}"
-    ;;
-  "update")
-    shift
-    update "${@}"
-    ;;
-  *)
-    echo "Error: invalid command or option \"${1}\""
-    exit 1
-    ;;
-esac
+if [[ "${#}" -gt 0 ]]; then
+  case "${1}" in
+    "attach")
+      shift
+      cmd_attach "${@}"
+      ;;
+    "help")
+      shift
+      cmd_help
+      ;;
+    "init")
+      shift
+      cmd_init "${@}"
+      ;;
+    "setup")
+      shift
+      cmd_setup "${@}"
+      ;;
+    "start")
+      shift
+      cmd_start "${@}"
+      ;;
+    "status")
+      shift
+      cmd_status "${@}"
+      ;;
+    "stop")
+      shift
+      cmd_stop "${@}"
+      ;;
+    "remove")
+      shift
+      cmd_remove "${@}"
+      ;;
+    "restart")
+      shift
+      cmd_restart "${@}"
+      ;;
+    "update")
+      shift
+      cmd_update "${@}"
+      ;;
+    *)
+      echo "Error: invalid command or option \"${1}\"" && return 1
+      ;;
+  esac
+else
+  cmd_help
+fi
