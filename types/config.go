@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -75,6 +76,9 @@ interval_update_sessions = "{{ .Node.IntervalUpdateSessions }}"
 
 # Time interval between each set_status transaction
 interval_update_status = "{{ .Node.IntervalUpdateStatus }}"
+
+# IPv4 address to replace the public IPv4 address with
+ipv4_address = "{{ .Node.IPv4Address }}"
 
 # API listen-address
 listen_on = "{{ .Node.ListenOn }}"
@@ -224,6 +228,7 @@ type NodeConfig struct {
 	IntervalSetSessions    time.Duration `json:"interval_set_sessions" mapstructure:"interval_set_sessions"`
 	IntervalUpdateSessions time.Duration `json:"interval_update_sessions" mapstructure:"interval_update_sessions"`
 	IntervalUpdateStatus   time.Duration `json:"interval_update_status" mapstructure:"interval_update_status"`
+	IPv4Address            string        `json:"ipv4_address" mapstructure:"ipv4_address"`
 	ListenOn               string        `json:"listen_on" mapstructure:"listen_on"`
 	Moniker                string        `json:"moniker" mapstructure:"moniker"`
 	Price                  string        `json:"price" mapstructure:"price"`
@@ -254,6 +259,15 @@ func (c *NodeConfig) Validate() error {
 	}
 	if c.IntervalUpdateStatus > MaxIntervalUpdateStatus {
 		return fmt.Errorf("interval_set_sessions cannot be greater than %s", MaxIntervalUpdateStatus)
+	}
+	if c.IPv4Address != "" {
+		addr := net.ParseIP(c.IPv4Address)
+		if addr == nil {
+			return errors.New("invalid ipv4_address")
+		}
+		if addr.To4() == nil {
+			return errors.New("ipv4_address format must be in IPv4 format")
+		}
 	}
 	if c.ListenOn == "" {
 		return errors.New("listen_on cannot be empty")
@@ -403,7 +417,7 @@ func (c *Config) SaveToPath(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, buffer.Bytes(), 0600)
+	return os.WriteFile(path, buffer.Bytes(), 0644)
 }
 
 func (c *Config) String() string {

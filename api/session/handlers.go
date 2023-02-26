@@ -2,7 +2,6 @@ package session
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -196,7 +195,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			},
 		)
 
-		result = append(result, net.ParseIP(ctx.Location().IP).To4()...)
+		result = append(result, ctx.IPv4Address()...)
 		result = append(result, ctx.Service().Info()...)
 		c.JSON(http.StatusCreated, types.NewResponseResult(result))
 	}
