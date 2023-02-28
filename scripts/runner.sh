@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 CONTAINER_NAME=sentinelnode
 NODE_DIR="${HOME}/.sentinelnode"
+TOOLS_DIR="${NODE_DIR}/tools"
 NODE_IMAGE=ghcr.io/sentinel-official/dvpn-node:latest
 
 function stop {
@@ -83,6 +85,16 @@ function cmd_init {
   }
 
   function cmd_init_config {
+    function query_min_price {
+      "${TOOLS_DIR}/buf" curl \
+        --data '{"subspace":"vpn/node","key":"MinPrice"}' \
+        --http2-prior-knowledge \
+        --protocol grpc \
+        http://grpc.sentinel.co:9090/cosmos.params.v1beta1.Query/Params |
+        jq -r '.param.value' | jq -s '.[] | sort_by(.denom) | .[] | .amount + .denom' |
+        sed -e 's/"//g' | sed -z 's/\n/,/g' | sed 's/.$//'
+    }
+
     function cmd_help {
       echo "Usage: ${0} init config COMMAND OPTIONS"
       echo ""
@@ -117,7 +129,7 @@ function cmd_init {
     local node_ipv4_address=
     local node_listen_on="0.0.0.0:${PORTS[0]}"
     local node_moniker=
-    local node_price=
+    local node_price && node_price=$(query_min_price)
     local node_provider=
     local node_remote_url="https://${PUBLIC_IP}:${PORTS[0]}"
     local node_type="${NODE_TYPE}"
@@ -141,7 +153,7 @@ function cmd_init {
     if [[ -n "${input}" ]]; then node_ipv4_address="${input}"; fi
     config_set "node.ipv4_address" "${node_ipv4_address}"
 
-    read -p "Enter node_listen_on[${node_listen_on}]:" -r input
+    read -p "Enter node_listen_on [${node_listen_on}]:" -r input
     if [[ -n "${input}" ]]; then node_listen_on="${input}"; fi
     config_set "node.listen_on" "${node_listen_on}"
 
@@ -149,7 +161,7 @@ function cmd_init {
     if [[ -n "${input}" ]]; then node_moniker="${input}"; fi
     config_set "node.moniker" "${node_moniker}"
 
-    read -p "Enter node_price:" -r input
+    read -p "Enter node_price [${node_price}]:" -r input
     if [[ -n "${input}" ]]; then node_price="${input}"; fi
     config_set "node.price" "${node_price}"
 
@@ -341,6 +353,18 @@ function cmd_setup {
     DEBIAN_FRONTEND=noninteractive apt-get install --yes "${@}"
   }
 
+  function install_tools {
+    function install_buf {
+      if [[ ! -f "${TOOLS_DIR}/buf" ]]; then
+        curl -fsSL "https://github.com/bufbuild/buf/releases/download/v1.14.0/buf-$(uname -s)-$(uname -m)" -o "${TOOLS_DIR}/buf"
+        chmod +x "${TOOLS_DIR}/buf"
+      fi
+    }
+
+    mkdir -p "${TOOLS_DIR}"
+    install_buf
+  }
+
   function setup_docker {
     function install {
       if ! command -v docker &>/dev/null; then
@@ -370,7 +394,7 @@ EOF
     ip6tables-save >/etc/iptables/rules.v6
   }
 
-  function generate_tls {
+  function setup_tls {
     openssl req -new \
       -newkey ec \
       -pkeyopt ec_paramgen_curve:prime256v1 \
@@ -379,15 +403,16 @@ EOF
       -sha256 \
       -days 365 \
       -nodes \
-      -out "${1}/tls.crt" \
-      -keyout "${1}/tls.key"
+      -out "${NODE_DIR}/tls.crt" \
+      -keyout "${NODE_DIR}/tls.key"
   }
 
   apt-get update
   install_packages curl git openssl
+  install_tools
   setup_docker
   setup_iptables
-  mkdir -p "${NODE_DIR}" && generate_tls "${NODE_DIR}"
+  setup_tls
   docker pull "${NODE_IMAGE}"
 }
 
