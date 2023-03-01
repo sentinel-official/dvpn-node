@@ -1,5 +1,5 @@
 PACKAGES := $(shell go list ./...)
-VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
+VERSION := $(shell git describe --tags | sed 's/^v//' | cut -d - -f 1-2)
 COMMIT := $(shell git log -1 --format='%H')
 
 BUILD_TAGS := $(strip netgo)
