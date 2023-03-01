@@ -48,7 +48,7 @@ gas_prices = "{{ .Chain.GasPrices }}"
 id = "{{ .Chain.ID }}"
 
 # Tendermint RPC addresses for the chain
-rpc_addresses = {{ .Chain.RPCAddresses }}
+rpc_addresses = [{{ range .Chain.RPCAddresses }}{{ printf "%q, " . }}{{end}}]
 
 # Calculate the transaction fee by simulating it
 simulate_and_execute = {{ .Chain.SimulateAndExecute }}
