@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeou pipefail
 
 CONTAINER_NAME=sentinelnode
 NODE_DIR="${HOME}/.sentinelnode"
@@ -85,6 +85,13 @@ function cmd_init {
   }
 
   function cmd_init_config {
+    function generate_moniker {
+      id=$(docker create "${NODE_IMAGE}") &&
+        name=$(docker inspect --format "{{ .Name }}" "${id}" | cut -c 2-) &&
+        docker rm --force --volumes "${id}" >/dev/null 2>&1 &&
+        echo "${name}"
+    }
+
     function query_min_price {
       "${TOOLS_DIR}/buf" curl \
         --data '{"subspace":"vpn/node","key":"MinPrice"}' \
@@ -128,7 +135,7 @@ function cmd_init {
     local keyring_backend=file
     local node_ipv4_address=
     local node_listen_on="0.0.0.0:${PORTS[0]}"
-    local node_moniker=
+    local node_moniker && node_moniker=$(generate_moniker)
     local node_price && node_price=$(query_min_price)
     local node_provider=
     local node_remote_url="https://${PUBLIC_IP}:${PORTS[0]}"
@@ -157,7 +164,7 @@ function cmd_init {
     if [[ -n "${input}" ]]; then node_listen_on="${input}"; fi
     config_set "node.listen_on" "${node_listen_on}"
 
-    read -p "Enter node_moniker:" -r input
+    read -p "Enter node_moniker [${node_moniker}]:" -r input
     if [[ -n "${input}" ]]; then node_moniker="${input}"; fi
     config_set "node.moniker" "${node_moniker}"
 
@@ -408,7 +415,7 @@ EOF
   }
 
   apt-get update
-  install_packages curl git openssl
+  install_packages curl git jq openssl
   install_tools
   setup_docker
   setup_iptables
