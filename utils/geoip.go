@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/sentinel-official/dvpn-node/types"
@@ -12,7 +11,7 @@ import (
 func FetchGeoIPLocation() (*types.GeoIPLocation, error) {
 	var (
 		client = &http.Client{Timeout: 15 * time.Second}
-		path   = "https://ipv4.geojs.io/v1/ip/geo.json"
+		path   = "http://ip-api.com/json"
 	)
 
 	resp, err := client.Get(path)
@@ -27,24 +26,14 @@ func FetchGeoIPLocation() (*types.GeoIPLocation, error) {
 	}()
 
 	var body struct {
-		City      string `json:"city"`
-		Country   string `json:"country"`
-		IP        string `json:"ip"`
-		Latitude  string `json:"latitude"`
-		Longitude string `json:"longitude"`
+		City      string  `json:"city"`
+		Country   string  `json:"country"`
+		IP        string  `json:"query"`
+		Latitude  float64 `json:"lat"`
+		Longitude float64 `json:"lon"`
 	}
 
 	if err = json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return nil, err
-	}
-
-	latitude, err := strconv.ParseFloat(body.Latitude, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	longitude, err := strconv.ParseFloat(body.Longitude, 64)
-	if err != nil {
 		return nil, err
 	}
 
@@ -52,7 +41,7 @@ func FetchGeoIPLocation() (*types.GeoIPLocation, error) {
 		City:      body.City,
 		Country:   body.Country,
 		IP:        body.IP,
-		Latitude:  latitude,
-		Longitude: longitude,
+		Latitude:  body.Latitude,
+		Longitude: body.Longitude,
 	}, nil
 }
