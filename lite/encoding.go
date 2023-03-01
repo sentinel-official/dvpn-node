@@ -1,4 +1,4 @@
-package types
+package lite
 
 import (
 	sdkstd "github.com/cosmos/cosmos-sdk/std"
@@ -32,47 +32,46 @@ import (
 	"github.com/sentinel-official/hub/x/vpn"
 )
 
-var (
-	ModuleBasics = module.NewBasicManager(
-		auth.AppModuleBasic{},
-		authvesting.AppModuleBasic{},
-		authzmodule.AppModuleBasic{},
-		bank.AppModuleBasic{},
-		capability.AppModule{},
-		crisis.AppModuleBasic{},
-		distribution.AppModuleBasic{},
-		evidence.AppModuleBasic{},
-		feegrantmodule.AppModuleBasic{},
-		genutil.AppModuleBasic{},
-		gov.NewAppModuleBasic(
-			distributionclient.ProposalHandler,
-			ibcclientclient.UpdateClientProposalHandler,
-			ibcclientclient.UpgradeProposalHandler,
-			paramsclient.ProposalHandler,
-			upgradeclient.ProposalHandler,
-			upgradeclient.CancelProposalHandler,
-		),
-		ibc.AppModuleBasic{},
-		ibcica.AppModuleBasic{},
-		ibctransfer.AppModuleBasic{},
-		mint.AppModuleBasic{},
-		params.AppModuleBasic{},
-		slashing.AppModuleBasic{},
-		staking.AppModuleBasic{},
-		upgrade.AppModuleBasic{},
-		custommint.AppModule{},
-		swap.AppModuleBasic{},
-		vpn.AppModuleBasic{},
+func EncodingConfig() hubparams.EncodingConfig {
+	var (
+		cfg     = hubparams.MakeEncodingConfig()
+		modules = module.NewBasicManager(
+			auth.AppModuleBasic{},
+			authvesting.AppModuleBasic{},
+			authzmodule.AppModuleBasic{},
+			bank.AppModuleBasic{},
+			capability.AppModule{},
+			crisis.AppModuleBasic{},
+			distribution.AppModuleBasic{},
+			evidence.AppModuleBasic{},
+			feegrantmodule.AppModuleBasic{},
+			genutil.AppModuleBasic{},
+			gov.NewAppModuleBasic(
+				distributionclient.ProposalHandler,
+				ibcclientclient.UpdateClientProposalHandler,
+				ibcclientclient.UpgradeProposalHandler,
+				paramsclient.ProposalHandler,
+				upgradeclient.ProposalHandler,
+				upgradeclient.CancelProposalHandler,
+			),
+			ibc.AppModuleBasic{},
+			ibcica.AppModuleBasic{},
+			ibctransfer.AppModuleBasic{},
+			mint.AppModuleBasic{},
+			params.AppModuleBasic{},
+			slashing.AppModuleBasic{},
+			staking.AppModuleBasic{},
+			upgrade.AppModuleBasic{},
+			custommint.AppModule{},
+			swap.AppModuleBasic{},
+			vpn.AppModuleBasic{},
+		)
 	)
-)
 
-func MakeEncodingConfig() hubparams.EncodingConfig {
-	config := hubparams.MakeEncodingConfig()
+	sdkstd.RegisterLegacyAminoCodec(cfg.Amino)
+	sdkstd.RegisterInterfaces(cfg.InterfaceRegistry)
+	modules.RegisterLegacyAminoCodec(cfg.Amino)
+	modules.RegisterInterfaces(cfg.InterfaceRegistry)
 
-	sdkstd.RegisterLegacyAminoCodec(config.Amino)
-	sdkstd.RegisterInterfaces(config.InterfaceRegistry)
-	ModuleBasics.RegisterLegacyAminoCodec(config.Amino)
-	ModuleBasics.RegisterInterfaces(config.InterfaceRegistry)
-
-	return config
+	return cfg
 }

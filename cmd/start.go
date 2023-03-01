@@ -10,13 +10,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-kit/kit/transport/http/jsonrpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -99,19 +97,8 @@ func StartCmd() *cobra.Command {
 				service = v2ray.NewV2Ray()
 			}
 
-			var (
-				encoding = types.MakeEncodingConfig()
-				reader   = bufio.NewReader(cmd.InOrStdin())
-			)
-
-			log.Info("Initializing the RPC client", "address", config.Chain.RPCAddress, "endpoint", "/websocket")
-			rpcClient, err := rpchttp.New(config.Chain.RPCAddress, "/websocket")
-			if err != nil {
-				return err
-			}
-
 			log.Info("Initializing the keyring", "name", types.KeyringName, "backend", config.Keyring.Backend)
-			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, reader)
+			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, bufio.NewReader(cmd.InOrStdin()))
 			if err != nil {
 				return err
 			}
@@ -122,29 +109,24 @@ func StartCmd() *cobra.Command {
 			}
 
 			client := lite.NewDefaultClient().
-				WithAccountRetriever(authtypes.AccountRetriever{}).
 				WithChainID(config.Chain.ID).
-				WithClient(rpcClient).
-				WithFrom(config.Keyring.From).
 				WithFromAddress(info.GetAddress()).
 				WithFromName(config.Keyring.From).
-				WithGas(config.Chain.Gas).
 				WithGasAdjustment(config.Chain.GasAdjustment).
+				WithGas(config.Chain.Gas).
 				WithGasPrices(config.Chain.GasPrices).
-				WithInterfaceRegistry(encoding.InterfaceRegistry).
 				WithKeyring(kr).
-				WithLegacyAmino(encoding.Amino).
 				WithLogger(log).
-				WithNodeURI(config.Chain.RPCAddress).
-				WithSimulateAndExecute(config.Chain.SimulateAndExecute).
-				WithTxConfig(encoding.TxConfig)
+				WithRemotes(config.Chain.RPCAddresses).
+				WithSignModeStr("").
+				WithSimulateAndExecute(config.Chain.SimulateAndExecute)
 
-			account, err := client.QueryAccount(info.GetAddress())
+			account, err := client.QueryAccount(client.FromAddress)
 			if err != nil {
 				return err
 			}
 			if account == nil {
-				return fmt.Errorf("account does not exist with address %s", client.FromAddress())
+				return fmt.Errorf("account does not exist with address %s", client.FromAddress)
 			}
 
 			log.Info("Fetching the GeoIP location info...")
@@ -166,7 +148,7 @@ func StartCmd() *cobra.Command {
 					for {
 						log.Info("Starting the Handshake process...")
 						if err := runHandshake(config.Handshake.Peers); err != nil {
-							log.Error("Handshake process exited unexpectedly", "error", err)
+							log.Error("handshake process exited unexpectedly", "error", err)
 						}
 					}
 				}()

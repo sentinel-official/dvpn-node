@@ -49,7 +49,7 @@ func (c *Context) ListenOn() string                    { return c.Config().Node.
 func (c *Context) Location() *types.GeoIPLocation      { return c.location }
 func (c *Context) Log() tmlog.Logger                   { return c.logger }
 func (c *Context) Moniker() string                     { return c.Config().Node.Moniker }
-func (c *Context) Operator() sdk.AccAddress            { return c.client.FromAddress() }
+func (c *Context) Operator() sdk.AccAddress            { return c.client.FromAddress }
 func (c *Context) RemoteURL() string                   { return c.Config().Node.RemoteURL }
 func (c *Context) Service() types.Service              { return c.service }
 func (c *Context) Database() *gorm.DB                  { return c.database }

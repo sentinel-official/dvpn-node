@@ -7,104 +7,164 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/pkg/errors"
 	abcitypes "github.com/tendermint/tendermint/abci/types"
+	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 )
 
-func (c *Client) prepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err error) {
+func (c *Client) broadcastTx(remote string, txBytes []byte) (*sdk.TxResponse, error) {
+	c.Logger.Debug("Broadcasting the transaction", "remote", remote, "size", len(txBytes))
+
+	client, err := rpchttp.New(remote, "/websocket")
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := c.Context.WithClient(client)
+
+	resp, err := ctx.BroadcastTx(txBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	switch resp.Code {
+	case abcitypes.CodeTypeOK:
+		return resp, nil
+	case sdkerrors.ErrTxInMempoolCache.ABCICode():
+		return resp, nil
+	default:
+		return nil, errors.New(resp.RawLog)
+	}
+}
+
+func (c *Client) BroadcastTx(txBytes []byte) (res *sdk.TxResponse, err error) {
 	defer func() {
 		if err != nil {
-			c.Log().Error("Failed to prepare the transaction", "error", err)
+			c.Logger.Error("failed to broadcast the transaction", "error", err)
 		}
 	}()
 
-	account, err := c.QueryAccount(c.FromAddress())
+	for i := 0; i < len(c.remotes); i++ {
+		res, err = c.broadcastTx(c.remotes[i], txBytes)
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (c *Client) calculateGas(remote string, txf tx.Factory, messages ...sdk.Msg) (uint64, error) {
+	c.Logger.Debug("Calculating the gas", "remote", remote, "messages", len(messages))
+
+	client, err := rpchttp.New(remote, "/websocket")
+	if err != nil {
+		return 0, err
+	}
+
+	ctx := c.Context.WithClient(client)
+
+	_, gas, err := tx.CalculateGas(ctx, txf, messages...)
+	if err != nil {
+		return 0, err
+	}
+
+	return gas, nil
+}
+
+func (c *Client) CalculateGas(txf tx.Factory, messages ...sdk.Msg) (gas uint64, err error) {
+	for i := 0; i < len(c.remotes); i++ {
+		gas, err = c.calculateGas(c.remotes[i], txf, messages...)
+		if err == nil {
+			break
+		}
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return gas, nil
+}
+
+func (c *Client) PrepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err error) {
+	defer func() {
+		if err != nil {
+			c.Logger.Error("failed to prepare the transaction", "error", err)
+		}
+	}()
+
+	acc, err := c.QueryAccount(c.FromAddress)
 	if err != nil {
 		return txf, err
 	}
 
-	txf = c.txf.
-		WithAccountNumber(account.GetAccountNumber()).
-		WithSequence(account.GetSequence())
+	txf = c.Factory.
+		WithAccountNumber(acc.GetAccountNumber()).
+		WithSequence(acc.GetSequence())
 
 	if c.SimulateAndExecute() {
-		_, adjusted, err := tx.CalculateGas(c.ctx, txf, messages...)
+		gas, err := c.CalculateGas(txf, messages...)
 		if err != nil {
 			return txf, err
 		}
 
-		txf = txf.WithGas(adjusted)
+		txf = txf.WithGas(gas)
 	}
 
 	return txf, nil
 }
 
-func (c *Client) broadcastTx(txBytes []byte) (res *sdk.TxResponse, err error) {
-	defer func() {
-		if err != nil {
-			c.Log().Error("Failed to broadcast the transaction", "error", err)
-		}
-	}()
-
-	res, err = c.ctx.BroadcastTx(txBytes)
+func (c *Client) tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
+	c.Logger.Info("Preparing the transaction", "messages", len(messages))
+	txf, err := c.PrepareTxFactory(messages...)
 	if err != nil {
 		return nil, err
 	}
 
-	switch res.Code {
-	case abcitypes.CodeTypeOK:
-		return res, nil
-	case sdkerrors.ErrTxInMempoolCache.ABCICode():
-		return res, nil
-	default:
-		return nil, errors.New(res.RawLog)
-	}
-}
-
-func (c *Client) Tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	var (
-		txf tx.Factory
-	)
-
-	c.Log().Info("Preparing the transaction", "messages", len(messages))
-	if err := retry.Do(func() error {
-		txf, err = c.prepareTxFactory(messages...)
-		if err != nil {
-			return err
-		}
-
-		c.Log().Info("Transaction info", "gas", txf.Gas(), "sequence", txf.Sequence())
-		return nil
-	}, retry.Attempts(5)); err != nil {
-		return nil, err
-	}
-
+	c.Logger.Info("Transaction info", "gas", txf.Gas(), "sequence", txf.Sequence())
 	txb, err := tx.BuildUnsignedTx(txf, messages...)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := tx.Sign(txf, c.From(), txb, true); err != nil {
+	if err := tx.Sign(txf, c.FromName, txb, true); err != nil {
 		return nil, err
 	}
 
-	txBytes, err := c.TxConfig().TxEncoder()(txb.GetTx())
+	txBytes, err := c.TxConfig.TxEncoder()(txb.GetTx())
 	if err != nil {
 		return nil, err
 	}
 
-	c.Log().Info("Broadcasting the transaction", "size", len(txBytes))
-	if err := retry.Do(func() error {
-		res, err = c.broadcastTx(txBytes)
-		if err != nil {
-			return err
-		}
+	c.Logger.Info("Broadcasting the transaction", "size", len(txBytes))
+	res, err = c.BroadcastTx(txBytes)
+	if err != nil {
+		return nil, err
+	}
 
-		c.Log().Info("Transaction result", "code", res.Code,
-			"codespace", res.Codespace, "height", res.Height, "tx_hash", res.TxHash)
-		return nil
-	}, retry.Attempts(5)); err != nil {
+	return res, nil
+}
+
+func (c *Client) Tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
+	c.Lock()
+	defer c.Unlock()
+
+	err = retry.Do(
+		func() error {
+			res, err = c.tx(messages...)
+			if err != nil {
+				return err
+			}
+
+			c.Logger.Info("Transaction result", "code", res.Code,
+				"codespace", res.Codespace, "height", res.Height, "tx_hash", res.TxHash)
+			return nil
+		},
+		retry.Attempts(5),
+	)
+	if err != nil {
 		return nil, err
 	}
 
