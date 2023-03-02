@@ -37,7 +37,7 @@ func (c *Context) RemovePeerIfExists(key string) error {
 		return err
 	}
 	if !ok {
-		c.Log().Info("Peer does not exist", "key", key)
+		c.Log().Debug("Peer does not exist", "key", key)
 		return nil
 	}
 

@@ -8,9 +8,9 @@ import (
 type Session struct {
 	gorm.Model
 	ID           uint64 `gorm:"primaryKey;uniqueIndex:idx_sessions_id"`
-	Subscription uint64 `gorm:"index:idx_sessions_subscription_for_address"`
+	Subscription uint64 `gorm:"index:idx_sessions_subscription_address"`
 	Key          string `gorm:"uniqueIndex:idx_sessions_key"`
-	Address      string `gorm:"index:idx_sessions_address;index:idx_sessions_subscription_for_address"`
+	Address      string `gorm:"index:idx_sessions_address;index:idx_sessions_subscription_address"`
 	Available    int64
 	Download     int64
 	Upload       int64
