@@ -19,7 +19,7 @@ import (
 func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.AccountI, error) {
 	c.log.Debug("Querying the account", "remote", remote, "address", accAddr)
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *Client) QueryAccount(accAddr sdk.AccAddress) (result authtypes.AccountI
 func (c *Client) queryNode(remote string, nodeAddr hubtypes.NodeAddress) (*nodetypes.Node, error) {
 	c.log.Debug("Querying the node", "remote", remote, "address", nodeAddr)
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (c *Client) QueryNode(nodeAddr hubtypes.NodeAddress) (result *nodetypes.Nod
 func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes.Subscription, error) {
 	c.log.Debug("Querying the subscription", "remote", remote, "id", id)
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (c *Client) QuerySubscription(id uint64) (result *subscriptiontypes.Subscri
 func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*subscriptiontypes.Quota, error) {
 	c.log.Debug("Querying the quota", "remote", remote, "id", id, "address", accAddr)
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (c *Client) QueryQuota(id uint64, accAddr sdk.AccAddress) (result *subscrip
 func (c *Client) querySession(remote string, id uint64) (*sessiontypes.Session, error) {
 	c.log.Debug("Querying the session", "id", id)
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (c *Client) QuerySession(id uint64) (result *sessiontypes.Session, err erro
 }
 
 func (c *Client) hasNodeForPlan(remote string, id uint64, nodeAddr hubtypes.NodeAddress) (bool, error) {
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return false, err
 	}

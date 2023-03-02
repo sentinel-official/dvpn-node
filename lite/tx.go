@@ -13,7 +13,7 @@ import (
 func (c *Client) broadcastTx(remote string, txBytes []byte) (*sdk.TxResponse, error) {
 	c.log.Debug("Broadcasting the transaction", "remote", remote, "size", len(txBytes))
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (c *Client) BroadcastTx(txBytes []byte) (res *sdk.TxResponse, err error) {
 func (c *Client) calculateGas(remote string, txf tx.Factory, messages ...sdk.Msg) (uint64, error) {
 	c.log.Debug("Calculating the gas", "remote", remote, "messages", len(messages))
 
-	client, err := rpchttp.New(remote, "/websocket")
+	client, err := rpchttp.NewWithTimeout(remote, "/websocket", 5)
 	if err != nil {
 		return 0, err
 	}
