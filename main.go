@@ -29,7 +29,7 @@ func main() {
 		version.NewVersionCommand(),
 	)
 
-	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home")
+	root.PersistentFlags().String(flags.FlagHome, types.DefaultHomeDirectory, "home directory")
 	root.PersistentFlags().String(flags.FlagLogFormat, "plain", "log format")
 	root.PersistentFlags().String(flags.FlagLogLevel, "info", "log level")
 

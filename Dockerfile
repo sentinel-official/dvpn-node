@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine3.17 AS build
+FROM golang:1.20-alpine3.17 AS build
 
 COPY . /go/src/github.com/sentinel-official/dvpn-node/
 
@@ -17,7 +17,6 @@ FROM alpine:3.17
 COPY --from=build /go/bin/sentinelnode /usr/local/bin/process
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
 
-RUN apk add --no-cache ip6tables unbound-dev v2ray wireguard-tools && \
-    rm -rf /tmp/* /var/tmp/*
+RUN apk add --no-cache ip6tables unbound-dev v2ray wireguard-tools
 
 CMD ["process"]
