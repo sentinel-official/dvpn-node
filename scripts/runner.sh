@@ -130,7 +130,7 @@ function cmd_init {
 
     PUBLIC_IP=$(curl --silent https://ifconfig.me)
 
-    local chain_rpc_address=https://rpc.sentinel.co:443
+    local chain_rpc_addresses="https://rpc.sentinel.co:443,https://rpc.sentinel.quokkastake.io:443,https://sentinel-rpc.badgerbite.io:443"
     local handshake_enable=false
     local keyring_backend=file
     local node_ipv4_address=
@@ -144,9 +144,9 @@ function cmd_init {
     echo "Initializing the configuration..."
     must_run config init --force="${force}"
 
-    read -p "Enter chain_rpc_address [${chain_rpc_address}]:" -r input
-    if [[ -n "${input}" ]]; then chain_rpc_address="${input}"; fi
-    config_set "chain.rpc_address" "${chain_rpc_address}"
+    read -p "Enter chain_rpc_addresses [${chain_rpc_addresses}]:" -r input
+    if [[ -n "${input}" ]]; then chain_rpc_addresses="${input}"; fi
+    config_set "chain.rpc_addresses" "${chain_rpc_addresses}"
 
     read -p "Enter handshake_enable [${handshake_enable}]:" -r input
     if [[ -n "${input}" ]]; then handshake_enable="${input}"; fi

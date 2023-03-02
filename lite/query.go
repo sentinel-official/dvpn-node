@@ -180,7 +180,7 @@ func (c *Client) QueryQuota(id uint64, accAddr sdk.AccAddress) (result *subscrip
 }
 
 func (c *Client) querySession(remote string, id uint64) (*sessiontypes.Session, error) {
-	c.log.Debug("Querying the session", "id", id)
+	c.log.Debug("Querying the session", "remote", remote, "id", id)
 
 	client, err := rpchttp.NewWithTimeout(remote, "/websocket", c.queryTimeout)
 	if err != nil {
