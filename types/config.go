@@ -47,8 +47,8 @@ gas_prices = "{{ .Chain.GasPrices }}"
 # The network chain ID
 id = "{{ .Chain.ID }}"
 
-# Tendermint RPC addresses for the chain
-rpc_addresses = [{{ range .Chain.RPCAddresses }}{{ printf "%q, " . }}{{end}}]
+# Comma separated Tendermint RPC addresses for the chain
+rpc_addresses = "{{ .Chain.RPCAddresses }}"
 
 # Calculate the transaction fee by simulating it
 simulate_and_execute = {{ .Chain.SimulateAndExecute }}
@@ -114,12 +114,12 @@ max_peers = {{ .QOS.MaxPeers }}
 )
 
 type ChainConfig struct {
-	GasAdjustment      float64  `json:"gas_adjustment" mapstructure:"gas_adjustment"`
-	GasPrices          string   `json:"gas_prices" mapstructure:"gas_prices"`
-	Gas                uint64   `json:"gas" mapstructure:"gas"`
-	ID                 string   `json:"id" mapstructure:"id"`
-	RPCAddresses       []string `json:"rpc_addresses" mapstructure:"rpc_addresses"`
-	SimulateAndExecute bool     `json:"simulate_and_execute" mapstructure:"simulate_and_execute"`
+	GasAdjustment      float64 `json:"gas_adjustment" mapstructure:"gas_adjustment"`
+	GasPrices          string  `json:"gas_prices" mapstructure:"gas_prices"`
+	Gas                uint64  `json:"gas" mapstructure:"gas"`
+	ID                 string  `json:"id" mapstructure:"id"`
+	RPCAddresses       string  `json:"rpc_addresses" mapstructure:"rpc_addresses"`
+	SimulateAndExecute bool    `json:"simulate_and_execute" mapstructure:"simulate_and_execute"`
 }
 
 func NewChainConfig() *ChainConfig {
@@ -139,19 +139,20 @@ func (c *ChainConfig) Validate() error {
 	if c.ID == "" {
 		return errors.New("id cannot be empty")
 	}
-	if len(c.RPCAddresses) == 0 {
+	if c.RPCAddresses == "" {
 		return errors.New("rpc_addresses cannot be empty")
 	}
 
-	for i := 0; i < len(c.RPCAddresses); i++ {
-		address, err := url.ParseRequestURI(c.RPCAddresses[i])
+	items := strings.Split(c.RPCAddresses, ",")
+	for i := 0; i < len(items); i++ {
+		uri, err := url.ParseRequestURI(items[i])
 		if err != nil {
-			return errors.Wrapf(err, "invalid rpc_address %s", c.RPCAddresses[i])
+			return errors.Wrapf(err, "invalid rpc_address %s", items[i])
 		}
-		if address.Scheme != "http" && address.Scheme != "https" {
+		if uri.Scheme != "http" && uri.Scheme != "https" {
 			return errors.New("rpc_address scheme must be either http or https")
 		}
-		if address.Port() == "" {
+		if uri.Port() == "" {
 			return errors.New("rpc_address port cannot be empty")
 		}
 	}
@@ -164,7 +165,7 @@ func (c *ChainConfig) WithDefaultValues() *ChainConfig {
 	c.GasPrices = "0.1udvpn"
 	c.Gas = 200000
 	c.ID = "sentinelhub-2"
-	c.RPCAddresses = []string{"https://rpc.sentinel.co:443"}
+	c.RPCAddresses = "https://rpc.sentinel.co:443"
 	c.SimulateAndExecute = true
 
 	return c

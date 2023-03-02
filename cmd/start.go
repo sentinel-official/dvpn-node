@@ -97,8 +97,13 @@ func StartCmd() *cobra.Command {
 				service = v2ray.NewV2Ray()
 			}
 
+			var (
+				input   = bufio.NewReader(cmd.InOrStdin())
+				remotes = strings.Split(config.Chain.RPCAddresses, ",")
+			)
+
 			log.Info("Initializing the keyring", "name", types.KeyringName, "backend", config.Keyring.Backend)
-			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, bufio.NewReader(cmd.InOrStdin()))
+			kr, err := keyring.New(types.KeyringName, config.Keyring.Backend, home, input)
 			if err != nil {
 				return err
 			}
@@ -117,7 +122,7 @@ func StartCmd() *cobra.Command {
 				WithGasPrices(config.Chain.GasPrices).
 				WithKeyring(kr).
 				WithLogger(log).
-				WithRemotes(config.Chain.RPCAddresses).
+				WithRemotes(remotes).
 				WithSignModeStr("").
 				WithSimulateAndExecute(config.Chain.SimulateAndExecute)
 
