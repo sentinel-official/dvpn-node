@@ -9,12 +9,12 @@ func (c *Context) RemovePeer(key string) error {
 
 	data, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		c.Log().Error("Failed to decode the key", "error", err, "key", key)
+		c.Log().Error("failed to decode the key", "error", err, "key", key)
 		return err
 	}
 
 	if err = c.Service().RemovePeer(data); err != nil {
-		c.Log().Error("Failed to remove the peer from service", "error", err, "data", data)
+		c.Log().Error("failed to remove the peer from service", "error", err, "data", data)
 		return err
 	}
 
@@ -24,7 +24,7 @@ func (c *Context) RemovePeer(key string) error {
 func (c *Context) HasPeer(key string) (bool, error) {
 	data, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		c.Log().Error("Failed to decode the key", "error", err, "key", key)
+		c.Log().Error("failed to decode the key", "error", err, "key", key)
 		return false, err
 	}
 

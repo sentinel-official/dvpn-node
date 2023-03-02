@@ -17,7 +17,7 @@ import (
 )
 
 func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.AccountI, error) {
-	c.Logger.Debug("Querying the account", "remote", remote, "address", accAddr)
+	c.log.Debug("Querying the account", "remote", remote, "address", accAddr)
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
@@ -25,7 +25,7 @@ func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.
 	}
 
 	var (
-		ctx = c.Context.WithClient(client)
+		ctx = c.ctx.WithClient(client)
 		qc  = authtypes.NewQueryClient(ctx)
 	)
 
@@ -40,7 +40,7 @@ func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.
 	}
 
 	var result authtypes.AccountI
-	if err = c.Context.InterfaceRegistry.UnpackAny(resp.Account, &result); err != nil {
+	if err = c.ctx.InterfaceRegistry.UnpackAny(resp.Account, &result); err != nil {
 		return nil, err
 	}
 
@@ -48,7 +48,7 @@ func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.
 }
 
 func (c *Client) QueryAccount(accAddr sdk.AccAddress) (result authtypes.AccountI, err error) {
-	c.Logger.Info("Querying the account", "address", accAddr)
+	c.log.Info("Querying the account", "address", accAddr)
 	for i := 0; i < len(c.remotes); i++ {
 		result, err = c.queryAccount(c.remotes[i], accAddr)
 		if err == nil {
@@ -63,7 +63,7 @@ func (c *Client) QueryAccount(accAddr sdk.AccAddress) (result authtypes.AccountI
 }
 
 func (c *Client) queryNode(remote string, nodeAddr hubtypes.NodeAddress) (*nodetypes.Node, error) {
-	c.Logger.Debug("Querying the node", "remote", remote, "address", nodeAddr)
+	c.log.Debug("Querying the node", "remote", remote, "address", nodeAddr)
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
@@ -71,7 +71,7 @@ func (c *Client) queryNode(remote string, nodeAddr hubtypes.NodeAddress) (*nodet
 	}
 
 	var (
-		ctx = c.Context.WithClient(client)
+		ctx = c.ctx.WithClient(client)
 		qc  = nodetypes.NewQueryServiceClient(ctx)
 	)
 
@@ -87,7 +87,7 @@ func (c *Client) queryNode(remote string, nodeAddr hubtypes.NodeAddress) (*nodet
 }
 
 func (c *Client) QueryNode(nodeAddr hubtypes.NodeAddress) (result *nodetypes.Node, err error) {
-	c.Logger.Info("Querying the node", "address", nodeAddr)
+	c.log.Info("Querying the node", "address", nodeAddr)
 	for i := 0; i < len(c.remotes); i++ {
 		result, err = c.queryNode(c.remotes[i], nodeAddr)
 		if err == nil {
@@ -102,7 +102,7 @@ func (c *Client) QueryNode(nodeAddr hubtypes.NodeAddress) (result *nodetypes.Nod
 }
 
 func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes.Subscription, error) {
-	c.Logger.Debug("Querying the subscription", "remote", remote, "id", id)
+	c.log.Debug("Querying the subscription", "remote", remote, "id", id)
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
@@ -110,7 +110,7 @@ func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes
 	}
 
 	var (
-		ctx = c.Context.WithClient(client)
+		ctx = c.ctx.WithClient(client)
 		qc  = subscriptiontypes.NewQueryServiceClient(ctx)
 	)
 
@@ -126,7 +126,7 @@ func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes
 }
 
 func (c *Client) QuerySubscription(id uint64) (result *subscriptiontypes.Subscription, err error) {
-	c.Logger.Info("Querying the subscription", "id", id)
+	c.log.Info("Querying the subscription", "id", id)
 	for i := 0; i < len(c.remotes); i++ {
 		result, err = c.querySubscription(c.remotes[i], id)
 		if err == nil {
@@ -141,7 +141,7 @@ func (c *Client) QuerySubscription(id uint64) (result *subscriptiontypes.Subscri
 }
 
 func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*subscriptiontypes.Quota, error) {
-	c.Logger.Debug("Querying the quota", "remote", remote, "id", id, "address", accAddr)
+	c.log.Debug("Querying the quota", "remote", remote, "id", id, "address", accAddr)
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
@@ -149,7 +149,7 @@ func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*
 	}
 
 	var (
-		ctx = c.Context.WithClient(client)
+		ctx = c.ctx.WithClient(client)
 		qc  = subscriptiontypes.NewQueryServiceClient(ctx)
 	)
 
@@ -165,7 +165,7 @@ func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*
 }
 
 func (c *Client) QueryQuota(id uint64, accAddr sdk.AccAddress) (result *subscriptiontypes.Quota, err error) {
-	c.Logger.Info("Querying the quota", "id", id, "address", accAddr)
+	c.log.Info("Querying the quota", "id", id, "address", accAddr)
 	for i := 0; i < len(c.remotes); i++ {
 		result, err = c.queryQuota(c.remotes[i], id, accAddr)
 		if err == nil {
@@ -180,7 +180,7 @@ func (c *Client) QueryQuota(id uint64, accAddr sdk.AccAddress) (result *subscrip
 }
 
 func (c *Client) querySession(remote string, id uint64) (*sessiontypes.Session, error) {
-	c.Logger.Debug("Querying the session", "id", id)
+	c.log.Debug("Querying the session", "id", id)
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
@@ -188,7 +188,7 @@ func (c *Client) querySession(remote string, id uint64) (*sessiontypes.Session, 
 	}
 
 	var (
-		ctx = c.Context.WithClient(client)
+		ctx = c.ctx.WithClient(client)
 		qc  = sessiontypes.NewQueryServiceClient(ctx)
 	)
 
@@ -204,7 +204,7 @@ func (c *Client) querySession(remote string, id uint64) (*sessiontypes.Session, 
 }
 
 func (c *Client) QuerySession(id uint64) (result *sessiontypes.Session, err error) {
-	c.Logger.Info("Querying the session", "id", id)
+	c.log.Info("Querying the session", "id", id)
 	for i := 0; i < len(c.remotes); i++ {
 		result, err = c.querySession(c.remotes[i], id)
 		if err == nil {
@@ -224,7 +224,7 @@ func (c *Client) hasNodeForPlan(remote string, id uint64, nodeAddr hubtypes.Node
 		return false, err
 	}
 
-	ctx := c.Context.WithClient(client)
+	ctx := c.ctx.WithClient(client)
 
 	value, _, err := ctx.QueryStore(
 		append(

@@ -11,14 +11,14 @@ import (
 )
 
 func (c *Client) broadcastTx(remote string, txBytes []byte) (*sdk.TxResponse, error) {
-	c.Logger.Debug("Broadcasting the transaction", "remote", remote, "size", len(txBytes))
+	c.log.Debug("Broadcasting the transaction", "remote", remote, "size", len(txBytes))
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := c.Context.WithClient(client)
+	ctx := c.ctx.WithClient(client)
 
 	resp, err := ctx.BroadcastTx(txBytes)
 	if err != nil {
@@ -38,7 +38,7 @@ func (c *Client) broadcastTx(remote string, txBytes []byte) (*sdk.TxResponse, er
 func (c *Client) BroadcastTx(txBytes []byte) (res *sdk.TxResponse, err error) {
 	defer func() {
 		if err != nil {
-			c.Logger.Error("failed to broadcast the transaction", "error", err)
+			c.log.Error("failed to broadcast the transaction", "error", err)
 		}
 	}()
 
@@ -56,14 +56,14 @@ func (c *Client) BroadcastTx(txBytes []byte) (res *sdk.TxResponse, err error) {
 }
 
 func (c *Client) calculateGas(remote string, txf tx.Factory, messages ...sdk.Msg) (uint64, error) {
-	c.Logger.Debug("Calculating the gas", "remote", remote, "messages", len(messages))
+	c.log.Debug("Calculating the gas", "remote", remote, "messages", len(messages))
 
 	client, err := rpchttp.New(remote, "/websocket")
 	if err != nil {
 		return 0, err
 	}
 
-	ctx := c.Context.WithClient(client)
+	ctx := c.ctx.WithClient(client)
 
 	_, gas, err := tx.CalculateGas(ctx, txf, messages...)
 	if err != nil {
@@ -91,16 +91,16 @@ func (c *Client) CalculateGas(txf tx.Factory, messages ...sdk.Msg) (gas uint64, 
 func (c *Client) PrepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err error) {
 	defer func() {
 		if err != nil {
-			c.Logger.Error("failed to prepare the transaction", "error", err)
+			c.log.Error("failed to prepare the transaction", "error", err)
 		}
 	}()
 
-	acc, err := c.QueryAccount(c.FromAddress)
+	acc, err := c.QueryAccount(c.FromAddress())
 	if err != nil {
 		return txf, err
 	}
 
-	txf = c.Factory.
+	txf = c.txf.
 		WithAccountNumber(acc.GetAccountNumber()).
 		WithSequence(acc.GetSequence())
 
@@ -117,28 +117,28 @@ func (c *Client) PrepareTxFactory(messages ...sdk.Msg) (txf tx.Factory, err erro
 }
 
 func (c *Client) tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
-	c.Logger.Info("Preparing the transaction", "messages", len(messages))
+	c.log.Info("Preparing the transaction", "messages", len(messages))
 	txf, err := c.PrepareTxFactory(messages...)
 	if err != nil {
 		return nil, err
 	}
 
-	c.Logger.Info("Transaction info", "gas", txf.Gas(), "sequence", txf.Sequence())
+	c.log.Info("Transaction info", "gas", txf.Gas(), "sequence", txf.Sequence())
 	txb, err := tx.BuildUnsignedTx(txf, messages...)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := tx.Sign(txf, c.FromName, txb, true); err != nil {
+	if err = tx.Sign(txf, c.FromName(), txb, true); err != nil {
 		return nil, err
 	}
 
-	txBytes, err := c.TxConfig.TxEncoder()(txb.GetTx())
+	txBytes, err := c.TxConfig().TxEncoder()(txb.GetTx())
 	if err != nil {
 		return nil, err
 	}
 
-	c.Logger.Info("Broadcasting the transaction", "size", len(txBytes))
+	c.log.Info("Broadcasting the transaction", "size", len(txBytes))
 	res, err = c.BroadcastTx(txBytes)
 	if err != nil {
 		return nil, err
@@ -148,8 +148,8 @@ func (c *Client) tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
 }
 
 func (c *Client) Tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
-	c.Lock()
-	defer c.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	err = retry.Do(
 		func() error {
@@ -158,7 +158,7 @@ func (c *Client) Tx(messages ...sdk.Msg) (res *sdk.TxResponse, err error) {
 				return err
 			}
 
-			c.Logger.Info("Transaction result", "code", res.Code,
+			c.log.Info("Transaction result", "code", res.Code,
 				"codespace", res.Codespace, "height", res.Height, "tx_hash", res.TxHash)
 			return nil
 		},

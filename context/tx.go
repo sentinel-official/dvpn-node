@@ -21,7 +21,7 @@ func (c *Context) RegisterNode() error {
 		),
 	)
 	if err != nil {
-		c.Log().Error("Failed to register the node", "error", err)
+		c.Log().Error("failed to register the node", "error", err)
 		return err
 	}
 
@@ -40,7 +40,7 @@ func (c *Context) UpdateNodeInfo() error {
 		),
 	)
 	if err != nil {
-		c.Log().Error("Failed to update the node info", "error", err)
+		c.Log().Error("failed to update the node info", "error", err)
 		return err
 	}
 
@@ -57,7 +57,7 @@ func (c *Context) UpdateNodeStatus() error {
 		),
 	)
 	if err != nil {
-		c.Log().Error("Failed to update the node status", "error", err)
+		c.Log().Error("failed to update the node status", "error", err)
 		return err
 	}
 
@@ -86,7 +86,7 @@ func (c *Context) UpdateSessions(items ...types.Session) error {
 		messages...,
 	)
 	if err != nil {
-		c.Log().Error("Failed to update the sessions", "error", err)
+		c.Log().Error("failed to update the sessions", "error", err)
 		return err
 	}
 

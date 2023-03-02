@@ -15,16 +15,16 @@ import (
 )
 
 type Client struct {
-	*sync.Mutex
-	tmlog.Logger
-	client.Context
-	tx.Factory
+	mutex   *sync.Mutex
+	ctx     client.Context
+	log     tmlog.Logger
+	txf     tx.Factory
 	remotes []string
 }
 
 func NewClient() *Client {
 	return &Client{
-		Mutex: &sync.Mutex{},
+		mutex: &sync.Mutex{},
 	}
 }
 
@@ -48,12 +48,12 @@ func NewDefaultClient() *Client {
 }
 
 func (c *Client) WithContext(v client.Context) *Client {
-	c.Context = v
+	c.ctx = v
 	return c
 }
 
 func (c *Client) WithLogger(v tmlog.Logger) *Client {
-	c.Logger = v
+	c.log = v
 	return c
 }
 
@@ -63,61 +63,50 @@ func (c *Client) WithRemotes(v []string) *Client {
 }
 
 func (c *Client) WithAccountRetriever(v client.AccountRetriever) *Client {
-	c.Context = c.Context.WithAccountRetriever(v)
-	c.Factory = c.Factory.WithAccountRetriever(v)
-	return c
-}
-
-func (c *Client) WithTxConfig(v client.TxConfig) *Client {
-	c.Context = c.Context.WithTxConfig(v)
-	c.Factory = c.Factory.WithTxConfig(v)
+	c.ctx = c.ctx.WithAccountRetriever(v)
+	c.txf = c.txf.WithAccountRetriever(v)
 	return c
 }
 
 func (c *Client) WithChainID(v string) *Client {
-	c.Context = c.Context.WithChainID(v)
-	c.Factory = c.Factory.WithChainID(v)
+	c.ctx = c.ctx.WithChainID(v)
+	c.txf = c.txf.WithChainID(v)
 	return c
 }
 
 func (c *Client) WithFeeGranterAddress(v sdk.AccAddress) *Client {
-	c.Context = c.Context.WithFeeGranterAddress(v)
+	c.ctx = c.ctx.WithFeeGranterAddress(v)
 	return c
 }
 
 func (c *Client) WithFromAddress(v sdk.AccAddress) *Client {
-	c.Context = c.Context.WithFromAddress(v)
+	c.ctx = c.ctx.WithFromAddress(v)
 	return c
 }
 
 func (c *Client) WithFromName(v string) *Client {
-	c.Context = c.Context.WithFromName(v)
-	return c
-}
-
-func (c *Client) WithKeyring(v keyring.Keyring) *Client {
-	c.Context = c.Context.WithKeyring(v)
-	c.Factory = c.Factory.WithKeybase(v)
+	c.ctx = c.ctx.WithFromName(v)
 	return c
 }
 
 func (c *Client) WithGas(v uint64) *Client {
-	c.Factory = c.Factory.WithGas(v)
-	return c
-}
-
-func (c *Client) WithSimulateAndExecute(v bool) *Client {
-	c.Factory = c.Factory.WithSimulateAndExecute(v)
+	c.txf = c.txf.WithGas(v)
 	return c
 }
 
 func (c *Client) WithGasAdjustment(v float64) *Client {
-	c.Factory = c.Factory.WithGasAdjustment(v)
+	c.txf = c.txf.WithGasAdjustment(v)
 	return c
 }
 
 func (c *Client) WithGasPrices(v string) *Client {
-	c.Factory = c.Factory.WithGasPrices(v)
+	c.txf = c.txf.WithGasPrices(v)
+	return c
+}
+
+func (c *Client) WithKeyring(v keyring.Keyring) *Client {
+	c.ctx = c.ctx.WithKeyring(v)
+	c.txf = c.txf.WithKeybase(v)
 	return c
 }
 
@@ -130,7 +119,23 @@ func (c *Client) WithSignModeStr(v string) *Client {
 		m = signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
 	}
 
-	c.Context = c.Context.WithSignModeStr(v)
-	c.Factory = c.Factory.WithSignMode(m)
+	c.ctx = c.ctx.WithSignModeStr(v)
+	c.txf = c.txf.WithSignMode(m)
 	return c
 }
+
+func (c *Client) WithSimulateAndExecute(v bool) *Client {
+	c.txf = c.txf.WithSimulateAndExecute(v)
+	return c
+}
+
+func (c *Client) WithTxConfig(v client.TxConfig) *Client {
+	c.ctx = c.ctx.WithTxConfig(v)
+	c.txf = c.txf.WithTxConfig(v)
+	return c
+}
+
+func (c *Client) FromAddress() sdk.AccAddress { return c.ctx.FromAddress }
+func (c *Client) FromName() string            { return c.ctx.FromName }
+func (c *Client) SimulateAndExecute() bool    { return c.txf.SimulateAndExecute() }
+func (c *Client) TxConfig() client.TxConfig   { return c.ctx.TxConfig }

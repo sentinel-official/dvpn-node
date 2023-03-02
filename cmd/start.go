@@ -117,8 +117,8 @@ func StartCmd() *cobra.Command {
 				WithChainID(config.Chain.ID).
 				WithFromAddress(info.GetAddress()).
 				WithFromName(config.Keyring.From).
-				WithGasAdjustment(config.Chain.GasAdjustment).
 				WithGas(config.Chain.Gas).
+				WithGasAdjustment(config.Chain.GasAdjustment).
 				WithGasPrices(config.Chain.GasPrices).
 				WithKeyring(kr).
 				WithLogger(log).
@@ -126,12 +126,12 @@ func StartCmd() *cobra.Command {
 				WithSignModeStr("").
 				WithSimulateAndExecute(config.Chain.SimulateAndExecute)
 
-			account, err := client.QueryAccount(client.FromAddress)
+			account, err := client.QueryAccount(client.FromAddress())
 			if err != nil {
 				return err
 			}
 			if account == nil {
-				return fmt.Errorf("account does not exist with address %s", client.FromAddress)
+				return fmt.Errorf("account does not exist with address %s", client.FromAddress())
 			}
 
 			log.Info("Fetching the GeoIP location info...")
