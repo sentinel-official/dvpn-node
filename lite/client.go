@@ -15,11 +15,13 @@ import (
 )
 
 type Client struct {
-	mutex   *sync.Mutex
-	ctx     client.Context
-	log     tmlog.Logger
-	txf     tx.Factory
-	remotes []string
+	ctx          client.Context
+	log          tmlog.Logger
+	mutex        *sync.Mutex
+	queryTimeout uint
+	remotes      []string
+	txf          tx.Factory
+	txTimeout    uint
 }
 
 func NewClient() *Client {
@@ -57,8 +59,18 @@ func (c *Client) WithLogger(v tmlog.Logger) *Client {
 	return c
 }
 
+func (c *Client) WithQueryTimeout(v uint) *Client {
+	c.queryTimeout = v
+	return c
+}
+
 func (c *Client) WithRemotes(v []string) *Client {
 	c.remotes = v
+	return c
+}
+
+func (c *Client) WithTxTimeout(v uint) *Client {
+	c.txTimeout = v
 	return c
 }
 

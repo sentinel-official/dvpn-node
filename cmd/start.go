@@ -122,9 +122,11 @@ func StartCmd() *cobra.Command {
 				WithGasPrices(config.Chain.GasPrices).
 				WithKeyring(kr).
 				WithLogger(log).
+				WithQueryTimeout(config.Chain.RPCQueryTimeout).
 				WithRemotes(remotes).
 				WithSignModeStr("").
-				WithSimulateAndExecute(config.Chain.SimulateAndExecute)
+				WithSimulateAndExecute(config.Chain.SimulateAndExecute).
+				WithTxTimeout(config.Chain.RPCTxTimeout)
 
 			account, err := client.QueryAccount(client.FromAddress())
 			if err != nil {

@@ -35,11 +35,11 @@ const (
 var (
 	ct = strings.TrimSpace(`
 [chain]
-# Gas adjustment factor
-gas_adjustment = {{ .Chain.GasAdjustment }}
-
 # Gas limit to set per transaction
 gas = {{ .Chain.Gas }}
+
+# Gas adjustment factor
+gas_adjustment = {{ .Chain.GasAdjustment }}
 
 # Gas prices to determine the transaction fee
 gas_prices = "{{ .Chain.GasPrices }}"
@@ -49,6 +49,12 @@ id = "{{ .Chain.ID }}"
 
 # Comma separated Tendermint RPC addresses for the chain
 rpc_addresses = "{{ .Chain.RPCAddresses }}"
+
+# Timeout seconds for querying the data from the RPC server
+rpc_query_timeout = {{ .Chain.RPCQueryTimeout }}
+
+# Timeout seconds for broadcasting the transaction through RPC server
+rpc_tx_timeout = {{ .Chain.RPCTxTimeout }}
 
 # Calculate the transaction fee by simulating it
 simulate_and_execute = {{ .Chain.SimulateAndExecute }}
@@ -114,11 +120,13 @@ max_peers = {{ .QOS.MaxPeers }}
 )
 
 type ChainConfig struct {
+	Gas                uint64  `json:"gas" mapstructure:"gas"`
 	GasAdjustment      float64 `json:"gas_adjustment" mapstructure:"gas_adjustment"`
 	GasPrices          string  `json:"gas_prices" mapstructure:"gas_prices"`
-	Gas                uint64  `json:"gas" mapstructure:"gas"`
 	ID                 string  `json:"id" mapstructure:"id"`
 	RPCAddresses       string  `json:"rpc_addresses" mapstructure:"rpc_addresses"`
+	RPCQueryTimeout    uint    `json:"rpc_query_timeout" mapstructure:"rpc_query_timeout"`
+	RPCTxTimeout       uint    `json:"rpc_tx_timeout" mapstructure:"rpc_tx_timeout"`
 	SimulateAndExecute bool    `json:"simulate_and_execute" mapstructure:"simulate_and_execute"`
 }
 
@@ -127,14 +135,14 @@ func NewChainConfig() *ChainConfig {
 }
 
 func (c *ChainConfig) Validate() error {
+	if c.Gas <= 0 {
+		return errors.New("gas must be positive")
+	}
 	if c.GasAdjustment <= 0 {
 		return errors.New("gas_adjustment must be positive")
 	}
 	if _, err := sdk.ParseCoinsNormalized(c.GasPrices); err != nil {
 		return errors.Wrap(err, "invalid gas_prices")
-	}
-	if c.Gas <= 0 {
-		return errors.New("gas must be positive")
 	}
 	if c.ID == "" {
 		return errors.New("id cannot be empty")
@@ -157,15 +165,24 @@ func (c *ChainConfig) Validate() error {
 		}
 	}
 
+	if c.RPCQueryTimeout == 0 {
+		return errors.New("rpc_query_timeout cannot be 0")
+	}
+	if c.RPCTxTimeout == 0 {
+		return errors.New("rpc_tx_timeout cannot be 0")
+	}
+
 	return nil
 }
 
 func (c *ChainConfig) WithDefaultValues() *ChainConfig {
+	c.Gas = 200_000
 	c.GasAdjustment = 1.05
 	c.GasPrices = "0.1udvpn"
-	c.Gas = 200000
 	c.ID = "sentinelhub-2"
 	c.RPCAddresses = "https://rpc.sentinel.co:443"
+	c.RPCQueryTimeout = 10
+	c.RPCTxTimeout = 30
 	c.SimulateAndExecute = true
 
 	return c
