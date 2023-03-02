@@ -16,12 +16,16 @@ benchmark:
 
 .PHONY: clean
 clean:
-	rm -rf ./build
+	rm -rf ./bin ./build ./vendor
 
 .PHONY: install
 install:
 	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
 		-o ${GOPATH}/bin/sentinelnode main.go
+
+.PHONY: build-image
+build-image:
+	@docker build --compress --file Dockerfile --force-rm --no-cache --tag sentinel-dvpn-node .
 
 .PHONY: go-lint
 go-lint:
