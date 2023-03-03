@@ -17,6 +17,6 @@ FROM alpine:3.17
 COPY --from=build /go/bin/sentinelnode /usr/local/bin/process
 COPY --from=build /root/hnsd/hnsd /usr/local/bin/hnsd
 
-RUN apk add --no-cache ip6tables unbound-dev v2ray wireguard-tools
+RUN apk add --no-cache ip6tables unbound-libs v2ray wireguard-tools
 
 CMD ["process"]
