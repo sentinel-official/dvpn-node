@@ -21,7 +21,10 @@ func (n *Node) jobSetSessions() error {
 			return err
 		}
 
-		for i := 0; i < len(peers); i++ {
+		count := len(peers)
+		n.Log().Debug("Validating the peers", "count", count)
+
+		for i := 0; i < count; i++ {
 			var item types.Session
 			n.Database().Model(
 				&types.Session{},
@@ -90,9 +93,7 @@ func (n *Node) jobUpdateSessions() error {
 		).Find(&items)
 
 		count := len(items)
-		if count > 0 {
-			n.Log().Info("Validating the sessions", "count", count)
-		}
+		n.Log().Info("Validating the sessions", "count", count)
 
 		for i := count - 1; i >= 0; i-- {
 			session, err := n.Client().QuerySession(items[i].ID)
