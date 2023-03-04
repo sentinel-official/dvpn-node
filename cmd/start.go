@@ -208,14 +208,14 @@ func StartCmd() *cobra.Command {
 			router.Use(corsMiddleware)
 			api.RegisterRoutes(ctx, router)
 
-			ctx = ctx.WithLogger(log).
-				WithService(service).
-				WithHandler(router).
-				WithConfig(config).
+			ctx = ctx.WithBandwidth(bandwidth).
 				WithClient(client).
-				WithLocation(location).
+				WithConfig(config).
 				WithDatabase(database).
-				WithBandwidth(bandwidth)
+				WithHandler(router).
+				WithLocation(location).
+				WithLogger(log).
+				WithService(service)
 
 			n := node.NewNode(ctx)
 			if err := n.Initialize(); err != nil {

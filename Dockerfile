@@ -1,16 +1,11 @@
 FROM golang:1.20-alpine3.17 AS build
 
-COPY . /go/src/github.com/sentinel-official/dvpn-node/
+COPY . /root/dvpn-node/
 
-RUN apk add git gcc linux-headers make musl-dev && \
-    cd /go/src/github.com/sentinel-official/dvpn-node/ && \
-    make install --jobs=$(nproc)
-
-RUN cd /root/ && \
-    apk add autoconf automake bash file g++ git libtool make unbound-dev && \
-    git clone https://github.com/handshake-org/hnsd.git --branch=master --depth=1 && \
-    cd /root/hnsd/ && \
-    bash autogen.sh && sh configure && make --jobs=$(nproc)
+RUN apk add autoconf automake bash file g++ gcc git libtool linux-headers make musl-dev unbound-dev && \
+    cd /root/dvpn-node/ && make --jobs=$(nproc) install && \
+    git clone --branch=master --depth=1 https://github.com/handshake-org/hnsd.git /root/hnsd && \
+    cd /root/hnsd/ && bash autogen.sh && sh configure && make --jobs=$(nproc)
 
 FROM alpine:3.17
 
