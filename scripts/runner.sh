@@ -4,7 +4,6 @@ set -Eeou pipefail
 
 CONTAINER_NAME=sentinelnode
 NODE_DIR="${HOME}/.sentinelnode"
-TOOLS_DIR="${NODE_DIR}/tools"
 NODE_IMAGE=ghcr.io/sentinel-official/dvpn-node:latest
 
 function stop {
@@ -93,11 +92,7 @@ function cmd_init {
     }
 
     function query_min_price {
-      "${TOOLS_DIR}/buf" curl \
-        --data '{"subspace":"vpn/node","key":"MinPrice"}' \
-        --http2-prior-knowledge \
-        --protocol grpc \
-        http://grpc.sentinel.co:9090/cosmos.params.v1beta1.Query/Params |
+      curl -fsSL "https://lcd.sentinel.co/cosmos/params/v1beta1/params?key=MinPrice&subspace=vpn/node" |
         jq -r '.param.value' | jq -s '.[] | sort_by(.denom) | .[] | .amount + .denom' |
         sed -e 's/"//g' | sed -z 's/\n/,/g' | sed 's/.$//'
     }
@@ -128,7 +123,7 @@ function cmd_init {
       esac
     fi
 
-    PUBLIC_IP=$(curl --silent https://ifconfig.me)
+    PUBLIC_IP=$(curl -fsSL https://ifconfig.me)
 
     local chain_rpc_addresses="https://rpc.sentinel.co:443,https://rpc.sentinel.quokkastake.io:443,https://sentinel-rpc.badgerbite.io:443"
     local handshake_enable=false
@@ -357,25 +352,13 @@ function cmd_setup {
 
   function install_packages {
     echo "Installing the packages ${*}"
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes "${@}"
-  }
-
-  function install_tools {
-    function install_buf {
-      if [[ ! -f "${TOOLS_DIR}/buf" ]]; then
-        curl -fsSL "https://github.com/bufbuild/buf/releases/download/v1.14.0/buf-$(uname -s)-$(uname -m)" -o "${TOOLS_DIR}/buf"
-        chmod +x "${TOOLS_DIR}/buf"
-      fi
-    }
-
-    mkdir -p "${TOOLS_DIR}"
-    install_buf
+    DEBIAN_FRONTEND=noninteractive apt-get install --quiet --yes "${@}"
   }
 
   function setup_docker {
     function install {
       if ! command -v docker &>/dev/null; then
-        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+        curl -fsSL -o /tmp/get-docker.sh https://get.docker.com
         sh /tmp/get-docker.sh
       fi
     }
@@ -416,7 +399,6 @@ EOF
 
   apt-get update
   install_packages curl git jq openssl
-  install_tools
   setup_docker
   setup_iptables
   setup_tls
