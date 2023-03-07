@@ -184,11 +184,11 @@ function cmd_init {
   }
 
   function cmd_init_keys {
-    read -p "Recover the existing account?:" -r input
-    if [[ "${input}" == "yes" ]]; then
-      must_run keys add --recover
-    else
+    read -p "Recover the existing account? [skip]:" -r input
+    if [[ "${input}" == "no" ]]; then
       must_run keys add
+    elif [[ "${input}" == "yes" ]]; then
+      must_run keys add --recover
     fi
   }
 
