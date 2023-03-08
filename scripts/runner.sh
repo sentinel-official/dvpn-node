@@ -8,25 +8,20 @@ NODE_IMAGE=ghcr.io/sentinel-official/dvpn-node:latest
 
 function stop {
   id=$(docker ps --filter name="${CONTAINER_NAME}" --quiet)
-  if [[ -n "${id}" ]]; then
-    docker stop "${id}"
-  fi
+  [[ -n "${id}" ]] && docker stop "${id}"
+  return 0
 }
 
 function remove {
   id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
-  if [[ -n "${id}" ]]; then
-    docker rm --force --volumes "${id}"
-  fi
+  [[ -n "${id}" ]] && docker rm --force --volumes "${id}"
+  return 0
 }
 
 function cmd_attach {
   id=$(docker ps --filter name="${CONTAINER_NAME}" --quiet)
-  if [[ -n "${id}" ]]; then
-    docker attach "${id}"
-  else
-    echo "Error: node is not running" && return 1
-  fi
+  [[ -n "${id}" ]] && docker attach "${id}" && return 0
+  echo "Error: node is not running" && return 1
 }
 
 function cmd_help {
@@ -60,12 +55,9 @@ function cmd_init {
 
   function must_run {
     output=$(run "${@}")
-    if [[ -n "${output}" ]]; then
-      echo "${output}"
-    fi
-    if [[ "${output}" == *"Error"* ]]; then
-      return 1
-    fi
+    [[ -n "${output}" ]] && echo "${output}"
+    [[ "${output}" == *"Error"* ]] && return 1
+    return 0
   }
 
   function config_set {
@@ -93,8 +85,8 @@ function cmd_init {
 
     function query_min_price {
       curl -fsSL "https://lcd.sentinel.co/cosmos/params/v1beta1/params?key=MinPrice&subspace=vpn/node" |
-        jq -r '.param.value' | jq -s '.[] | sort_by(.denom) | .[] | .amount + .denom' |
-        sed -e 's/"//g' | sed -z 's/\n/,/g' | sed 's/.$//'
+        jq -r '.param.value' |
+        jq -r 'to_entries | sort_by(.value.denom) | map(.value.amount + .value.denom) | join(",")'
     }
 
     function cmd_help {
@@ -109,19 +101,13 @@ function cmd_init {
 
     local force=0
 
-    if [[ "${#}" -gt 0 ]]; then
+    [[ "${#}" -gt 0 ]] && {
       case "${1}" in
-        "-f" | "--force")
-          force=1
-          ;;
-        "help")
-          cmd_help && return 0
-          ;;
-        *)
-          echo "Error: invalid command or option \"${1}\"" && return 1
-          ;;
+        "-f" | "--force") force=1 ;;
+        "help") cmd_help && return 0 ;;
+        *) echo "Error: invalid command or option \"${1}\"" && return 1 ;;
       esac
-    fi
+    }
 
     PUBLIC_IP=$(curl -fsSL https://ifconfig.me)
 
@@ -140,55 +126,52 @@ function cmd_init {
     must_run config init --force="${force}"
 
     read -p "Enter chain_rpc_addresses [${chain_rpc_addresses}]:" -r input
-    if [[ -n "${input}" ]]; then chain_rpc_addresses="${input}"; fi
+    [[ -n "${input}" ]] && chain_rpc_addresses="${input}"
     config_set "chain.rpc_addresses" "${chain_rpc_addresses}"
 
     read -p "Enter handshake_enable [${handshake_enable}]:" -r input
-    if [[ -n "${input}" ]]; then handshake_enable="${input}"; fi
+    [[ -n "${input}" ]] && handshake_enable="${input}"
     config_set "handshake.enable" "${handshake_enable}"
 
     read -p "Enter keyring_backend [${keyring_backend}]:" -r input
-    if [[ -n "${input}" ]]; then keyring_backend="${input}"; fi
+    [[ -n "${input}" ]] && keyring_backend="${input}"
     config_set "keyring.backend" "${keyring_backend}"
 
     read -p "Enter node_ipv4_address:" -r input
-    if [[ -n "${input}" ]]; then node_ipv4_address="${input}"; fi
+    [[ -n "${input}" ]] && node_ipv4_address="${input}"
     config_set "node.ipv4_address" "${node_ipv4_address}"
 
     read -p "Enter node_listen_on [${node_listen_on}]:" -r input
-    if [[ -n "${input}" ]]; then node_listen_on="${input}"; fi
+    [[ -n "${input}" ]] && node_listen_on="${input}"
     config_set "node.listen_on" "${node_listen_on}"
 
     read -p "Enter node_moniker [${node_moniker}]:" -r input
-    if [[ -n "${input}" ]]; then node_moniker="${input}"; fi
+    [[ -n "${input}" ]] && node_moniker="${input}"
     config_set "node.moniker" "${node_moniker}"
 
     read -p "Enter node_price [${node_price}]:" -r input
-    if [[ -n "${input}" ]]; then node_price="${input}"; fi
+    [[ -n "${input}" ]] && node_price="${input}"
     config_set "node.price" "${node_price}"
 
     read -p "Enter node_provider:" -r input
-    if [[ -n "${input}" ]]; then node_provider="${input}"; fi
+    [[ -n "${input}" ]] && node_provider="${input}"
     config_set "node.provider" "${node_provider}"
 
     read -p "Enter node_remote_url [${node_remote_url}]:" -r input
-    if [[ -n "${input}" ]]; then node_remote_url="${input}"; fi
+    [[ -n "${input}" ]] && node_remote_url="${input}"
     config_set "node.remote_url" "${node_remote_url}"
 
     read -p "Enter node_type [${node_type}]:" -r input
-    if [[ -n "${input}" ]]; then
-      NODE_TYPE="${input}"
-      node_type="${input}"
-    fi
+    [[ -n "${input}" ]] && NODE_TYPE="${input}" && node_type="${input}"
     config_set "node.type" "${node_type}"
   }
 
   function cmd_init_keys {
     read -p "Recover the existing account? [skip]:" -r input
     if [[ "${input}" == "no" ]]; then
-      must_run keys add
+      run keys add
     elif [[ "${input}" == "yes" ]]; then
-      must_run keys add --recover
+      run keys add --recover
     fi
   }
 
@@ -205,19 +188,13 @@ function cmd_init {
 
     local force=0
 
-    if [[ "${#}" -gt 0 ]]; then
+    [[ "${#}" -gt 0 ]] && {
       case "${1}" in
-        "-f" | "--force")
-          force=1
-          ;;
-        "help")
-          cmd_help && return 0
-          ;;
-        *)
-          echo "Error: invalid command or option \"${1}\"" && return 1
-          ;;
+        "-f" | "--force") force=1 ;;
+        "help") cmd_help && return 0 ;;
+        *) echo "Error: invalid command or option \"${1}\"" && return 1 ;;
       esac
-    fi
+    }
 
     local listen_port=${PORTS[1]}
     local transport=grpc
@@ -226,11 +203,11 @@ function cmd_init {
     must_run v2ray config init --force="${force}"
 
     read -p "Enter vmess.listen_port [${listen_port}]:" -r input
-    if [[ -n "${input}" ]]; then listen_port="${input}"; fi
+    [[ -n "${input}" ]] && listen_port="${input}"
     v2ray_config_set "vmess.listen_port" "${listen_port}"
 
     read -p "Enter vmess.transport [${transport}]:" -r input
-    if [[ -n "${input}" ]]; then transport="${input}"; fi
+    [[ -n "${input}" ]] && transport="${input}"
     v2ray_config_set "vmess.transport" "${transport}"
   }
 
@@ -247,19 +224,13 @@ function cmd_init {
 
     local force=0
 
-    if [[ "${#}" -gt 0 ]]; then
+    [[ "${#}" -gt 0 ]] && {
       case "${1}" in
-        "-f" | "--force")
-          force=1
-          ;;
-        "help")
-          cmd_help && return 0
-          ;;
-        *)
-          echo "Error: invalid command or option \"${1}\"" && return 1
-          ;;
+        "-f" | "--force") force=1 ;;
+        "help") cmd_help && return 0 ;;
+        *) echo "Error: invalid command or option \"${1}\"" && return 1 ;;
       esac
-    fi
+    }
 
     local listen_port=${PORTS[1]}
 
@@ -267,7 +238,7 @@ function cmd_init {
     must_run wireguard config init --force="${force}"
 
     read -p "Enter listen_port [${listen_port}]:" -r input
-    if [[ -n "${input}" ]]; then listen_port="${input}"; fi
+    [[ -n "${input}" ]] && listen_port="${input}"
     wireguard_config_set "listen_port" "${listen_port}"
   }
 
@@ -282,25 +253,21 @@ function cmd_init {
       echo "  -f, --force    Force the initialization"
     }
 
-    if [[ "${#}" -gt 0 ]]; then
+    [[ "${#}" -gt 0 ]] && {
       case "${1}" in
-        "-f" | "--force") ;;
-        "help")
-          cmd_help && return 0
-          ;;
-        *)
-          echo "Error: invalid command or option \"${1}\"" && return 1
-          ;;
+        "-f" | "--force") force=1 ;;
+        "help") cmd_help && return 0 ;;
+        *) echo "Error: invalid command or option \"${1}\"" && return 1 ;;
       esac
-    fi
+    }
 
     cmd_init_config "${@}"
-    if [[ "${NODE_TYPE}" == "v2ray" ]]; then cmd_init_v2ray "${@}"; fi
-    if [[ "${NODE_TYPE}" == "wireguard" ]]; then cmd_init_wireguard "${@}"; fi
+    [[ "${NODE_TYPE}" == "v2ray" ]] && cmd_init_v2ray "${@}"
+    [[ "${NODE_TYPE}" == "wireguard" ]] && cmd_init_wireguard "${@}"
     cmd_init_keys "${@}"
   }
 
-  function cmd_help {
+  function cmd_init_help {
     echo "Usage: ${0} init [COMMAND]"
     echo ""
     echo "Commands:"
@@ -312,43 +279,21 @@ function cmd_init {
     echo "  wireguard    Initialize the wireguard.toml file"
   }
 
-  if [[ "${#}" -gt 0 ]]; then
-    case "${1}" in
-      "all")
-        shift
-        cmd_init_all "${@}"
-        ;;
-      "config")
-        shift
-        cmd_init_config "${@}"
-        ;;
-      "help")
-        cmd_help
-        ;;
-      "keys")
-        cmd_init_keys "${@}"
-        ;;
-      "v2ray")
-        shift
-        cmd_init_v2ray "${@}"
-        ;;
-      "wireguard")
-        shift
-        cmd_init_wireguard "${@}"
-        ;;
-      *)
-        echo "Error: invalid command or option \"${1}\"" && return 1
-        ;;
-    esac
-  else
-    cmd_help
-  fi
+  v="${1:-help}" && case "${v}" in
+    "all" | "config" | "help" | "keys" | "v2ray" | "wireguard")
+      shift || true
+      cmd_init_"${v}" "${@}"
+      ;;
+    *)
+      echo "Error: invalid command or option \"${1}\"" && return 1
+      ;;
+  esac
 }
 
 function cmd_setup {
-  if [[ "$EUID" -ne 0 ]]; then
-    echo "Error: please run this command with sudo privileges" && return 1
-  fi
+  [[ "$EUID" -ne 0 ]] &&
+    echo "Error: please run this command with sudo privileges" &&
+    return 1
 
   function install_packages {
     echo "Installing the packages ${*}"
@@ -385,16 +330,17 @@ EOF
   }
 
   function setup_tls {
-    openssl req -new \
-      -newkey ec \
-      -pkeyopt ec_paramgen_curve:prime256v1 \
-      -subj "/C=NA/ST=NA/L=./O=NA/OU=./CN=." \
-      -x509 \
-      -sha256 \
-      -days 365 \
-      -nodes \
-      -out "${NODE_DIR}/tls.crt" \
-      -keyout "${NODE_DIR}/tls.key"
+    mkdir -p "${NODE_DIR}" &&
+      openssl req -new \
+        -newkey ec \
+        -pkeyopt ec_paramgen_curve:prime256v1 \
+        -subj "/C=NA/ST=NA/L=./O=NA/OU=./CN=." \
+        -x509 \
+        -sha256 \
+        -days 365 \
+        -nodes \
+        -out "${NODE_DIR}/tls.crt" \
+        -keyout "${NODE_DIR}/tls.key"
   }
 
   apt-get update
@@ -419,77 +365,38 @@ function cmd_start {
   local detach=0
   local rm=1
 
-  if [[ "${#}" -gt 0 ]]; then
+  [[ "${#}" -gt 0 ]] && {
     case "${1}" in
-      "-d" | "--detach")
-        detach=1
-        rm=0
-        ;;
-      "help")
-        cmd_help && return 0
-        ;;
-      *)
-        echo "Error: invalid command or option \"${1}\"" && return 1
-        ;;
+      "-d" | "--detach") detach=1 && rm=0 ;;
+      "help") cmd_help && return 0 ;;
+      *) echo "Error: invalid command or option \"${1}\"" && return 1 ;;
     esac
-  fi
+  }
 
   local node_api_port=
-  local v2ray_vmess_port=
-  local wireguard_port=
+  local node_type=
 
-  function read_config {
-    found=false
-    while IFS= read -r line; do
-      if [[ "${line}" == "[node]" ]]; then
-        found=true
-      fi
-      if [[ "${found}" ]] && [[ "${line}" == *"listen_on"* ]]; then
-        node_api_port=$(echo "${line}" | cut -d '=' -f 2 | cut -d '"' -f 2 | cut -d ':' -f 2)
-      fi
-      if [[ "${found}" ]] && [[ "${line}" == *"type"* ]]; then
-        NODE_TYPE=$(echo "${line}" | cut -d '=' -f 2 | cut -d '"' -f 2)
-      fi
-    done <"${NODE_DIR}/config.toml"
-  }
+  node_api_port=$(awk -F '[=":]' '{gsub(/ /,"")} /\[node\]/{f=1} f && /listen_on/{print $4;exit}' "${NODE_DIR}/config.toml")
+  node_type=$(awk -F '[="]' '{gsub(/ /,"")} /\[node\]/{f=1} f && /type/{print $3;exit}' "${NODE_DIR}/config.toml")
 
-  function read_wireguard_config {
-    while IFS= read -r line; do
-      if [[ "${line}" == *"listen_port"* ]]; then
-        wireguard_port=$(echo "${line}" | cut -d '=' -f 2 | cut -d ' ' -f 2)
-      fi
-    done <"${NODE_DIR}/wireguard.toml"
-  }
-
-  function read_v2ray_config {
-    found=false
-    while IFS= read -r line; do
-      if [[ "${line}" == "[vmess]" ]]; then
-        found=true
-      fi
-      if [[ "${found}" ]] && [[ "${line}" == *"listen_port"* ]]; then
-        v2ray_vmess_port=$(echo "${line}" | cut -d '=' -f 2 | cut -d ' ' -f 2)
-      fi
-    done <"${NODE_DIR}/v2ray.toml"
-  }
-
-  read_config
-  if [[ "${NODE_TYPE}" == "v2ray" ]]; then
-    read_v2ray_config
+  if [[ "${node_type}" == "v2ray" ]]; then
+    vmess_port=$(awk -F '=' '{gsub(/ /,"")} /\[vmess\]/{f=1} f && /listen_port/{print $2;exit}' "${NODE_DIR}/v2ray.toml")
     docker run \
       --detach="${detach}" \
+      --interactive \
       --name="${CONTAINER_NAME}" \
       --rm="${rm}" \
       --tty \
       --volume "${NODE_DIR}:/root/.sentinelnode" \
       --publish "${node_api_port}:${node_api_port}/tcp" \
-      --publish "${v2ray_vmess_port}:${v2ray_vmess_port}/tcp" \
+      --publish "${vmess_port}:${vmess_port}/tcp" \
       "${NODE_IMAGE}" process start
   fi
-  if [[ "${NODE_TYPE}" == "wireguard" ]]; then
-    read_wireguard_config
+  if [[ "${node_type}" == "wireguard" ]]; then
+    port=$(awk -F '=' '{gsub(/ /,"")} /listen_port/{print $2;exit}' "${NODE_DIR}/wireguard.toml")
     docker run \
       --detach="${detach}" \
+      --interactive \
       --name="${CONTAINER_NAME}" \
       --rm="${rm}" \
       --tty \
@@ -505,7 +412,7 @@ function cmd_start {
       --sysctl net.ipv6.conf.all.forwarding=1 \
       --sysctl net.ipv6.conf.default.forwarding=1 \
       --publish "${node_api_port}:${node_api_port}/tcp" \
-      --publish "${wireguard_port}:${wireguard_port}/udp" \
+      --publish "${port}:${port}/udp" \
       "${NODE_IMAGE}" process start
   fi
 }
@@ -528,20 +435,14 @@ function cmd_status {
 
 function cmd_stop {
   id=$(docker ps --filter name="${CONTAINER_NAME}" --quiet)
-  if [[ -n "${id}" ]]; then
-    docker stop "${id}"
-  else
-    echo "Error: node is not running" && return 1
-  fi
+  [[ -n "${id}" ]] && docker stop "${id}" && return 0
+  echo "Error: node is not running" && return 1
 }
 
 function cmd_remove {
   id=$(docker ps --all --filter name="${CONTAINER_NAME}" --quiet)
-  if [[ -n "${id}" ]]; then
-    docker rm --force --volumes "${id}"
-  else
-    echo "Error: node container does not exist" && return 1
-  fi
+  [[ -n "${id}" ]] && docker rm --force --volumes "${id}" && return 0
+  echo "Error: node container does not exist" && return 1
 }
 
 function cmd_restart {
@@ -555,17 +456,13 @@ function cmd_restart {
     echo "  -d, --detach    Start the node container detached"
   }
 
-  if [[ "${#}" -gt 0 ]]; then
+  [[ "${#}" -gt 0 ]] && {
     case "${1}" in
       "-d" | "--detach") ;;
-      "help")
-        cmd_help && return 0
-        ;;
-      *)
-        echo "Error: invalid command or option \"${1}\"" && return 1
-        ;;
+      "help") cmd_help && return 0 ;;
+      *) echo "Error: invalid command or option \"${1}\"" && return 1 ;;
     esac
-  fi
+  }
 
   stop
   remove
@@ -579,52 +476,12 @@ function cmd_update {
   docker pull "${NODE_IMAGE}"
 }
 
-if [[ "${#}" -gt 0 ]]; then
-  case "${1}" in
-    "attach")
-      shift
-      cmd_attach "${@}"
-      ;;
-    "help")
-      shift
-      cmd_help
-      ;;
-    "init")
-      shift
-      cmd_init "${@}"
-      ;;
-    "setup")
-      shift
-      cmd_setup "${@}"
-      ;;
-    "start")
-      shift
-      cmd_start "${@}"
-      ;;
-    "status")
-      shift
-      cmd_status "${@}"
-      ;;
-    "stop")
-      shift
-      cmd_stop "${@}"
-      ;;
-    "remove")
-      shift
-      cmd_remove "${@}"
-      ;;
-    "restart")
-      shift
-      cmd_restart "${@}"
-      ;;
-    "update")
-      shift
-      cmd_update "${@}"
-      ;;
-    *)
-      echo "Error: invalid command or option \"${1}\"" && return 1
-      ;;
-  esac
-else
-  cmd_help
-fi
+v="${1:-help}" && case "${v}" in
+  "attach" | "help" | "init" | "setup" | "start" | "status" | "stop" | "remove" | "restart" | "update")
+    shift || true
+    cmd_"${v}" "${@}"
+    ;;
+  *)
+    echo "Error: invalid command or option \"${1}\"" && exit 1
+    ;;
+esac
