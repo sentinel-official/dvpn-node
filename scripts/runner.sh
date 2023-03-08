@@ -413,17 +413,17 @@ function cmd_start {
     echo "  help    Print the help message"
     echo ""
     echo "Options:"
-    echo "  -a, --attach    Start the node container attached"
+    echo "  -d, --detach    Start the node container detached"
   }
 
-  local detach=1
-  local rm=0
+  local detach=0
+  local rm=1
 
   if [[ "${#}" -gt 0 ]]; then
     case "${1}" in
-      "-a" | "--attach")
-        detach=0
-        rm=1
+      "-d" | "--detach")
+        detach=1
+        rm=0
         ;;
       "help")
         cmd_help && return 0
@@ -552,12 +552,12 @@ function cmd_restart {
     echo "  help    Print the help message"
     echo ""
     echo "Options:"
-    echo "  -a, --attach    Start the node container attached"
+    echo "  -d, --detach    Start the node container detached"
   }
 
   if [[ "${#}" -gt 0 ]]; then
     case "${1}" in
-      "-a" | "--attach") ;;
+      "-d" | "--detach") ;;
       "help")
         cmd_help && return 0
         ;;
