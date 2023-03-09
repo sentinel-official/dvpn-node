@@ -19,15 +19,34 @@ func FindInternetSpeed() (*hubtypes.Bandwidth, error) {
 		return nil, err
 	}
 
+	servers, err = servers.FindServer(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		upload   = sdk.ZeroDec()
 		download = sdk.ZeroDec()
 	)
 
 	for _, s := range servers {
-		if s.PingTest() == nil && s.DownloadTest(false) == nil && s.UploadTest(false) == nil {
-			upload = sdk.MustNewDecFromStr(fmt.Sprintf("%f", s.ULSpeed))
-			download = sdk.MustNewDecFromStr(fmt.Sprintf("%f", s.DLSpeed))
+		s.Context.Reset()
+		if err = s.PingTest(); err != nil {
+			continue
+		}
+
+		if err = s.DownloadTest(); err != nil {
+			continue
+		}
+		s.Context.Wait()
+		if err = s.UploadTest(); err != nil {
+			continue
+		}
+
+		upload = sdk.MustNewDecFromStr(fmt.Sprintf("%f", s.ULSpeed))
+		download = sdk.MustNewDecFromStr(fmt.Sprintf("%f", s.DLSpeed))
+
+		if upload.IsPositive() && download.IsPositive() {
 			break
 		}
 	}
