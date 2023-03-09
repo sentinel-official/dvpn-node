@@ -55,18 +55,18 @@ func (s *WireGuard) Init(home string) (err error) {
 		return err
 	}
 
-	t, err := template.New("").Parse(configTemplate)
+	t, err := template.New("v2ray_json").Parse(configTemplate)
 	if err != nil {
 		return err
 	}
 
 	var buffer bytes.Buffer
-	if err := t.Execute(&buffer, s.cfg); err != nil {
+	if err = t.Execute(&buffer, s.cfg); err != nil {
 		return err
 	}
 
 	path := fmt.Sprintf("/etc/wireguard/%s.conf", s.cfg.Interface)
-	if err := os.WriteFile(path, buffer.Bytes(), 0600); err != nil {
+	if err = os.WriteFile(path, buffer.Bytes(), 0600); err != nil {
 		return err
 	}
 
@@ -170,19 +170,14 @@ func (s *WireGuard) RemovePeer(data []byte) error {
 	return nil
 }
 
-func (s *WireGuard) Peers() ([]types.Peer, error) {
+func (s *WireGuard) Peers() (items []types.Peer, err error) {
 	output, err := exec.Command("wg", strings.Split(
 		fmt.Sprintf("show %s transfer", s.cfg.Interface), " ")...).Output()
 	if err != nil {
 		return nil, err
 	}
 
-	// nolint: prealloc
-	var (
-		items []types.Peer
-		lines = strings.Split(string(output), "\n")
-	)
-
+	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		columns := strings.Split(line, "\t")
 		if len(columns) != 3 {

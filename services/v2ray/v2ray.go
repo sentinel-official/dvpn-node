@@ -71,7 +71,7 @@ func (s *V2Ray) Init(home string) (err error) {
 		return err
 	}
 
-	t, err := template.New("config_v2ray_json").Parse(configTemplate)
+	t, err := template.New("wireguard_conf").Parse(configTemplate)
 	if err != nil {
 		return err
 	}

@@ -110,7 +110,7 @@ max_peers = {{ .QOS.MaxPeers }}
 	`)
 
 	t = func() *template.Template {
-		t, err := template.New("").Parse(ct)
+		t, err := template.New("config_toml").Parse(ct)
 		if err != nil {
 			panic(err)
 		}
