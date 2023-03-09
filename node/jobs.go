@@ -42,6 +42,11 @@ func (n *Node) jobSetSessions() error {
 
 				continue
 			}
+			if item.Upload == peers[i].Upload {
+				n.Log().Debug("The peer has not sent any data", "key", item.Key,
+					"update_at", item.UpdatedAt)
+				continue
+			}
 
 			n.Database().Model(
 				&types.Session{},
@@ -62,7 +67,7 @@ func (n *Node) jobSetSessions() error {
 			)
 
 			if consumed.GT(available) {
-				n.Log().Info("Peer quota exceeded", "key", peers[i].Key)
+				n.Log().Info("Peer quota exceeded", "key", item.Key)
 				if err = n.RemovePeer(item.Key); err != nil {
 					return err
 				}
