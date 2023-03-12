@@ -25,7 +25,7 @@ install:
 
 .PHONY: build-image
 build-image:
-	@docker build --compress --file Dockerfile --force-rm --no-cache --tag sentinel-dvpn-node .
+	@docker build --compress --file Dockerfile --force-rm --tag sentinel-dvpn-node .
 
 .PHONY: go-lint
 go-lint:
