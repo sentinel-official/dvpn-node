@@ -5,28 +5,38 @@ on:
     types:
       - released
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Setup Docker QEMU
-        uses: docker/setup-qemu-action@v2
+
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login into registry ghcr.io
+
+      - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          cache-from: type=gha
-          cache-to: mode=max,type=gha
           context: .
-          platforms: linux/amd64,linux/arm64
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/dvpn-node:latest
+          tags: ${{ steps.meta.outputs.tags }}
