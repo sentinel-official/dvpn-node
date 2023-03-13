@@ -16,7 +16,7 @@ benchmark:
 
 .PHONY: clean
 clean:
-	rm -rf ./bin ./build ./vendor
+	rm -rf ./bin ./vendor
 
 .PHONY: install
 install:
