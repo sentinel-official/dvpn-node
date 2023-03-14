@@ -4,20 +4,19 @@ import (
 	"bufio"
 	"fmt"
 	"path/filepath"
-	"text/tabwriter"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	cryptohd "github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
-	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 func KeysCmd() *cobra.Command {
@@ -121,27 +120,20 @@ func keysAdd() *cobra.Command {
 			}
 
 			var (
-				hdPath        = hd.CreateHDPath(sdk.GetConfig().GetCoinType(), account, index)
-				algorithms, _ = kr.SupportedAlgorithms()
+				coinType = sdk.GetConfig().GetCoinType()
+				path     = cryptohd.CreateHDPath(coinType, account, index)
 			)
 
-			algorithm, err := keyring.NewSigningAlgoFromString(string(hd.Secp256k1Type), algorithms)
+			key, err := kr.NewAccount(name, mnemonic, "", path.String(), cryptohd.Secp256k1)
 			if err != nil {
 				return err
 			}
 
-			key, err := kr.NewAccount(name, mnemonic, "", hdPath.String(), algorithm)
-			if err != nil {
-				return err
-			}
-
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "operator: %s\n", key.GetAddress())
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "address: %s\n", hubtypes.NodeAddress(key.GetAddress()))
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "**Important** write this mnemonic phrase in a safe place\n")
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", mnemonic)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
-			return nil
+			return utils.WriteKeys(cmd.OutOrStdout(), key)
 		},
 	}
 
@@ -202,10 +194,7 @@ func keysShow() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("operator: %s\n", key.GetAddress())
-			fmt.Printf("address: %s\n", hubtypes.NodeAddress(key.GetAddress()))
-
-			return nil
+			return utils.WriteKeys(cmd.OutOrStdout(), key)
 		},
 	}
 
@@ -257,16 +246,7 @@ func keysList() *cobra.Command {
 				return err
 			}
 
-			w := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 1, 1, ' ', 0)
-			for _, key := range keys {
-				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n",
-					key.GetName(),
-					key.GetAddress(),
-					hubtypes.NodeAddress(key.GetAddress().Bytes()),
-				)
-			}
-
-			return w.Flush()
+			return utils.WriteKeys(cmd.OutOrStdout(), keys...)
 		},
 	}
 
