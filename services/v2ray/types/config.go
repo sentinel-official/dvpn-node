@@ -23,7 +23,7 @@ transport = "{{ .VMess.Transport }}"
 	`)
 
 	t = func() *template.Template {
-		t, err := template.New("config_v2ray_toml").Parse(ct)
+		t, err := template.New("v2ray_toml").Parse(ct)
 		if err != nil {
 			panic(err)
 		}

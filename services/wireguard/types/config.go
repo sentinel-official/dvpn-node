@@ -25,7 +25,7 @@ private_key = "{{ .PrivateKey }}"
 	`)
 
 	t = func() *template.Template {
-		t, err := template.New("").Parse(ct)
+		t, err := template.New("wireguard_toml").Parse(ct)
 		if err != nil {
 			panic(err)
 		}

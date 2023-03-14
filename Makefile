@@ -1,3 +1,4 @@
+.DEFAULT_GOAL := default
 PACKAGES := $(shell go list ./...)
 VERSION := $(shell git describe --tags | sed 's/^v//' | rev | cut -d - -f 2- | rev)
 COMMIT := $(shell git log -1 --format='%H')
@@ -14,18 +15,26 @@ LD_FLAGS := -s -w \
 benchmark:
 	@go test -mod=readonly -v -bench= ${PACKAGES}
 
+.PHONY: build
+build:
+	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
+		-o ./bin/sentinelnode main.go
+
 .PHONY: clean
 clean:
-	rm -rf ./bin ./build ./vendor
+	rm -rf ./bin ./vendor
+
+.PHONE: default
+default: clean build
 
 .PHONY: install
 install:
 	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
-		-o ${GOPATH}/bin/sentinelnode main.go
+		-o "${GOPATH}/bin/sentinelnode" main.go
 
 .PHONY: build-image
 build-image:
-	@docker build --compress --file Dockerfile --force-rm --no-cache --tag sentinel-dvpn-node .
+	@docker build --compress --file Dockerfile --force-rm --tag sentinel-dvpn-node .
 
 .PHONY: go-lint
 go-lint:
