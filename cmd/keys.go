@@ -61,7 +61,7 @@ func keysAdd() *cobra.Command {
 			}
 
 			if !skipConfigValidation {
-				if err := config.Validate(); err != nil {
+				if err = config.Validate(); err != nil {
 					return err
 				}
 			}
@@ -178,7 +178,7 @@ func keysShow() *cobra.Command {
 			}
 
 			if !skipConfigValidation {
-				if err := config.Validate(); err != nil {
+				if err = config.Validate(); err != nil {
 					return err
 				}
 			}
@@ -238,7 +238,7 @@ func keysList() *cobra.Command {
 			}
 
 			if !skipConfigValidation {
-				if err := config.Validate(); err != nil {
+				if err = config.Validate(); err != nil {
 					return err
 				}
 			}
@@ -300,7 +300,7 @@ func keysDelete() *cobra.Command {
 			}
 
 			if !skipConfigValidation {
-				if err := config.Validate(); err != nil {
+				if err = config.Validate(); err != nil {
 					return err
 				}
 			}

@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/go-kit/kit/transport/http/jsonrpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gorm.io/driver/sqlite"
@@ -73,7 +72,7 @@ func StartCmd() *cobra.Command {
 
 			if !skipConfigValidation {
 				log.Info("Validating the configuration", "data", config)
-				if err := config.Validate(); err != nil {
+				if err = config.Validate(); err != nil {
 					return err
 				}
 			}
@@ -162,12 +161,12 @@ func StartCmd() *cobra.Command {
 			}
 
 			log.Info("Initializing the VPN service", "type", service.Type())
-			if err := service.Init(home); err != nil {
+			if err = service.Init(home); err != nil {
 				return err
 			}
 
 			log.Info("Starting the VPN service", "type", service.Type())
-			if err := service.Start(); err != nil {
+			if err = service.Start(); err != nil {
 				return err
 			}
 
@@ -184,7 +183,7 @@ func StartCmd() *cobra.Command {
 			}
 
 			log.Info("Migrating the database models...")
-			if err := database.AutoMigrate(&types.Session{}); err != nil {
+			if err = database.AutoMigrate(&types.Session{}); err != nil {
 				return err
 			}
 
@@ -199,7 +198,7 @@ func StartCmd() *cobra.Command {
 							http.MethodPost,
 						},
 						AllowHeaders: []string{
-							jsonrpc.ContentType,
+							types.ContentType,
 						},
 					},
 				)
@@ -218,7 +217,7 @@ func StartCmd() *cobra.Command {
 				WithService(service)
 
 			n := node.NewNode(ctx)
-			if err := n.Initialize(); err != nil {
+			if err = n.Initialize(); err != nil {
 				return err
 			}
 
