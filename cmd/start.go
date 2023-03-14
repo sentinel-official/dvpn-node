@@ -20,6 +20,7 @@ import (
 
 	"github.com/sentinel-official/dvpn-node/api"
 	"github.com/sentinel-official/dvpn-node/context"
+	"github.com/sentinel-official/dvpn-node/libs/geoip"
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/node"
 	"github.com/sentinel-official/dvpn-node/services/v2ray"
@@ -136,7 +137,7 @@ func StartCmd() *cobra.Command {
 			}
 
 			log.Info("Fetching the GeoIP location info...")
-			location, err := utils.FetchGeoIPLocation()
+			location, err := geoip.Location()
 			if err != nil {
 				return err
 			}

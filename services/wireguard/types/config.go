@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 var (
@@ -68,7 +68,7 @@ func (c *Config) WithDefaultValues() *Config {
 	}
 
 	c.Interface = "wg0"
-	c.ListenPort = randutil.RandomPort()
+	c.ListenPort = utils.RandomPort()
 	c.PrivateKey = key.String()
 
 	return c

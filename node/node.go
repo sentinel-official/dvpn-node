@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/context"
-	httputils "github.com/sentinel-official/dvpn-node/utils/http"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 type Node struct {
@@ -57,7 +57,7 @@ func (n *Node) Start() error {
 		keyFile  = path.Join(viper.GetString(flags.FlagHome), "tls.key")
 	)
 
-	return httputils.ListenAndServeTLS(
+	return utils.ListenAndServeTLS(
 		n.ListenOn(),
 		certFile,
 		keyFile,

@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 var (
@@ -42,7 +42,7 @@ func NewVMessConfig() *VMessConfig {
 }
 
 func (c *VMessConfig) WithDefaultValues() *VMessConfig {
-	c.ListenPort = randutil.RandomPort()
+	c.ListenPort = utils.RandomPort()
 	c.Transport = "grpc"
 
 	return c

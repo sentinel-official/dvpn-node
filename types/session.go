@@ -21,10 +21,10 @@ func (s *Session) GetAddress() sdk.AccAddress {
 		return nil
 	}
 
-	address, err := sdk.AccAddressFromBech32(s.Address)
+	v, err := sdk.AccAddressFromBech32(s.Address)
 	if err != nil {
 		panic(err)
 	}
 
-	return address
+	return v
 }
