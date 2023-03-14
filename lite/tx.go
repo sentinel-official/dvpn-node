@@ -1,11 +1,12 @@
 package lite
 
 import (
+	"fmt"
+
 	"github.com/avast/retry-go/v4"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/pkg/errors"
 	abcitypes "github.com/tendermint/tendermint/abci/types"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 )
@@ -31,7 +32,7 @@ func (c *Client) broadcastTx(remote string, txBytes []byte) (*sdk.TxResponse, er
 	case sdkerrors.ErrTxInMempoolCache.ABCICode():
 		return resp, nil
 	default:
-		return nil, errors.New(resp.RawLog)
+		return nil, fmt.Errorf(resp.RawLog)
 	}
 }
 

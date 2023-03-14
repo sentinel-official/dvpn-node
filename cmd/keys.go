@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
-	"github.com/pkg/errors"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -116,7 +115,7 @@ func keysAdd() *cobra.Command {
 				}
 
 				if !bip39.IsMnemonicValid(mnemonic) {
-					return errors.New("invalid bip39 mnemonic")
+					return fmt.Errorf("invalid bip39 mnemonic")
 				}
 			}
 

@@ -2,11 +2,12 @@ package types
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
 	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
@@ -46,16 +47,16 @@ func NewConfig() *Config {
 
 func (c *Config) Validate() error {
 	if c.Interface == "" {
-		return errors.New("interface cannot be empty")
+		return fmt.Errorf("interface cannot be empty")
 	}
 	if c.ListenPort == 0 {
-		return errors.New("listen_port cannot be zero")
+		return fmt.Errorf("listen_port cannot be zero")
 	}
 	if c.PrivateKey == "" {
-		return errors.New("private_key cannot be empty")
+		return fmt.Errorf("private_key cannot be empty")
 	}
 	if _, err := KeyFromString(c.PrivateKey); err != nil {
-		return errors.Wrap(err, "invalid private_key")
+		return errors.Join(err, fmt.Errorf("invalid private_key"))
 	}
 
 	return nil

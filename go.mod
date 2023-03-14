@@ -10,7 +10,6 @@ require (
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-kit/kit v0.12.0
-	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.29.0
 	github.com/sentinel-official/hub v0.10.1
 	github.com/showwin/speedtest-go v1.5.2
@@ -113,6 +112,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pires/go-proxyproto v0.6.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.13.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect

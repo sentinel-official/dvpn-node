@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/pkg/errors"
 	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
 
@@ -136,40 +136,40 @@ func NewChainConfig() *ChainConfig {
 
 func (c *ChainConfig) Validate() error {
 	if c.Gas <= 0 {
-		return errors.New("gas must be positive")
+		return fmt.Errorf("gas must be positive")
 	}
 	if c.GasAdjustment <= 0 {
-		return errors.New("gas_adjustment must be positive")
+		return fmt.Errorf("gas_adjustment must be positive")
 	}
 	if _, err := sdk.ParseCoinsNormalized(c.GasPrices); err != nil {
-		return errors.Wrap(err, "invalid gas_prices")
+		return errors.Join(err, fmt.Errorf("invalid gas_prices"))
 	}
 	if c.ID == "" {
-		return errors.New("id cannot be empty")
+		return fmt.Errorf("id cannot be empty")
 	}
 	if c.RPCAddresses == "" {
-		return errors.New("rpc_addresses cannot be empty")
+		return fmt.Errorf("rpc_addresses cannot be empty")
 	}
 
 	items := strings.Split(c.RPCAddresses, ",")
 	for i := 0; i < len(items); i++ {
 		uri, err := url.ParseRequestURI(items[i])
 		if err != nil {
-			return errors.Wrapf(err, "invalid rpc_address %s", items[i])
+			return errors.Join(err, fmt.Errorf("invalid rpc_address %s", items[i]))
 		}
 		if uri.Scheme != "http" && uri.Scheme != "https" {
-			return errors.New("rpc_address scheme must be either http or https")
+			return fmt.Errorf("rpc_address scheme must be either http or https")
 		}
 		if uri.Port() == "" {
-			return errors.New("rpc_address port cannot be empty")
+			return fmt.Errorf("rpc_address port cannot be empty")
 		}
 	}
 
 	if c.RPCQueryTimeout == 0 {
-		return errors.New("rpc_query_timeout cannot be 0")
+		return fmt.Errorf("rpc_query_timeout cannot be 0")
 	}
 	if c.RPCTxTimeout == 0 {
-		return errors.New("rpc_tx_timeout cannot be 0")
+		return fmt.Errorf("rpc_tx_timeout cannot be 0")
 	}
 
 	return nil
@@ -200,7 +200,7 @@ func NewHandshakeConfig() *HandshakeConfig {
 func (c *HandshakeConfig) Validate() error {
 	if c.Enable {
 		if c.Peers <= 0 {
-			return errors.New("peers must be positive")
+			return fmt.Errorf("peers must be positive")
 		}
 	}
 
@@ -225,13 +225,13 @@ func NewKeyringConfig() *KeyringConfig {
 
 func (c *KeyringConfig) Validate() error {
 	if c.Backend == "" {
-		return errors.New("backend cannot be empty")
+		return fmt.Errorf("backend cannot be empty")
 	}
 	if c.Backend != keyring.BackendFile && c.Backend != keyring.BackendTest {
 		return fmt.Errorf("backend must be either %s or %s", keyring.BackendFile, keyring.BackendTest)
 	}
 	if c.From == "" {
-		return errors.New("from cannot be empty")
+		return fmt.Errorf("from cannot be empty")
 	}
 
 	return nil
@@ -283,17 +283,17 @@ func (c *NodeConfig) Validate() error {
 	if c.IPv4Address != "" {
 		addr := net.ParseIP(c.IPv4Address)
 		if addr == nil {
-			return errors.New("invalid ipv4_address")
+			return fmt.Errorf("invalid ipv4_address")
 		}
 		if addr.To4() == nil {
-			return errors.New("ipv4_address format must be in IPv4 format")
+			return fmt.Errorf("ipv4_address format must be in IPv4 format")
 		}
 	}
 	if c.ListenOn == "" {
-		return errors.New("listen_on cannot be empty")
+		return fmt.Errorf("listen_on cannot be empty")
 	}
 	if c.Moniker == "" {
-		return errors.New("moniker cannot be empty")
+		return fmt.Errorf("moniker cannot be empty")
 	}
 	if len(c.Moniker) < MinMonikerLength {
 		return fmt.Errorf("moniker length cannot be less than %d", MinMonikerLength)
@@ -302,41 +302,41 @@ func (c *NodeConfig) Validate() error {
 		return fmt.Errorf("moniker length cannot be greater than %d", MaxMonikerLength)
 	}
 	if c.Price == "" && c.Provider == "" {
-		return errors.New("both price and provider cannot be empty")
+		return fmt.Errorf("both price and provider cannot be empty")
 	}
 	if c.Price != "" && c.Provider != "" {
-		return errors.New("either price or provider must be empty")
+		return fmt.Errorf("either price or provider must be empty")
 	}
 	if c.Price != "" {
 		if _, err := sdk.ParseCoinsNormalized(c.Price); err != nil {
-			return errors.Wrap(err, "invalid price")
+			return errors.Join(err, fmt.Errorf("invalid price"))
 		}
 	}
 	if c.Provider != "" {
 		if _, err := hubtypes.ProvAddressFromBech32(c.Provider); err != nil {
-			return errors.Wrap(err, "invalid provider")
+			return errors.Join(err, fmt.Errorf("invalid provider"))
 		}
 	}
 	if c.RemoteURL == "" {
-		return errors.New("remote_url cannot be empty")
+		return fmt.Errorf("remote_url cannot be empty")
 	}
 
 	remoteURL, err := url.ParseRequestURI(c.RemoteURL)
 	if err != nil {
-		return errors.Wrap(err, "invalid remote_url")
+		return errors.Join(err, fmt.Errorf("invalid remote_url"))
 	}
 	if remoteURL.Scheme != "https" {
-		return errors.New("remote_url scheme must be https")
+		return fmt.Errorf("remote_url scheme must be https")
 	}
 	if remoteURL.Port() == "" {
-		return errors.New("remote_url port cannot be empty")
+		return fmt.Errorf("remote_url port cannot be empty")
 	}
 
 	if c.Type == "" {
-		return errors.New("type cannot be empty")
+		return fmt.Errorf("type cannot be empty")
 	}
 	if c.Type != "wireguard" && c.Type != "v2ray" {
-		return errors.New("type must be either wireguard or v2ray")
+		return fmt.Errorf("type must be either wireguard or v2ray")
 	}
 
 	return nil
@@ -397,24 +397,27 @@ func NewConfig() *Config {
 
 func (c *Config) Validate() error {
 	if err := c.Chain.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid section chain")
+		return errors.Join(err, fmt.Errorf("invalid section chain"))
 	}
 	if err := c.Handshake.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid section handshake")
+		return errors.Join(err, fmt.Errorf("invalid section handshake"))
 	}
 	if err := c.Keyring.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid section keyring")
+		return errors.Join(err, fmt.Errorf("invalid section keyring"))
 	}
 	if err := c.Node.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid section node")
+		return errors.Join(err, fmt.Errorf("invalid section node"))
 	}
 	if err := c.QOS.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid section qos")
+		return errors.Join(err, fmt.Errorf("invalid section qos"))
 	}
 
 	if c.Node.Type == "v2ray" {
 		if c.Handshake.Enable {
-			return errors.Wrapf(errors.New("must be disabled"), "invalid section handshake")
+			return errors.Join(
+				fmt.Errorf("must be disabled"),
+				fmt.Errorf("invalid section handshake"),
+			)
 		}
 	}
 

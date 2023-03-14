@@ -2,11 +2,12 @@ package types
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
 	randutil "github.com/sentinel-official/dvpn-node/utils/rand"
@@ -50,15 +51,15 @@ func (c *VMessConfig) WithDefaultValues() *VMessConfig {
 
 func (c *VMessConfig) Validate() error {
 	if c.ListenPort == 0 {
-		return errors.New("listen_port cannot be zero")
+		return fmt.Errorf("listen_port cannot be zero")
 	}
 	if c.Transport == "" {
-		return errors.New("transport cannot be empty")
+		return fmt.Errorf("transport cannot be empty")
 	}
 
 	t := NewTransportFromString(c.Transport)
 	if !t.IsValid() {
-		return errors.New("invalid transport")
+		return fmt.Errorf("invalid transport")
 	}
 
 	return nil
@@ -76,7 +77,7 @@ func NewConfig() *Config {
 
 func (c *Config) Validate() error {
 	if err := c.VMess.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid section vmess")
+		return errors.Join(err, fmt.Errorf("invalid section vmess"))
 	}
 
 	return nil

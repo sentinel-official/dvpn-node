@@ -12,7 +12,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	proxymancommand "github.com/v2fly/v2ray-core/v5/app/proxyman/command"
 	statscommand "github.com/v2fly/v2ray-core/v5/app/stats/command"
@@ -102,7 +101,7 @@ func (s *V2Ray) Start() error {
 
 func (s *V2Ray) Stop() error {
 	if s.cmd == nil {
-		return errors.New("command is nil")
+		return fmt.Errorf("command is nil")
 	}
 
 	return s.cmd.Process.Kill()
@@ -139,7 +138,7 @@ func (s *V2Ray) statsServiceClient() (*grpc.ClientConn, statscommand.StatsServic
 
 func (s *V2Ray) AddPeer(data []byte) (result []byte, err error) {
 	if len(data) != 1+16 {
-		return nil, errors.New("data length must be 17 bytes")
+		return nil, fmt.Errorf("data length must be 17 bytes")
 	}
 
 	conn, client, err := s.handlerServiceClient()
@@ -197,7 +196,7 @@ func (s *V2Ray) HasPeer(data []byte) bool {
 
 func (s *V2Ray) RemovePeer(data []byte) error {
 	if len(data) != 1+16 {
-		return errors.New("data length must be 17 bytes")
+		return fmt.Errorf("data length must be 17 bytes")
 	}
 
 	conn, client, err := s.handlerServiceClient()
