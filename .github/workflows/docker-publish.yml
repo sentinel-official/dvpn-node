@@ -14,13 +14,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        platforms:
-          - linux/amd64
-          - linux/arm64
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -46,6 +39,6 @@ jobs:
         with:
           context: .
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: ${{ matrix.platforms }}
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
