@@ -1,14 +1,14 @@
-package utils
+package geoip
 
 import (
 	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/libs/geoip/types"
 )
 
-func FetchGeoIPLocation() (*types.GeoIPLocation, error) {
+func Location() (*types.GeoIPLocation, error) {
 	var (
 		client = &http.Client{Timeout: 15 * time.Second}
 		path   = "http://ip-api.com/json"

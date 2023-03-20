@@ -48,7 +48,7 @@ func configInit() *cobra.Command {
 				}
 			}
 
-			if err := os.MkdirAll(home, 0700); err != nil {
+			if err = os.MkdirAll(home, 0700); err != nil {
 				return err
 			}
 
@@ -109,7 +109,7 @@ func configSet() *cobra.Command {
 
 			v.Set(args[0], args[1])
 
-			if err := v.Unmarshal(config); err != nil {
+			if err = v.Unmarshal(config); err != nil {
 				return err
 			}
 

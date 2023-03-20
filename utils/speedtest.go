@@ -9,12 +9,12 @@ import (
 )
 
 func FindInternetSpeed() (*hubtypes.Bandwidth, error) {
-	user, err := speedtest.FetchUserInfo()
+	_, err := speedtest.FetchUserInfo()
 	if err != nil {
 		return nil, err
 	}
 
-	servers, err := speedtest.FetchServers(user)
+	servers, err := speedtest.FetchServers()
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func FindInternetSpeed() (*hubtypes.Bandwidth, error) {
 
 	for _, s := range servers {
 		s.Context.Reset()
-		if err = s.PingTest(); err != nil {
+		if err = s.PingTest(nil); err != nil {
 			continue
 		}
 
@@ -39,9 +39,11 @@ func FindInternetSpeed() (*hubtypes.Bandwidth, error) {
 			continue
 		}
 		s.Context.Wait()
+
 		if err = s.UploadTest(); err != nil {
 			continue
 		}
+		s.Context.Wait()
 
 		upload = sdk.MustNewDecFromStr(fmt.Sprintf("%f", s.ULSpeed))
 		download = sdk.MustNewDecFromStr(fmt.Sprintf("%f", s.DLSpeed))

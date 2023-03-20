@@ -13,7 +13,7 @@ import (
 	vpntypes "github.com/sentinel-official/hub/x/vpn/types"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 
-	"github.com/sentinel-official/dvpn-node/utils"
+	"github.com/sentinel-official/dvpn-node/types"
 )
 
 func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.AccountI, error) {
@@ -36,7 +36,7 @@ func (c *Client) queryAccount(remote string, accAddr sdk.AccAddress) (authtypes.
 		},
 	)
 	if err != nil {
-		return nil, utils.QueryError(err)
+		return nil, types.QueryError(err)
 	}
 
 	var result authtypes.AccountI
@@ -80,7 +80,7 @@ func (c *Client) queryNode(remote string, nodeAddr hubtypes.NodeAddress) (*nodet
 		nodetypes.NewQueryNodeRequest(nodeAddr),
 	)
 	if err != nil {
-		return nil, utils.QueryError(err)
+		return nil, types.QueryError(err)
 	}
 
 	return &res.Node, nil
@@ -119,7 +119,7 @@ func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes
 		subscriptiontypes.NewQuerySubscriptionRequest(id),
 	)
 	if err != nil {
-		return nil, utils.QueryError(err)
+		return nil, types.QueryError(err)
 	}
 
 	return &res.Subscription, nil
@@ -158,7 +158,7 @@ func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*
 		subscriptiontypes.NewQueryQuotaRequest(id, accAddr),
 	)
 	if err != nil {
-		return nil, utils.QueryError(err)
+		return nil, types.QueryError(err)
 	}
 
 	return &res.Quota, nil
@@ -197,7 +197,7 @@ func (c *Client) querySession(remote string, id uint64) (*sessiontypes.Session, 
 		sessiontypes.NewQuerySessionRequest(id),
 	)
 	if err != nil {
-		return nil, utils.QueryError(err)
+		return nil, types.QueryError(err)
 	}
 
 	return &res.Session, nil

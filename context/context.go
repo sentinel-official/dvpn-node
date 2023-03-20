@@ -10,6 +10,7 @@ import (
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"gorm.io/gorm"
 
+	geoiptypes "github.com/sentinel-official/dvpn-node/libs/geoip/types"
 	"github.com/sentinel-official/dvpn-node/lite"
 	"github.com/sentinel-official/dvpn-node/types"
 )
@@ -20,7 +21,7 @@ type Context struct {
 	config    *types.Config
 	database  *gorm.DB
 	handler   http.Handler
-	location  *types.GeoIPLocation
+	location  *geoiptypes.GeoIPLocation
 	logger    tmlog.Logger
 	service   types.Service
 }
@@ -29,14 +30,14 @@ func NewContext() *Context {
 	return &Context{}
 }
 
-func (c *Context) WithBandwidth(v *hubtypes.Bandwidth) *Context { c.bandwidth = v; return c }
-func (c *Context) WithClient(v *lite.Client) *Context           { c.client = v; return c }
-func (c *Context) WithConfig(v *types.Config) *Context          { c.config = v; return c }
-func (c *Context) WithDatabase(v *gorm.DB) *Context             { c.database = v; return c }
-func (c *Context) WithHandler(v http.Handler) *Context          { c.handler = v; return c }
-func (c *Context) WithLocation(v *types.GeoIPLocation) *Context { c.location = v; return c }
-func (c *Context) WithLogger(v tmlog.Logger) *Context           { c.logger = v; return c }
-func (c *Context) WithService(v types.Service) *Context         { c.service = v; return c }
+func (c *Context) WithBandwidth(v *hubtypes.Bandwidth) *Context      { c.bandwidth = v; return c }
+func (c *Context) WithClient(v *lite.Client) *Context                { c.client = v; return c }
+func (c *Context) WithConfig(v *types.Config) *Context               { c.config = v; return c }
+func (c *Context) WithDatabase(v *gorm.DB) *Context                  { c.database = v; return c }
+func (c *Context) WithHandler(v http.Handler) *Context               { c.handler = v; return c }
+func (c *Context) WithLocation(v *geoiptypes.GeoIPLocation) *Context { c.location = v; return c }
+func (c *Context) WithLogger(v tmlog.Logger) *Context                { c.logger = v; return c }
+func (c *Context) WithService(v types.Service) *Context              { c.service = v; return c }
 
 func (c *Context) Address() hubtypes.NodeAddress       { return c.Operator().Bytes() }
 func (c *Context) Bandwidth() *hubtypes.Bandwidth      { return c.bandwidth }
@@ -47,7 +48,7 @@ func (c *Context) Handler() http.Handler               { return c.handler }
 func (c *Context) IntervalSetSessions() time.Duration  { return c.Config().Node.IntervalSetSessions }
 func (c *Context) IntervalUpdateStatus() time.Duration { return c.Config().Node.IntervalUpdateStatus }
 func (c *Context) ListenOn() string                    { return c.Config().Node.ListenOn }
-func (c *Context) Location() *types.GeoIPLocation      { return c.location }
+func (c *Context) Location() *geoiptypes.GeoIPLocation { return c.location }
 func (c *Context) Log() tmlog.Logger                   { return c.logger }
 func (c *Context) Moniker() string                     { return c.Config().Node.Moniker }
 func (c *Context) Operator() sdk.AccAddress            { return c.client.FromAddress() }
