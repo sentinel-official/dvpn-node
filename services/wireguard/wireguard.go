@@ -27,18 +27,18 @@ var (
 )
 
 type WireGuard struct {
-	info  []byte
-	cfg   *wgtypes.Config
-	peers *wgtypes.Peers
-	pool  *wgtypes.IPPool
+	info   []byte
+	config *wgtypes.Config
+	peers  *wgtypes.Peers
+	pool   *wgtypes.IPPool
 }
 
 func NewWireGuard(pool *wgtypes.IPPool) types.Service {
 	return &WireGuard{
-		pool:  pool,
-		cfg:   wgtypes.NewConfig(),
-		info:  make([]byte, InfoLen),
-		peers: wgtypes.NewPeers(),
+		pool:   pool,
+		config: wgtypes.NewConfig(),
+		info:   make([]byte, InfoLen),
+		peers:  wgtypes.NewPeers(),
 	}
 }
 
@@ -50,11 +50,11 @@ func (s *WireGuard) Init(home string) (err error) {
 	v := viper.New()
 	v.SetConfigFile(filepath.Join(home, wgtypes.ConfigFileName))
 
-	s.cfg, err = wgtypes.ReadInConfig(v)
+	s.config, err = wgtypes.ReadInConfig(v)
 	if err != nil {
 		return err
 	}
-	if err = s.cfg.Validate(); err != nil {
+	if err = s.config.Validate(); err != nil {
 		return err
 	}
 
@@ -64,21 +64,21 @@ func (s *WireGuard) Init(home string) (err error) {
 	}
 
 	var buffer bytes.Buffer
-	if err = t.Execute(&buffer, s.cfg); err != nil {
+	if err = t.Execute(&buffer, s.config); err != nil {
 		return err
 	}
 
-	path := fmt.Sprintf("/etc/wireguard/%s.conf", s.cfg.Interface)
+	path := fmt.Sprintf("/etc/wireguard/%s.conf", s.config.Interface)
 	if err = os.WriteFile(path, buffer.Bytes(), 0600); err != nil {
 		return err
 	}
 
-	key, err := wgtypes.KeyFromString(s.cfg.PrivateKey)
+	key, err := wgtypes.KeyFromString(s.config.PrivateKey)
 	if err != nil {
 		return err
 	}
 
-	binary.BigEndian.PutUint16(s.info[:2], s.cfg.ListenPort)
+	binary.BigEndian.PutUint16(s.info[:2], s.config.ListenPort)
 	copy(s.info[2:], key.Public().Bytes())
 
 	return nil
@@ -90,7 +90,7 @@ func (s *WireGuard) Info() []byte {
 
 func (s *WireGuard) Start() error {
 	cmd := exec.Command("wg-quick", strings.Split(
-		fmt.Sprintf("up %s", s.cfg.Interface), " ")...)
+		fmt.Sprintf("up %s", s.config.Interface), " ")...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -99,7 +99,7 @@ func (s *WireGuard) Start() error {
 
 func (s *WireGuard) Stop() error {
 	cmd := exec.Command("wg-quick", strings.Split(
-		fmt.Sprintf("down %s", s.cfg.Interface), " ")...)
+		fmt.Sprintf("down %s", s.config.Interface), " ")...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -122,7 +122,7 @@ func (s *WireGuard) AddPeer(data []byte) (result []byte, err error) {
 
 	cmd := exec.Command("wg", strings.Split(
 		fmt.Sprintf(`set %s peer %s allowed-ips %s/32,%s/128`,
-			s.cfg.Interface, identity, v4.IP(), v6.IP()), " ")...)
+			s.config.Interface, identity, v4.IP(), v6.IP()), " ")...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -157,7 +157,7 @@ func (s *WireGuard) RemovePeer(data []byte) error {
 
 	cmd := exec.Command("wg", strings.Split(
 		fmt.Sprintf(`set %s peer %s remove`,
-			s.cfg.Interface, identity), " ")...)
+			s.config.Interface, identity), " ")...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -175,7 +175,7 @@ func (s *WireGuard) RemovePeer(data []byte) error {
 
 func (s *WireGuard) Peers() (items []types.Peer, err error) {
 	output, err := exec.Command("wg", strings.Split(
-		fmt.Sprintf("show %s transfer", s.cfg.Interface), " ")...).Output()
+		fmt.Sprintf("show %s transfer", s.config.Interface), " ")...).Output()
 	if err != nil {
 		return nil, err
 	}
