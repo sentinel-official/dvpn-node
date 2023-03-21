@@ -450,13 +450,13 @@ func (c *Config) String() string {
 }
 
 func ReadInConfig(v *viper.Viper) (*Config, error) {
-	cfg := NewConfig().WithDefaultValues()
+	config := NewConfig().WithDefaultValues()
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
-	if err := v.Unmarshal(cfg); err != nil {
+	if err := v.Unmarshal(config); err != nil {
 		return nil, err
 	}
 
-	return cfg, nil
+	return config, nil
 }

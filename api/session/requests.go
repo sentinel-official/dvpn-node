@@ -8,10 +8,9 @@ import (
 )
 
 type RequestAddSession struct {
-	accAddress sdk.AccAddress
-	id         uint64
-	key        []byte
-	signature  []byte
+	AccAddress sdk.AccAddress
+	Key        []byte
+	Signature  []byte
 
 	URI struct {
 		AccAddress string `uri:"acc_address"`
@@ -32,18 +31,15 @@ func NewRequestAddSession(c *gin.Context) (req *RequestAddSession, err error) {
 		return nil, err
 	}
 
-	req.accAddress, err = sdk.AccAddressFromBech32(req.URI.AccAddress)
+	req.AccAddress, err = sdk.AccAddressFromBech32(req.URI.AccAddress)
 	if err != nil {
 		return nil, err
 	}
-
-	req.id = req.URI.ID
-
-	req.key, err = base64.StdEncoding.DecodeString(req.Body.Key)
+	req.Key, err = base64.StdEncoding.DecodeString(req.Body.Key)
 	if err != nil {
 		return nil, err
 	}
-	req.signature, err = base64.StdEncoding.DecodeString(req.Body.Signature)
+	req.Signature, err = base64.StdEncoding.DecodeString(req.Body.Signature)
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,7 @@ import (
 func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if ctx.Service().PeerCount() >= ctx.Config().QOS.MaxPeers {
-			err := fmt.Errorf("reached maximum peers limit; maximum %d", ctx.Config().QOS.MaxPeers)
+			err := fmt.Errorf("reached maximum peers limit %d", ctx.Config().QOS.MaxPeers)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
 			return
 		}
@@ -31,12 +31,12 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			&types.Session{},
 		).Where(
 			&types.Session{
-				ID: req.id,
+				ID: req.URI.ID,
 			},
 		).First(&item)
 
 		if item.ID != 0 {
-			err = fmt.Errorf("peer for session %d already exist", req.id)
+			err = fmt.Errorf("peer for session %d already exist", req.URI.ID)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(3, err))
 			return
 		}
@@ -56,34 +56,34 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 
-		account, err := ctx.Client().QueryAccount(req.accAddress)
+		account, err := ctx.Client().QueryAccount(req.AccAddress)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(4, err))
 			return
 		}
 		if account == nil {
-			err = fmt.Errorf("account %s does not exist", req.accAddress)
+			err = fmt.Errorf("account %s does not exist", req.AccAddress)
 			c.JSON(http.StatusNotFound, types.NewResponseError(4, err))
 			return
 		}
 		if account.GetPubKey() == nil {
-			err = fmt.Errorf("public key for account %s does not exist", req.accAddress)
+			err = fmt.Errorf("public key for account %s does not exist", req.AccAddress)
 			c.JSON(http.StatusNotFound, types.NewResponseError(4, err))
 			return
 		}
-		if ok := account.GetPubKey().VerifySignature(sdk.Uint64ToBigEndian(req.id), req.signature); !ok {
-			err = fmt.Errorf("failed to verify the signature %s", req.signature)
+		if ok := account.GetPubKey().VerifySignature(sdk.Uint64ToBigEndian(req.URI.ID), req.Signature); !ok {
+			err = fmt.Errorf("failed to verify the signature %s", req.Signature)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(4, err))
 			return
 		}
 
-		session, err := ctx.Client().QuerySession(req.id)
+		session, err := ctx.Client().QuerySession(req.URI.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(5, err))
 			return
 		}
 		if session == nil {
-			err = fmt.Errorf("session %d does not exist", req.id)
+			err = fmt.Errorf("session %d does not exist", req.URI.ID)
 			c.JSON(http.StatusNotFound, types.NewResponseError(5, err))
 			return
 		}
@@ -133,7 +133,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			}
 		}
 
-		quota, err := ctx.Client().QueryQuota(subscription.Id, req.accAddress)
+		quota, err := ctx.Client().QueryQuota(subscription.Id, req.AccAddress)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
 			return
@@ -160,23 +160,27 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				return
 			}
 
-			consumed := items[i].Download + items[i].Upload
-			quota.Consumed = quota.Consumed.Add(
-				hubtypes.NewBandwidthFromInt64(
-					consumed, 0,
-				).CeilTo(
-					hubtypes.Gigabyte.Quo(subscription.Price.Amount),
-				).Sum(),
-			)
+			consumed := sdk.NewInt(items[i].Download + items[i].Upload)
+			if subscription.Plan == 0 {
+				quota.Consumed = quota.Consumed.Add(
+					hubtypes.NewBandwidth(
+						consumed, sdk.ZeroInt(),
+					).CeilTo(
+						hubtypes.Gigabyte.Quo(subscription.Price.Amount),
+					).Sum(),
+				)
+			} else {
+				quota.Consumed = quota.Consumed.Add(consumed)
+			}
 		}
 
 		if quota.Consumed.GTE(quota.Allocated) {
-			err := fmt.Errorf("quota exceeded; allocated %s, consumed %s", quota.Allocated, quota.Consumed)
+			err = fmt.Errorf("quota exceeded; allocated %s, consumed %s", quota.Allocated, quota.Consumed)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(10, err))
 			return
 		}
 
-		result, err := ctx.Service().AddPeer(req.key)
+		result, err := ctx.Service().AddPeer(req.Key)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(11, err))
 			return
@@ -187,7 +191,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			&types.Session{},
 		).Create(
 			&types.Session{
-				ID:           req.id,
+				ID:           req.URI.ID,
 				Subscription: subscription.Id,
 				Key:          req.Body.Key,
 				Address:      req.URI.AccAddress,

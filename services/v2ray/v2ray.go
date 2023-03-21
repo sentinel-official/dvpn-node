@@ -70,8 +70,11 @@ func (s *V2Ray) Init(home string) (err error) {
 	if err != nil {
 		return err
 	}
+	if err = s.config.Validate(); err != nil {
+		return err
+	}
 
-	t, err := template.New("wireguard_conf").Parse(configTemplate)
+	t, err := template.New("v2ray_json").Parse(configTemplate)
 	if err != nil {
 		return err
 	}

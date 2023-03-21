@@ -28,15 +28,6 @@ func ListenAndServeTLS(address, certFile, keyFile string, handler http.Handler) 
 
 	go func() {
 		if err := http.Serve(
-			anyMux,
-			handler,
-		); err != nil {
-			panic(err)
-		}
-	}()
-
-	go func() {
-		if err := http.Serve(
 			tls.NewListener(
 				tlsMux,
 				&tls.Config{
@@ -46,6 +37,15 @@ func ListenAndServeTLS(address, certFile, keyFile string, handler http.Handler) 
 					Rand: rand.Reader,
 				},
 			),
+			handler,
+		); err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
+		if err := http.Serve(
+			anyMux,
 			handler,
 		); err != nil {
 			panic(err)

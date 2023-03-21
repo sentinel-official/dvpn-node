@@ -76,12 +76,12 @@ func configShow() *cobra.Command {
 			v := viper.New()
 			v.SetConfigFile(path)
 
-			cfg, err := v2raytypes.ReadInConfig(v)
+			config, err := v2raytypes.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(cfg.String())
+			fmt.Println(config.String())
 			return nil
 		},
 	}
@@ -103,18 +103,18 @@ func configSet() *cobra.Command {
 			v := viper.New()
 			v.SetConfigFile(path)
 
-			cfg, err := v2raytypes.ReadInConfig(v)
+			config, err := v2raytypes.ReadInConfig(v)
 			if err != nil {
 				return err
 			}
 
 			v.Set(args[0], args[1])
 
-			if err = v.Unmarshal(cfg); err != nil {
+			if err = v.Unmarshal(config); err != nil {
 				return err
 			}
 
-			return cfg.SaveToPath(path)
+			return config.SaveToPath(path)
 		},
 	}
 
