@@ -1,35 +1,34 @@
 .DEFAULT_GOAL := default
-PACKAGES := $(shell go list ./...)
 VERSION := $(shell git describe --tags | sed 's/^v//' | rev | cut -d - -f 2- | rev)
 COMMIT := $(shell git log -1 --format='%H')
 
-BUILD_TAGS := $(strip netgo)
+TAGS := $(strip netgo)
 LD_FLAGS := -s -w \
 	-X github.com/cosmos/cosmos-sdk/version.Name=sentinel \
 	-X github.com/cosmos/cosmos-sdk/version.AppName=sentinelnode \
 	-X github.com/cosmos/cosmos-sdk/version.Version=${VERSION} \
 	-X github.com/cosmos/cosmos-sdk/version.Commit=${COMMIT} \
-	-X github.com/cosmos/cosmos-sdk/version.BuildTags=${BUILD_TAGS}
+	-X github.com/cosmos/cosmos-sdk/version.BuildTags=${TAGS}
 
 .PHONY: benchmark
 benchmark:
-	@go test -mod=readonly -v -bench= ${PACKAGES}
+	@go test -bench -mod=readonly -v ./...
 
 .PHONY: build
 build:
-	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
+	go build -ldflags="${LD_FLAGS}" -mod=readonly -tags="${TAGS}" -trimpath \
 		-o ./bin/sentinelnode main.go
 
 .PHONY: clean
 clean:
 	rm -rf ./bin ./vendor
 
-.PHONE: default
+.PHONY: default
 default: clean build
 
 .PHONY: install
 install:
-	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
+	go build -ldflags="${LD_FLAGS}" -mod=readonly -tags="${TAGS}" -trimpath \
 		-o "${GOPATH}/bin/sentinelnode" main.go
 
 .PHONY: build-image
@@ -42,7 +41,7 @@ go-lint:
 
 .PHONY: test
 test:
-	@go test -mod=readonly -v -cover ${PACKAGES}
+	@go test -cover -mod=readonly -v ./...
 
 .PHONY: tools
 tools:
