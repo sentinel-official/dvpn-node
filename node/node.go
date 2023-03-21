@@ -41,13 +41,13 @@ func (n *Node) Start() error {
 	}()
 
 	go func() {
-		if err := n.jobUpdateStatus(); err != nil {
+		if err := n.jobUpdateSessions(); err != nil {
 			panic(err)
 		}
 	}()
 
 	go func() {
-		if err := n.jobUpdateSessions(); err != nil {
+		if err := n.jobUpdateStatus(); err != nil {
 			panic(err)
 		}
 	}()

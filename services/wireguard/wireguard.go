@@ -54,8 +54,11 @@ func (s *WireGuard) Init(home string) (err error) {
 	if err != nil {
 		return err
 	}
+	if err = s.cfg.Validate(); err != nil {
+		return err
+	}
 
-	t, err := template.New("v2ray_json").Parse(configTemplate)
+	t, err := template.New("wireguard_conf").Parse(configTemplate)
 	if err != nil {
 		return err
 	}

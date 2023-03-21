@@ -4,7 +4,6 @@ import (
 	"strings"
 )
 
-// nolint:lll
 var (
 	configTemplate = strings.TrimSpace(`
 {
