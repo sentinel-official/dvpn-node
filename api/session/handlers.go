@@ -160,18 +160,22 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				return
 			}
 
-			consumed := items[i].Download + items[i].Upload
-			quota.Consumed = quota.Consumed.Add(
-				hubtypes.NewBandwidthFromInt64(
-					consumed, 0,
-				).CeilTo(
-					hubtypes.Gigabyte.Quo(subscription.Price.Amount),
-				).Sum(),
-			)
+			consumed := sdk.NewInt(items[i].Download + items[i].Upload)
+			if subscription.Plan == 0 {
+				quota.Consumed = quota.Consumed.Add(
+					hubtypes.NewBandwidth(
+						consumed, sdk.ZeroInt(),
+					).CeilTo(
+						hubtypes.Gigabyte.Quo(subscription.Price.Amount),
+					).Sum(),
+				)
+			} else {
+				quota.Consumed = quota.Consumed.Add(consumed)
+			}
 		}
 
 		if quota.Consumed.GTE(quota.Allocated) {
-			err := fmt.Errorf("quota exceeded; allocated %s, consumed %s", quota.Allocated, quota.Consumed)
+			err = fmt.Errorf("quota exceeded; allocated %s, consumed %s", quota.Allocated, quota.Consumed)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(10, err))
 			return
 		}
