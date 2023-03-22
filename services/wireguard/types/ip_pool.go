@@ -29,7 +29,7 @@ func (p *IPv4Pool) Get() (ip IPv4, err error) {
 	defer p.mutex.Unlock()
 
 	if len(p.available) == 0 {
-		if p.current[3] == 0x00 || p.current[3] == 0xff {
+		for p.current[3] == 0 || p.current[3] == 255 {
 			p.current = p.current.Next()
 		}
 		if !p.Net.Contains(p.current.IP()) {
