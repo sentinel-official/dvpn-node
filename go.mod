@@ -18,7 +18,7 @@ require (
 	github.com/tendermint/tendermint v0.34.23
 	github.com/v2fly/v2ray-core/v5 v5.4.1
 	golang.org/x/crypto v0.7.0
-	google.golang.org/grpc v1.53.0
+	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.6
