@@ -13,7 +13,7 @@ require (
 	github.com/sentinel-official/hub v0.10.1
 	github.com/showwin/speedtest-go v1.6.0
 	github.com/soheilhy/cmux v0.1.5
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	github.com/tendermint/tendermint v0.34.23
 	github.com/v2fly/v2ray-core/v5 v5.4.1
