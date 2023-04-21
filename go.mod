@@ -3,7 +3,7 @@ module github.com/sentinel-official/dvpn-node
 go 1.20
 
 require (
-	github.com/avast/retry-go/v4 v4.3.3
+	github.com/avast/retry-go/v4 v4.3.4
 	github.com/cosmos/cosmos-sdk v0.45.11
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/gin-contrib/cors v1.4.0
