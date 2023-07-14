@@ -32,10 +32,10 @@ func NewClient() *Client {
 
 func NewDefaultClient() *Client {
 	var (
-		cfg = EncodingConfig()
+		cfg = DefaultEncodingConfig()
 		ctx = client.Context{}.
 			WithBroadcastMode(flags.BroadcastBlock).
-			WithCodec(cfg.Marshaler).
+			WithCodec(cfg.Codec).
 			WithInterfaceRegistry(cfg.InterfaceRegistry).
 			WithLegacyAmino(cfg.Amino).
 			WithOutputFormat("text").
