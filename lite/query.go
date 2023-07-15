@@ -7,7 +7,6 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	hubtypes "github.com/sentinel-official/hub/types"
 	nodetypes "github.com/sentinel-official/hub/x/node/types"
-	plantypes "github.com/sentinel-official/hub/x/plan/types"
 	sessiontypes "github.com/sentinel-official/hub/x/session/types"
 	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 	vpntypes "github.com/sentinel-official/hub/x/vpn/types"
@@ -101,7 +100,7 @@ func (c *Client) QueryNode(nodeAddr hubtypes.NodeAddress) (result *nodetypes.Nod
 	return result, nil
 }
 
-func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes.Subscription, error) {
+func (c *Client) querySubscription(remote string, id uint64) (subscriptiontypes.Subscription, error) {
 	c.log.Debug("Querying the subscription", "remote", remote, "id", id)
 
 	client, err := rpchttp.NewWithTimeout(remote, "/websocket", c.queryTimeout)
@@ -122,10 +121,15 @@ func (c *Client) querySubscription(remote string, id uint64) (*subscriptiontypes
 		return nil, types.QueryError(err)
 	}
 
-	return &res.Subscription, nil
+	var result subscriptiontypes.Subscription
+	if err = c.ctx.InterfaceRegistry.UnpackAny(res.Subscription, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-func (c *Client) QuerySubscription(id uint64) (result *subscriptiontypes.Subscription, err error) {
+func (c *Client) QuerySubscription(id uint64) (result subscriptiontypes.Subscription, err error) {
 	c.log.Info("Querying the subscription", "id", id)
 	for i := 0; i < len(c.remotes); i++ {
 		result, err = c.querySubscription(c.remotes[i], id)
@@ -140,8 +144,8 @@ func (c *Client) QuerySubscription(id uint64) (result *subscriptiontypes.Subscri
 	return result, nil
 }
 
-func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*subscriptiontypes.Quota, error) {
-	c.log.Debug("Querying the quota", "remote", remote, "id", id, "address", accAddr)
+func (c *Client) queryAllocation(remote string, id uint64, accAddr sdk.AccAddress) (*subscriptiontypes.Allocation, error) {
+	c.log.Debug("Querying the allocation", "remote", remote, "id", id, "address", accAddr)
 
 	client, err := rpchttp.NewWithTimeout(remote, "/websocket", c.queryTimeout)
 	if err != nil {
@@ -153,21 +157,21 @@ func (c *Client) queryQuota(remote string, id uint64, accAddr sdk.AccAddress) (*
 		qc  = subscriptiontypes.NewQueryServiceClient(ctx)
 	)
 
-	res, err := qc.QueryQuota(
+	res, err := qc.QueryAllocation(
 		context.TODO(),
-		subscriptiontypes.NewQueryQuotaRequest(id, accAddr),
+		subscriptiontypes.NewQueryAllocationRequest(id, accAddr),
 	)
 	if err != nil {
 		return nil, types.QueryError(err)
 	}
 
-	return &res.Quota, nil
+	return &res.Allocation, nil
 }
 
-func (c *Client) QueryQuota(id uint64, accAddr sdk.AccAddress) (result *subscriptiontypes.Quota, err error) {
-	c.log.Info("Querying the quota", "id", id, "address", accAddr)
+func (c *Client) QueryAllocation(id uint64, accAddr sdk.AccAddress) (result *subscriptiontypes.Allocation, err error) {
+	c.log.Info("Querying the allocation", "id", id, "address", accAddr)
 	for i := 0; i < len(c.remotes); i++ {
-		result, err = c.queryQuota(c.remotes[i], id, accAddr)
+		result, err = c.queryAllocation(c.remotes[i], id, accAddr)
 		if err == nil {
 			break
 		}
@@ -228,8 +232,8 @@ func (c *Client) hasNodeForPlan(remote string, id uint64, nodeAddr hubtypes.Node
 
 	value, _, err := ctx.QueryStore(
 		append(
-			[]byte(plantypes.ModuleName+"/"),
-			plantypes.NodeForPlanKey(id, nodeAddr)...,
+			[]byte(nodetypes.ModuleName+"/"),
+			nodetypes.NodeForPlanKey(id, nodeAddr)...,
 		),
 		vpntypes.ModuleName,
 	)
