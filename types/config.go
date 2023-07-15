@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
-	hubtypes "github.com/sentinel-official/hub/types"
 	"github.com/spf13/viper"
 
 	"github.com/sentinel-official/dvpn-node/utils"
@@ -92,11 +91,11 @@ listen_on = "{{ .Node.ListenOn }}"
 # Name of the node
 moniker = "{{ .Node.Moniker }}"
 
-# Per Gigabyte price to charge against the provided bandwidth
-price = "{{ .Node.Price }}"
+# Prices for one gigabyte of bandwidth provided
+gigabyte_prices = "{{ .Node.GigabytePrices }}"
 
-# Address of the provider the node wants to operate under
-provider = "{{ .Node.Provider }}"
+# Prices for one hour
+hourly_prices = "{{ .Node.HourlyPrices }}"
 
 # Public URL of the node
 remote_url = "{{ .Node.RemoteURL }}"
@@ -251,8 +250,8 @@ type NodeConfig struct {
 	IPv4Address            string        `json:"ipv4_address" mapstructure:"ipv4_address"`
 	ListenOn               string        `json:"listen_on" mapstructure:"listen_on"`
 	Moniker                string        `json:"moniker" mapstructure:"moniker"`
-	Price                  string        `json:"price" mapstructure:"price"`
-	Provider               string        `json:"provider" mapstructure:"provider"`
+	GigabytePrices         string        `json:"gigabyte_prices" mapstructure:"gigabyte_prices"`
+	HourlyPrices           string        `json:"hourly_prices" mapstructure:"hourly_prices"`
 	RemoteURL              string        `json:"remote_url" mapstructure:"remote_url"`
 	Type                   string        `json:"type" mapstructure:"type"`
 }
@@ -301,20 +300,14 @@ func (c *NodeConfig) Validate() error {
 	if len(c.Moniker) > MaxMonikerLength {
 		return fmt.Errorf("moniker length cannot be greater than %d", MaxMonikerLength)
 	}
-	if c.Price == "" && c.Provider == "" {
-		return errors.New("both price and provider cannot be empty")
-	}
-	if c.Price != "" && c.Provider != "" {
-		return errors.New("either price or provider must be empty")
-	}
-	if c.Price != "" {
-		if _, err := sdk.ParseCoinsNormalized(c.Price); err != nil {
-			return errors.Wrap(err, "invalid price")
+	if c.GigabytePrices != "" {
+		if _, err := sdk.ParseCoinsNormalized(c.GigabytePrices); err != nil {
+			return errors.Wrap(err, "invalid gigabyte_prices")
 		}
 	}
-	if c.Provider != "" {
-		if _, err := hubtypes.ProvAddressFromBech32(c.Provider); err != nil {
-			return errors.Wrap(err, "invalid provider")
+	if c.HourlyPrices != "" {
+		if _, err := sdk.ParseCoinsNormalized(c.HourlyPrices); err != nil {
+			return errors.Wrap(err, "invalid hourly_prices")
 		}
 	}
 	if c.RemoteURL == "" {
