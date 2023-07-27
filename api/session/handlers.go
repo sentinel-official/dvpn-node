@@ -2,6 +2,7 @@ package session
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -73,7 +74,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 		if ok := account.GetPubKey().VerifySignature(sdk.Uint64ToBigEndian(req.URI.ID), req.Signature); !ok {
-			err = fmt.Errorf("failed to verify the signature %s", req.Signature)
+			err = fmt.Errorf("invalid signature %s", req.Signature)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(4, err))
 			return
 		}
@@ -89,7 +90,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 		if !session.Status.Equal(hubtypes.StatusActive) {
-			err = fmt.Errorf("invalid status for session %d; expected %s, got %s", session.ID, hubtypes.StatusActive, session.Status)
+			err = fmt.Errorf("invalid status %s for session %d", session.Status, session.ID)
 			c.JSON(http.StatusNotFound, types.NewResponseError(5, err))
 			return
 		}
@@ -110,42 +111,66 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 		if !subscription.GetStatus().Equal(hubtypes.StatusActive) {
-			err = fmt.Errorf("invalid status for subscription %d; expected %s, got %s", subscription.GetID(), hubtypes.StatusActive, subscription.GetStatus())
+			err = fmt.Errorf("invalid status %s for subscription %d", subscription.GetStatus(), subscription.GetID())
 			c.JSON(http.StatusBadRequest, types.NewResponseError(6, err))
 			return
 		}
 
-		if subscription.Type() == subscriptiontypes.TypeNode {
-			subscription := subscription.(*subscriptiontypes.NodeSubscription)
-			if subscription.NodeAddress != ctx.Address().String() {
-				err = fmt.Errorf("node address mismatch; expected %s, got %s", ctx.Address(), subscription.NodeAddress)
+		switch s := subscription.(type) {
+		case *subscriptiontypes.NodeSubscription:
+			if s.NodeAddress != ctx.Address().String() {
+				err = fmt.Errorf("node address mismatch; expected %s, got %s", ctx.Address(), s.NodeAddress)
 				c.JSON(http.StatusBadRequest, types.NewResponseError(7, err))
 				return
 			}
-		} else {
-			subscription := subscription.(*subscriptiontypes.PlanSubscription)
-
-			ok, err := ctx.Client().HasNodeForPlan(subscription.PlanID, ctx.Address())
+		case *subscriptiontypes.PlanSubscription:
+			exists, err := ctx.Client().HasNodeForPlan(s.PlanID, ctx.Address())
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, types.NewResponseError(7, err))
 				return
 			}
-			if !ok {
-				err = fmt.Errorf("node %s does not exist for plan %d", ctx.Address(), subscription.PlanID)
+			if !exists {
+				err = fmt.Errorf("node %s does not exist for plan %d", ctx.Address(), s.PlanID)
 				c.JSON(http.StatusBadRequest, types.NewResponseError(7, err))
 				return
 			}
+		default:
+			err = fmt.Errorf("invalid type %T for subscription %d", s, subscription.GetID())
+			c.JSON(http.StatusBadRequest, types.NewResponseError(7, err))
+			return
 		}
 
-		allocation, err := ctx.Client().QueryAllocation(subscription.GetID(), req.AccAddress)
+		checkAllocation := true
+
+		switch s := subscription.(type) {
+		case *subscriptiontypes.NodeSubscription:
+			if s.Hours != 0 {
+				checkAllocation = false
+				if req.URI.AccAddress != s.Address {
+					err = fmt.Errorf("account address mismatch; expected %s, got %s", req.URI.AccAddress, s.Address)
+					c.JSON(http.StatusBadRequest, types.NewResponseError(8, err))
+					return
+				}
+			}
+		}
+
+		alloc, err := ctx.Client().QueryAllocation(subscription.GetID(), req.AccAddress)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
 			return
 		}
-		if allocation == nil {
-			err = fmt.Errorf("allocation for address %s does not exist", req.URI.AccAddress)
-			c.JSON(http.StatusNotFound, types.NewResponseError(8, err))
-			return
+
+		if alloc == nil {
+			if checkAllocation {
+				err = fmt.Errorf("allocation %d/%s does not exist", subscription.GetID(), req.AccAddress)
+				c.JSON(http.StatusNotFound, types.NewResponseError(8, err))
+				return
+			}
+
+			alloc = &subscriptiontypes.Allocation{
+				UtilisedBytes: sdk.ZeroInt(),
+				GrantedBytes:  sdk.NewInt(math.MaxInt64),
+			}
 		}
 
 		var items []types.Session
@@ -164,12 +189,12 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				return
 			}
 
-			allocation.UtilisedBytes = allocation.UtilisedBytes.
+			alloc.UtilisedBytes = alloc.UtilisedBytes.
 				Add(sdk.NewInt(items[i].Download + items[i].Upload))
 		}
 
-		if allocation.UtilisedBytes.GTE(allocation.GrantedBytes) {
-			err = fmt.Errorf("allocation exceeded; granted %s, utilised %s", allocation.GrantedBytes, allocation.UtilisedBytes)
+		if alloc.UtilisedBytes.GTE(alloc.GrantedBytes) {
+			err = fmt.Errorf("invalid allocation; granted bytes %s, utilised bytes %s", alloc.GrantedBytes, alloc.UtilisedBytes)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(10, err))
 			return
 		}
@@ -189,7 +214,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				Subscription: subscription.GetID(),
 				Key:          req.Body.Key,
 				Address:      req.URI.AccAddress,
-				Available:    allocation.GrantedBytes.Sub(allocation.UtilisedBytes).Int64(),
+				Available:    alloc.GrantedBytes.Sub(alloc.UtilisedBytes).Int64(),
 			},
 		)
 
