@@ -10,7 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.29.1
-	github.com/sentinel-official/hub v0.11.0-rc0
+	github.com/sentinel-official/hub v0.11.0-rc1
 	github.com/showwin/speedtest-go v1.6.3
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.7.0
@@ -18,7 +18,7 @@ require (
 	github.com/tendermint/tendermint v0.34.27
 	github.com/v2fly/v2ray-core/v5 v5.7.0
 	golang.org/x/crypto v0.11.0
-	google.golang.org/grpc v1.56.2
+	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0
 	gorm.io/driver/sqlite v1.5.2
 	gorm.io/gorm v1.25.2
@@ -40,10 +40,11 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.1-0.20220910012023-760eaf8b6816 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
-	github.com/bytedance/sonic v1.9.2 // indirect
+	github.com/bytedance/sonic v1.10.0-rc3 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
+	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/pebble v0.0.0-20220817183557-09c6e030a677 // indirect
@@ -164,9 +165,9 @@ require (
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
-	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20230711160842-782d3b101e98 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
+	google.golang.org/genproto v0.0.0-20230720185612-659f7aaaa771 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20230720185612-659f7aaaa771 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230726155614-23370e0ffb3e // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
