@@ -53,7 +53,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 		).First(&item)
 
 		if item.ID != 0 {
-			err = fmt.Errorf("peer %s for service already exist", req.Body.Key)
+			err = fmt.Errorf("key %s for service already exist", req.Body.Key)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(3, err))
 			return
 		}
