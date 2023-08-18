@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gin-gonic/gin"
 	hubtypes "github.com/sentinel-official/hub/types"
+	subscriptiontypes "github.com/sentinel-official/hub/x/subscription/types"
 
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/types"
@@ -51,7 +52,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 		).First(&item)
 
 		if item.ID != 0 {
-			err = fmt.Errorf("peer %s for service already exist", req.Body.Key)
+			err = fmt.Errorf("key %s for service already exist", req.Body.Key)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(3, err))
 			return
 		}
@@ -71,8 +72,14 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, types.NewResponseError(4, err))
 			return
 		}
-		if ok := account.GetPubKey().VerifySignature(sdk.Uint64ToBigEndian(req.URI.ID), req.Signature); !ok {
-			err = fmt.Errorf("failed to verify the signature %s", req.Signature)
+
+		var (
+			pubKey = account.GetPubKey()
+			msg    = sdk.Uint64ToBigEndian(req.URI.ID)
+		)
+
+		if ok := pubKey.VerifySignature(msg, req.Signature); !ok {
+			err = fmt.Errorf("invalid signature %s", req.Signature)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(4, err))
 			return
 		}
@@ -88,7 +95,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 		if !session.Status.Equal(hubtypes.StatusActive) {
-			err = fmt.Errorf("invalid status for session %d; expected %s, got %s", session.Id, hubtypes.StatusActive, session.Status)
+			err = fmt.Errorf("invalid status %s for session %d", session.Status, session.ID)
 			c.JSON(http.StatusNotFound, types.NewResponseError(5, err))
 			return
 		}
@@ -98,50 +105,96 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 
-		subscription, err := ctx.Client().QuerySubscription(session.Subscription)
+		subscription, err := ctx.Client().QuerySubscription(session.SubscriptionID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, types.NewResponseError(6, err))
 			return
 		}
 		if subscription == nil {
-			err = fmt.Errorf("subscription %d does not exist", session.Subscription)
+			err = fmt.Errorf("subscription %d does not exist", session.SubscriptionID)
 			c.JSON(http.StatusNotFound, types.NewResponseError(6, err))
 			return
 		}
-		if !subscription.Status.Equal(hubtypes.StatusActive) {
-			err = fmt.Errorf("invalid status for subscription %d; expected %s, got %s", subscription.Id, hubtypes.StatusActive, subscription.Status)
+		if !subscription.GetStatus().Equal(hubtypes.StatusActive) {
+			err = fmt.Errorf("invalid status %s for subscription %d", subscription.GetStatus(), subscription.GetID())
 			c.JSON(http.StatusBadRequest, types.NewResponseError(6, err))
 			return
 		}
 
-		if subscription.Plan == 0 {
-			if subscription.Node != ctx.Address().String() {
-				err = fmt.Errorf("node address mismatch; expected %s, got %s", ctx.Address(), subscription.Node)
+		switch s := subscription.(type) {
+		case *subscriptiontypes.NodeSubscription:
+			if s.NodeAddress != ctx.Address().String() {
+				err = fmt.Errorf("node address mismatch; expected %s, got %s", ctx.Address(), s.NodeAddress)
 				c.JSON(http.StatusBadRequest, types.NewResponseError(7, err))
 				return
 			}
-		} else {
-			ok, err := ctx.Client().HasNodeForPlan(subscription.Plan, ctx.Address())
+		case *subscriptiontypes.PlanSubscription:
+			exists, err := ctx.Client().HasNodeForPlan(s.PlanID, ctx.Address())
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, types.NewResponseError(7, err))
 				return
 			}
-			if !ok {
-				err = fmt.Errorf("node %s does not exist for plan %d", ctx.Address(), subscription.Plan)
+			if !exists {
+				err = fmt.Errorf("node %s does not exist for plan %d", ctx.Address(), s.PlanID)
 				c.JSON(http.StatusBadRequest, types.NewResponseError(7, err))
 				return
 			}
+		default:
+			err = fmt.Errorf("invalid type %T for subscription %d", s, subscription.GetID())
+			c.JSON(http.StatusBadRequest, types.NewResponseError(7, err))
+			return
 		}
 
-		quota, err := ctx.Client().QueryQuota(subscription.Id, req.AccAddress)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
-			return
+		var (
+			checkAllocation       = true
+			remainingBytes  int64 = 0
+		)
+
+		if s, ok := subscription.(*subscriptiontypes.NodeSubscription); ok {
+			if req.URI.AccAddress != s.Address {
+				err = fmt.Errorf("account address mismatch; expected %s, got %s", req.URI.AccAddress, s.Address)
+				c.JSON(http.StatusBadRequest, types.NewResponseError(8, err))
+				return
+			}
+			if s.Hours != 0 {
+				checkAllocation = false
+			}
 		}
-		if quota == nil {
-			err = fmt.Errorf("quota for address %s does not exist", req.URI.AccAddress)
-			c.JSON(http.StatusNotFound, types.NewResponseError(8, err))
-			return
+
+		if checkAllocation {
+			alloc, err := ctx.Client().QueryAllocation(subscription.GetID(), req.AccAddress)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
+				return
+			}
+			if alloc == nil {
+				err = fmt.Errorf("allocation %d/%s does not exist", subscription.GetID(), req.AccAddress)
+				c.JSON(http.StatusNotFound, types.NewResponseError(8, err))
+				return
+			}
+
+			var items []types.Session
+			ctx.Database().Model(
+				&types.Session{},
+			).Where(
+				&types.Session{
+					Subscription: subscription.GetID(),
+					Address:      req.URI.AccAddress,
+				},
+			).Find(&items)
+
+			for i := 0; i < len(items); i++ {
+				utilisedBytes := sdk.NewInt(items[i].Download + items[i].Upload)
+				alloc.UtilisedBytes = alloc.UtilisedBytes.Add(utilisedBytes)
+			}
+
+			if alloc.UtilisedBytes.GTE(alloc.GrantedBytes) {
+				err = fmt.Errorf("invalid allocation; granted bytes %s, utilised bytes %s", alloc.GrantedBytes, alloc.UtilisedBytes)
+				c.JSON(http.StatusBadRequest, types.NewResponseError(8, err))
+				return
+			}
+
+			remainingBytes = alloc.GrantedBytes.Sub(alloc.UtilisedBytes).Int64()
 		}
 
 		var items []types.Session
@@ -149,7 +202,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			&types.Session{},
 		).Where(
 			&types.Session{
-				Subscription: subscription.Id,
+				Subscription: subscription.GetID(),
 				Address:      req.URI.AccAddress,
 			},
 		).Find(&items)
@@ -159,30 +212,11 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, types.NewResponseError(9, err))
 				return
 			}
-
-			consumed := sdk.NewInt(items[i].Download + items[i].Upload)
-			if subscription.Plan == 0 {
-				quota.Consumed = quota.Consumed.Add(
-					hubtypes.NewBandwidth(
-						consumed, sdk.ZeroInt(),
-					).CeilTo(
-						hubtypes.Gigabyte.Quo(subscription.Price.Amount),
-					).Sum(),
-				)
-			} else {
-				quota.Consumed = quota.Consumed.Add(consumed)
-			}
-		}
-
-		if quota.Consumed.GTE(quota.Allocated) {
-			err = fmt.Errorf("quota exceeded; allocated %s, consumed %s", quota.Allocated, quota.Consumed)
-			c.JSON(http.StatusBadRequest, types.NewResponseError(10, err))
-			return
 		}
 
 		result, err := ctx.Service().AddPeer(req.Key)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, types.NewResponseError(11, err))
+			c.JSON(http.StatusInternalServerError, types.NewResponseError(10, err))
 			return
 		}
 		ctx.Log().Info("Added a new peer", "key", req.Body.Key, "count", ctx.Service().PeerCount())
@@ -192,10 +226,10 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 		).Create(
 			&types.Session{
 				ID:           req.URI.ID,
-				Subscription: subscription.Id,
+				Subscription: subscription.GetID(),
 				Key:          req.Body.Key,
 				Address:      req.URI.AccAddress,
-				Available:    quota.Allocated.Sub(quota.Consumed).Int64(),
+				Available:    remainingBytes,
 			},
 		)
 

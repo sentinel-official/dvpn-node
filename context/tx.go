@@ -15,8 +15,8 @@ func (c *Context) RegisterNode() error {
 	_, err := c.Client().Tx(
 		nodetypes.NewMsgRegisterRequest(
 			c.Operator(),
-			c.Provider(),
-			c.Price(),
+			c.GigabytePrices(),
+			c.HourlyPrices(),
 			c.RemoteURL(),
 		),
 	)
@@ -32,10 +32,10 @@ func (c *Context) UpdateNodeInfo() error {
 	c.Log().Info("Updating the node info...")
 
 	_, err := c.Client().Tx(
-		nodetypes.NewMsgUpdateRequest(
+		nodetypes.NewMsgUpdateDetailsRequest(
 			c.Address(),
-			c.Provider(),
-			c.Price(),
+			c.GigabytePrices(),
+			c.HourlyPrices(),
 			c.RemoteURL(),
 		),
 	)
@@ -51,7 +51,7 @@ func (c *Context) UpdateNodeStatus() error {
 	c.Log().Info("Updating the node status...")
 
 	_, err := c.Client().Tx(
-		nodetypes.NewMsgSetStatusRequest(
+		nodetypes.NewMsgUpdateStatusRequest(
 			c.Address(),
 			hubtypes.StatusActive,
 		),
@@ -70,10 +70,10 @@ func (c *Context) UpdateSessions(items ...types.Session) error {
 	messages := make([]sdk.Msg, 0, len(items))
 	for _, item := range items {
 		messages = append(messages,
-			sessiontypes.NewMsgUpdateRequest(
+			sessiontypes.NewMsgUpdateDetailsRequest(
 				c.Address(),
 				sessiontypes.Proof{
-					Id:        item.ID,
+					ID:        item.ID,
 					Duration:  item.UpdatedAt.Sub(item.CreatedAt),
 					Bandwidth: hubtypes.NewBandwidthFromInt64(item.Upload, item.Download),
 				},

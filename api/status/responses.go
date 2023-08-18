@@ -33,8 +33,8 @@ type (
 		Moniker                string        `json:"moniker"`
 		Operator               string        `json:"operator"`
 		Peers                  int           `json:"peers"`
-		Price                  string        `json:"price"`
-		Provider               string        `json:"provider"`
+		GigabytePrices         string        `json:"gigabyte_prices"`
+		HourlyPrices           string        `json:"hourly_prices"`
 		QOS                    *QOS          `json:"qos"`
 		Type                   uint64        `json:"type"`
 		Version                string        `json:"version"`

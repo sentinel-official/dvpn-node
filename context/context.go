@@ -68,25 +68,25 @@ func (c *Context) IPv4Address() net.IP {
 	return net.ParseIP(addr).To4()
 }
 
-func (c *Context) Provider() hubtypes.ProvAddress {
-	if c.Config().Node.Provider == "" {
+func (c *Context) GigabytePrices() sdk.Coins {
+	if c.Config().Node.GigabytePrices == "" {
 		return nil
 	}
 
-	address, err := hubtypes.ProvAddressFromBech32(c.Config().Node.Provider)
+	coins, err := sdk.ParseCoinsNormalized(c.Config().Node.GigabytePrices)
 	if err != nil {
 		panic(err)
 	}
 
-	return address
+	return coins
 }
 
-func (c *Context) Price() sdk.Coins {
-	if c.Config().Node.Price == "" {
+func (c *Context) HourlyPrices() sdk.Coins {
+	if c.Config().Node.HourlyPrices == "" {
 		return nil
 	}
 
-	coins, err := sdk.ParseCoinsNormalized(c.Config().Node.Price)
+	coins, err := sdk.ParseCoinsNormalized(c.Config().Node.HourlyPrices)
 	if err != nil {
 		panic(err)
 	}
