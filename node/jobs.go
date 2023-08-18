@@ -66,7 +66,7 @@ func (n *Node) jobSetSessions() error {
 				consumed  = sdk.NewInt(peers[i].Upload + peers[i].Download)
 			)
 
-			if consumed.GT(available) {
+			if available.IsPositive() && consumed.GT(available) {
 				n.Log().Info("Peer allocation exceeded", "key", item.Key)
 				if err = n.RemovePeer(item.Key); err != nil {
 					return err

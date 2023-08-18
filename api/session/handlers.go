@@ -2,7 +2,6 @@ package session
 
 import (
 	"fmt"
-	"math"
 	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -73,7 +72,13 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, types.NewResponseError(4, err))
 			return
 		}
-		if ok := account.GetPubKey().VerifySignature(sdk.Uint64ToBigEndian(req.URI.ID), req.Signature); !ok {
+
+		var (
+			pubKey = account.GetPubKey()
+			msg    = sdk.Uint64ToBigEndian(req.URI.ID)
+		)
+
+		if ok := pubKey.VerifySignature(msg, req.Signature); !ok {
 			err = fmt.Errorf("invalid signature %s", req.Signature)
 			c.JSON(http.StatusBadRequest, types.NewResponseError(4, err))
 			return
@@ -140,37 +145,56 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 			return
 		}
 
-		checkAllocation := true
+		var (
+			checkAllocation       = true
+			remainingBytes  int64 = 0
+		)
 
-		switch s := subscription.(type) {
-		case *subscriptiontypes.NodeSubscription:
+		if s, ok := subscription.(*subscriptiontypes.NodeSubscription); ok {
+			if req.URI.AccAddress != s.Address {
+				err = fmt.Errorf("account address mismatch; expected %s, got %s", req.URI.AccAddress, s.Address)
+				c.JSON(http.StatusBadRequest, types.NewResponseError(8, err))
+				return
+			}
 			if s.Hours != 0 {
 				checkAllocation = false
-				if req.URI.AccAddress != s.Address {
-					err = fmt.Errorf("account address mismatch; expected %s, got %s", req.URI.AccAddress, s.Address)
-					c.JSON(http.StatusBadRequest, types.NewResponseError(8, err))
-					return
-				}
 			}
 		}
 
-		alloc, err := ctx.Client().QueryAllocation(subscription.GetID(), req.AccAddress)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
-			return
-		}
-
-		if alloc == nil {
-			if checkAllocation {
+		if checkAllocation {
+			alloc, err := ctx.Client().QueryAllocation(subscription.GetID(), req.AccAddress)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
+				return
+			}
+			if alloc == nil {
 				err = fmt.Errorf("allocation %d/%s does not exist", subscription.GetID(), req.AccAddress)
 				c.JSON(http.StatusNotFound, types.NewResponseError(8, err))
 				return
 			}
 
-			alloc = &subscriptiontypes.Allocation{
-				UtilisedBytes: sdk.ZeroInt(),
-				GrantedBytes:  sdk.NewInt(math.MaxInt64),
+			var items []types.Session
+			ctx.Database().Model(
+				&types.Session{},
+			).Where(
+				&types.Session{
+					Subscription: subscription.GetID(),
+					Address:      req.URI.AccAddress,
+				},
+			).Find(&items)
+
+			for i := 0; i < len(items); i++ {
+				utilisedBytes := sdk.NewInt(items[i].Download + items[i].Upload)
+				alloc.UtilisedBytes = alloc.UtilisedBytes.Add(utilisedBytes)
 			}
+
+			if alloc.UtilisedBytes.GTE(alloc.GrantedBytes) {
+				err = fmt.Errorf("invalid allocation; granted bytes %s, utilised bytes %s", alloc.GrantedBytes, alloc.UtilisedBytes)
+				c.JSON(http.StatusBadRequest, types.NewResponseError(8, err))
+				return
+			}
+
+			remainingBytes = alloc.GrantedBytes.Sub(alloc.UtilisedBytes).Int64()
 		}
 
 		var items []types.Session
@@ -188,20 +212,11 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, types.NewResponseError(9, err))
 				return
 			}
-
-			alloc.UtilisedBytes = alloc.UtilisedBytes.
-				Add(sdk.NewInt(items[i].Download + items[i].Upload))
-		}
-
-		if alloc.UtilisedBytes.GTE(alloc.GrantedBytes) {
-			err = fmt.Errorf("invalid allocation; granted bytes %s, utilised bytes %s", alloc.GrantedBytes, alloc.UtilisedBytes)
-			c.JSON(http.StatusBadRequest, types.NewResponseError(10, err))
-			return
 		}
 
 		result, err := ctx.Service().AddPeer(req.Key)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, types.NewResponseError(11, err))
+			c.JSON(http.StatusInternalServerError, types.NewResponseError(10, err))
 			return
 		}
 		ctx.Log().Info("Added a new peer", "key", req.Body.Key, "count", ctx.Service().PeerCount())
@@ -214,7 +229,7 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				Subscription: subscription.GetID(),
 				Key:          req.Body.Key,
 				Address:      req.URI.AccAddress,
-				Available:    alloc.GrantedBytes.Sub(alloc.UtilisedBytes).Int64(),
+				Available:    remainingBytes,
 			},
 		)
 
