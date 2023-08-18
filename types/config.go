@@ -300,15 +300,17 @@ func (c *NodeConfig) Validate() error {
 	if len(c.Moniker) > MaxMonikerLength {
 		return fmt.Errorf("moniker length cannot be greater than %d", MaxMonikerLength)
 	}
-	if c.GigabytePrices != "" {
-		if _, err := sdk.ParseCoinsNormalized(c.GigabytePrices); err != nil {
-			return errors.Wrap(err, "invalid gigabyte_prices")
-		}
+	if c.GigabytePrices == "" {
+		return fmt.Errorf("gigabyte_prices cannot be empty")
 	}
-	if c.HourlyPrices != "" {
-		if _, err := sdk.ParseCoinsNormalized(c.HourlyPrices); err != nil {
-			return errors.Wrap(err, "invalid hourly_prices")
-		}
+	if _, err := sdk.ParseCoinsNormalized(c.GigabytePrices); err != nil {
+		return errors.Wrap(err, "invalid gigabyte_prices")
+	}
+	if c.HourlyPrices == "" {
+		return fmt.Errorf("hourly_prices cannot be empty")
+	}
+	if _, err := sdk.ParseCoinsNormalized(c.HourlyPrices); err != nil {
+		return errors.Wrap(err, "invalid hourly_prices")
 	}
 	if c.RemoteURL == "" {
 		return errors.New("remote_url cannot be empty")
