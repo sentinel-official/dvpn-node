@@ -983,6 +983,8 @@ github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb h1:XfLJSPIO
 github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb/go.mod h1:bR6DqgcAl1zTcOX8/pE2Qkj9XO00eCNqmKb7lXP8EAg=
 github.com/sentinel-official/hub v0.11.1 h1:PgRXI645oA0At4Q4cKOw8hH7YgSuCqPnMhhx00vNh/s=
 github.com/sentinel-official/hub v0.11.1/go.mod h1:ZSjGGtuYXjAGI7QrcykklYulylQqLnsXmHxdlYX+9uA=
+github.com/sentinel-official/hub v0.11.3 h1:WTKXheShzIOD1Y4OfS07sSFG1GICLUdofj1eM3fXDEQ=
+github.com/sentinel-official/hub v0.11.3/go.mod h1:GVIozHYdQN7HQRtjfv/i0eXFW1PVeMCES8xI4OFzXHw=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
 github.com/sergi/go-diff v1.1.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
 github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
