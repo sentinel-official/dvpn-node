@@ -1,6 +1,6 @@
 module github.com/sentinel-official/dvpn-node
 
-go 1.20
+go 1.21
 
 require (
 	github.com/avast/retry-go/v4 v4.5.1
