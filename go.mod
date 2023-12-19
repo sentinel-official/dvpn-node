@@ -17,7 +17,7 @@ require (
 	github.com/spf13/viper v1.18.1
 	github.com/tendermint/tendermint v0.34.27
 	github.com/v2fly/v2ray-core/v5 v5.13.0
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 	google.golang.org/grpc v1.60.0
 	google.golang.org/protobuf v1.31.0
 	gorm.io/driver/sqlite v1.5.4
