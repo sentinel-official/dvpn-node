@@ -14,7 +14,7 @@ require (
 	github.com/showwin/speedtest-go v1.6.9
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.8.0
-	github.com/spf13/viper v1.18.1
+	github.com/spf13/viper v1.18.2
 	github.com/tendermint/tendermint v0.34.27
 	github.com/v2fly/v2ray-core/v5 v5.13.0
 	golang.org/x/crypto v0.17.0
