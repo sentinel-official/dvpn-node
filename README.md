@@ -8,4 +8,4 @@
 [![Tag](https://img.shields.io/github/tag/sentinel-official/dvpn-node.svg)](https://github.com/sentinel-official/dvpn-node/releases/latest)
 [![TotalLines](https://img.shields.io/tokei/lines/github/sentinel-official/dvpn-node)]()
 
-For documentation click [here](https://docs.sentinel.co/dVPN-node/setup "here")
+For documentation click [here](https://docs.sentinel.co/node-setup)

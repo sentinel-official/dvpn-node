@@ -27,7 +27,7 @@ func NewResponse(err interface{}, res interface{}) *Response {
 }
 
 func NewResponseError(code int, v interface{}) *Response {
-	message := ""
+	message := "unknown error"
 	if m, ok := v.(string); ok {
 		message = m
 	} else if m, ok := v.(error); ok {

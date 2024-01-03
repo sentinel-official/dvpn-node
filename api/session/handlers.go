@@ -2,6 +2,7 @@ package session
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -194,7 +195,12 @@ func HandlerAddSession(ctx *context.Context) gin.HandlerFunc {
 				return
 			}
 
-			remainingBytes = alloc.GrantedBytes.Sub(alloc.UtilisedBytes).Int64()
+			diff := alloc.GrantedBytes.Sub(alloc.UtilisedBytes)
+			if diff.IsInt64() {
+				remainingBytes = diff.Int64()
+			} else {
+				remainingBytes = math.MaxInt64
+			}
 		}
 
 		var items []types.Session
