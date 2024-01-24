@@ -222,7 +222,7 @@ func StartCmd() *cobra.Command {
 				return err
 			}
 
-			return n.Start()
+			return n.Start(home)
 		},
 	}
 

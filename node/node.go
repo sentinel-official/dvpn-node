@@ -3,9 +3,6 @@ package node
 import (
 	"path"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/spf13/viper"
-
 	"github.com/sentinel-official/dvpn-node/context"
 	"github.com/sentinel-official/dvpn-node/utils"
 )
@@ -33,7 +30,7 @@ func (n *Node) Initialize() error {
 	return n.UpdateNodeInfo()
 }
 
-func (n *Node) Start() error {
+func (n *Node) Start(home string) error {
 	go func() {
 		if err := n.jobSetSessions(); err != nil {
 			panic(err)
@@ -53,8 +50,8 @@ func (n *Node) Start() error {
 	}()
 
 	var (
-		certFile = path.Join(viper.GetString(flags.FlagHome), "tls.crt")
-		keyFile  = path.Join(viper.GetString(flags.FlagHome), "tls.key")
+		certFile = path.Join(home, "tls.crt")
+		keyFile  = path.Join(home, "tls.key")
 	)
 
 	return utils.ListenAndServeTLS(
