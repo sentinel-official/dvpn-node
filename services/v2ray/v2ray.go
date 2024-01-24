@@ -24,10 +24,11 @@ import (
 
 	v2raytypes "github.com/sentinel-official/dvpn-node/services/v2ray/types"
 	"github.com/sentinel-official/dvpn-node/types"
+	"github.com/sentinel-official/dvpn-node/utils"
 )
 
 const (
-	InfoLen = 2 + 1
+	InfoLen = 2 + 1 + 1
 )
 
 var (
@@ -74,6 +75,12 @@ func (s *V2Ray) Init(home string) (err error) {
 		return err
 	}
 
+	if s.config.VMess.TLS {
+		s.config.VMess.Security = "tls"
+	}
+	s.config.VMess.TLSCertPath = filepath.Join(home, "tls.crt")
+	s.config.VMess.TLSKeyPath = filepath.Join(home, "tls.key")
+
 	t, err := template.New("v2ray_json").Parse(configTemplate)
 	if err != nil {
 		return err
@@ -90,6 +97,7 @@ func (s *V2Ray) Init(home string) (err error) {
 	binary.BigEndian.PutUint16(s.info[0:], s.config.VMess.ListenPort)
 	transport := v2raytypes.NewTransportFromString(s.config.VMess.Transport)
 	s.info[2] = transport.Byte()
+	s.info[3] = utils.ByteFromBool(s.config.VMess.TLS)
 
 	return nil
 }
