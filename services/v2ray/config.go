@@ -28,7 +28,17 @@ var (
             "port": "{{ .VMess.ListenPort }}",
             "protocol": "vmess",
             "streamSettings": {
-                "network": "{{ .VMess.Transport }}"
+                "network": "{{ .VMess.Transport }}",
+                "security": "{{ .VMess.Security }}",
+                "tlsSettings": {
+                    "allowInsecure": true,
+                    "certificates": [
+                        {
+                            "certificateFile": "{{ .VMess.TLSCertPath }}",
+                            "keyFile": "{{ .VMess.TLSKeyPath }}"
+                        }
+                    ]
+                }
             },
             "tag": "vmess"
         }
