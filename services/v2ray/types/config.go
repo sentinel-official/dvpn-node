@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"text/template"
@@ -18,6 +19,9 @@ var (
 # Port number to accept the incoming connections
 listen_port = {{ .VMess.ListenPort }}
 
+# Enable or disable TLS for secure connections
+tls = {{ .VMess.TLS }}
+
 # Name of the transport protocol
 transport = "{{ .VMess.Transport }}"
 	`)
@@ -33,7 +37,12 @@ transport = "{{ .VMess.Transport }}"
 )
 
 type VMessConfig struct {
+	Security    string `json:"security"`
+	TLSCertPath string `json:"tls_cert_path"`
+	TLSKeyPath  string `json:"tls_key_path"`
+
 	ListenPort uint16 `json:"listen_port" mapstructure:"listen_port"`
+	TLS        bool   `json:"tls" mapstructure:"tls"`
 	Transport  string `json:"transport" mapstructure:"transport"`
 }
 
@@ -43,6 +52,7 @@ func NewVMessConfig() *VMessConfig {
 
 func (c *VMessConfig) WithDefaultValues() *VMessConfig {
 	c.ListenPort = utils.RandomPort()
+	c.TLS = false
 	c.Transport = "grpc"
 
 	return c
@@ -58,7 +68,7 @@ func (c *VMessConfig) Validate() error {
 
 	t := NewTransportFromString(c.Transport)
 	if !t.IsValid() {
-		return errors.New("invalid transport")
+		return fmt.Errorf("invalid transport %s", c.Transport)
 	}
 
 	return nil
