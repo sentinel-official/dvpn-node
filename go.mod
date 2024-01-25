@@ -19,7 +19,7 @@ require (
 	github.com/v2fly/v2ray-core/v5 v5.13.0
 	golang.org/x/crypto v0.18.0
 	google.golang.org/grpc v1.61.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	gorm.io/driver/sqlite v1.5.4
 	gorm.io/gorm v1.25.5
 )
