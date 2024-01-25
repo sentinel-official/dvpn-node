@@ -105,6 +105,10 @@ func (s *V2Ray) Init(home string) (err error) {
 func (s *V2Ray) Start() error {
 	s.cmd = exec.Command("v2ray", strings.Split(
 		fmt.Sprintf("run --config %s", s.configFilePath()), " ")...)
+
+	s.cmd.Env = os.Environ()
+	s.cmd.Env = append(s.cmd.Env, "V2RAY_VMESS_AEAD_FORCED=false")
+
 	s.cmd.Stdout = os.Stdout
 	s.cmd.Stderr = os.Stderr
 
