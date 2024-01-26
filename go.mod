@@ -10,7 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.31.0
-	github.com/sentinel-official/hub v0.11.3
+	github.com/sentinel-official/hub v0.11.5
 	github.com/showwin/speedtest-go v1.6.10
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.8.0
@@ -158,8 +158,8 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e // indirect
-	github.com/zondax/hid v0.9.1 // indirect
-	github.com/zondax/ledger-go v0.14.1 // indirect
+	github.com/zondax/hid v0.9.2 // indirect
+	github.com/zondax/ledger-go v0.14.3 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.6.0 // indirect
