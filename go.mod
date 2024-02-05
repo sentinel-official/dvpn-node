@@ -9,7 +9,7 @@ require (
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.32.0
 	github.com/sentinel-official/hub v0.11.3
 	github.com/showwin/speedtest-go v1.6.10
 	github.com/soheilhy/cmux v0.1.5
