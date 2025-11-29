@@ -5,7 +5,7 @@ import (
 )
 
 // applyQuery applies the given query to the GORM DB instance.
-func applyQuery(db *gorm.DB, query map[string]interface{}) *gorm.DB {
+func applyQuery(db *gorm.DB, query map[string]any) *gorm.DB {
 	if len(query) > 0 {
 		return db.Where(query)
 	}

@@ -44,7 +44,7 @@ func SessionInsertMany(db *gorm.DB, sessions []models.Session) error {
 }
 
 // SessionFindOne retrieves a single session record from the database based on the provided query.
-func SessionFindOne(db *gorm.DB, query map[string]interface{}) (session *models.Session, err error) {
+func SessionFindOne(db *gorm.DB, query map[string]any) (session *models.Session, err error) {
 	db = applyQuery(db, query)
 	if err := db.First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -58,7 +58,7 @@ func SessionFindOne(db *gorm.DB, query map[string]interface{}) (session *models.
 }
 
 // SessionFind retrieves multiple session records from the database based on the provided query.
-func SessionFind(db *gorm.DB, query map[string]interface{}) (sessions []models.Session, err error) {
+func SessionFind(db *gorm.DB, query map[string]any) (sessions []models.Session, err error) {
 	db = applyQuery(db, query)
 	if err := db.Find(&sessions).Error; err != nil {
 		return nil, fmt.Errorf("finding sessions with query %v: %w", query, err)
@@ -68,7 +68,7 @@ func SessionFind(db *gorm.DB, query map[string]interface{}) (sessions []models.S
 }
 
 // SessionFindOneAndUpdate finds a single session record based on the provided query and updates it with the provided updates.
-func SessionFindOneAndUpdate(db *gorm.DB, query, updates map[string]interface{}) (session *models.Session, err error) {
+func SessionFindOneAndUpdate(db *gorm.DB, query, updates map[string]any) (session *models.Session, err error) {
 	fn := func(db *gorm.DB) error {
 		session, err = SessionFindOne(db, query)
 		if err != nil {
@@ -94,7 +94,7 @@ func SessionFindOneAndUpdate(db *gorm.DB, query, updates map[string]interface{})
 }
 
 // SessionUpdateMany updates multiple session records based on the provided query and updates them with the provided updates.
-func SessionUpdateMany(db *gorm.DB, query map[string]interface{}, updates map[string]interface{}) error {
+func SessionUpdateMany(db *gorm.DB, query map[string]any, updates map[string]any) error {
 	fn := func(db *gorm.DB) error {
 		db = applyQuery(db, query)
 		if err := db.Model(&models.Session{}).Updates(updates).Error; err != nil {
@@ -112,7 +112,7 @@ func SessionUpdateMany(db *gorm.DB, query map[string]interface{}, updates map[st
 }
 
 // SessionFindOneAndDelete finds a single session record based on the provided query and deletes it.
-func SessionFindOneAndDelete(db *gorm.DB, query map[string]interface{}) (session *models.Session, err error) {
+func SessionFindOneAndDelete(db *gorm.DB, query map[string]any) (session *models.Session, err error) {
 	fn := func(db *gorm.DB) error {
 		session, err = SessionFindOne(db, query)
 		if err != nil {
@@ -138,7 +138,7 @@ func SessionFindOneAndDelete(db *gorm.DB, query map[string]interface{}) (session
 }
 
 // SessionDeleteMany deletes multiple session records based on the provided query.
-func SessionDeleteMany(db *gorm.DB, query map[string]interface{}) error {
+func SessionDeleteMany(db *gorm.DB, query map[string]any) error {
 	fn := func(db *gorm.DB) error {
 		db = applyQuery(db, query)
 		if err := db.Model(&models.Session{}).Delete(nil).Error; err != nil {

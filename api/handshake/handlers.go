@@ -39,7 +39,7 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 		}
 
 		// Check if a session already exists by ID.
-		query := map[string]interface{}{
+		query := map[string]any{
 			"id": req.Body.ID,
 		}
 
@@ -60,7 +60,7 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 
 		// Check if a session already exists by peer request data.
 		peerReqStr := base64.StdEncoding.EncodeToString(req.PeerRequest())
-		query = map[string]interface{}{
+		query = map[string]any{
 			"peer_request": peerReqStr,
 		}
 

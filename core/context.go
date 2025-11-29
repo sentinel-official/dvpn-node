@@ -157,6 +157,10 @@ func (c *Context) Location() *geoip.Location {
 	c.fm.RLock()
 	defer c.fm.RUnlock()
 
+	if c.location == nil {
+		return &geoip.Location{}
+	}
+
 	return c.location
 }
 
