@@ -23,7 +23,7 @@ func New(file string, cfg *gorm.Config) (*gorm.DB, error) {
 	}
 
 	// List of models to be migrated.
-	items := []interface{}{
+	items := []any{
 		&models.Session{},
 	}
 

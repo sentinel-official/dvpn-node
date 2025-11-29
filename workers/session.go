@@ -32,7 +32,7 @@ func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Dura
 
 	handlerFunc := func(ctx context.Context) error {
 		// Retrieve session records from the database.
-		query := map[string]interface{}{
+		query := map[string]any{
 			"node_addr": c.NodeAddr().String(),
 		}
 
@@ -160,12 +160,12 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 				txBytes := math.NewInt(item.TxBytes).String()
 
 				// Define query to find the session by peer id.
-				query := map[string]interface{}{
+				query := map[string]any{
 					"peer_id": peerID,
 				}
 
 				// Define updates to apply to the session record.
-				updates := map[string]interface{}{
+				updates := map[string]any{
 					"rx_bytes": rxBytes,
 					"tx_bytes": txBytes,
 				}
@@ -203,7 +203,7 @@ func NewSessionUsageValidateWorker(c *core.Context, interval time.Duration) cron
 
 	handlerFunc := func(ctx context.Context) error {
 		// Retrieve session records from the database.
-		query := map[string]interface{}{
+		query := map[string]any{
 			"node_addr":    c.NodeAddr().String(),
 			"service_type": c.Service().Type().String(),
 		}
@@ -285,7 +285,7 @@ func NewSessionValidateWorker(c *core.Context, interval time.Duration) cron.Work
 
 	handlerFunc := func(ctx context.Context) error {
 		// Retrieve session records from the database.
-		query := map[string]interface{}{
+		query := map[string]any{
 			"node_addr": c.NodeAddr().String(),
 		}
 
@@ -375,7 +375,7 @@ func NewSessionValidateWorker(c *core.Context, interval time.Duration) cron.Work
 
 					// Delete the session record from the database if not found on the blockchain.
 					if remove {
-						query := map[string]interface{}{
+						query := map[string]any{
 							"id": item.GetID(),
 						}
 
