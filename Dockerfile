@@ -40,7 +40,7 @@ RUN git clone --branch=master --depth=1 https://github.com/handshake-org/hnsd.gi
     make --jobs=$(nproc)
 
 # Runtime stage
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Install runtime dependencies
 RUN apk add --no-cache \
