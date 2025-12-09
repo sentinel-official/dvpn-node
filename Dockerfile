@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine3.22 AS build
+FROM golang:1.25-alpine3.23 AS build
 
 # Set working directory
 WORKDIR /root
@@ -40,7 +40,7 @@ RUN git clone --branch=master --depth=1 https://github.com/handshake-org/hnsd.gi
     make --jobs=$(nproc)
 
 # Runtime stage
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Install runtime dependencies
 RUN apk add --no-cache \
