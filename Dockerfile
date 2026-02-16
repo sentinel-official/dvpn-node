@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine3.23 AS build
+FROM golang:1.26-alpine3.23 AS build
 
 # Set working directory
 WORKDIR /root
