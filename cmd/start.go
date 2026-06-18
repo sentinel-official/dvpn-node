@@ -76,7 +76,7 @@ explicitly starts the node, and handles SIGINT/SIGTERM for graceful shutdown.`,
 				log.Info("Stopping node")
 
 				if err := n.Stop(); err != nil {
-					return app.NewErrShutdown(fmt.Errorf("stopping node: %w", err))
+					return app.NewErrStop(fmt.Errorf("stopping node: %w", err))
 				}
 
 				log.Info("Node stopped successfully")

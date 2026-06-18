@@ -1,20 +1,82 @@
 package info
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
+	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
 	"github.com/sentinel-official/sentinel-go-sdk/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/version"
+	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 )
 
+func getMetadata(c *core.Context) (any, error) {
+	switch c.Service().Type() {
+	case types.ServiceTypeOpenVPN:
+		items, ok := c.Service().Metadata().([]*openvpn.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement openvpn.ServerMetadata")
+		}
+
+		var md []*openvpn.ServerMetadata
+		for _, v := range items {
+			md = append(md, &openvpn.ServerMetadata{
+				Protocol: v.Protocol,
+			})
+		}
+
+		return md, nil
+	case types.ServiceTypeV2Ray:
+		items, ok := c.Service().Metadata().([]*v2ray.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement v2ray.ServerMetadata")
+		}
+
+		var md []*v2ray.ServerMetadata
+		for _, v := range items {
+			md = append(md, &v2ray.ServerMetadata{
+				ProxyProtocol:     v.ProxyProtocol,
+				TransportProtocol: v.TransportProtocol,
+				TransportSecurity: v.TransportSecurity,
+			})
+		}
+
+		return md, nil
+	case types.ServiceTypeWireGuard:
+		items, ok := c.Service().Metadata().([]*wireguard.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement wireguard.ServerMetadata")
+		}
+
+		var md []*wireguard.ServerMetadata
+		for range items {
+			md = append(md, &wireguard.ServerMetadata{})
+		}
+
+		return md, nil
+	default:
+		return nil, errors.New("unknown service type")
+	}
+}
+
 // handlerGetInfo returns a handler function to retrieve node information.
 func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		metadata, err := getMetadata(c)
+		if err != nil {
+			err = fmt.Errorf("parsing metadata: %w", err)
+			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(1, err))
+
+			return
+		}
+
 		dlSpeed, ulSpeed := c.SpeedtestResults()
 		loc := c.Location()
 
@@ -30,11 +92,12 @@ func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 				Latitude:    loc.Latitude,
 				Longitude:   loc.Longitude,
 			},
-			Moniker:     c.Moniker(),
-			Peers:       c.Service().PeersLen(),
-			ServiceType: c.Service().Type().String(),
-			Uplink:      dlSpeed.String(),
-			Version:     version.Get(),
+			Moniker:         c.Moniker(),
+			Peers:           c.Service().PeersLen(),
+			ServiceType:     c.Service().Type().String(),
+			ServiceMetadata: metadata,
+			Uplink:          dlSpeed.String(),
+			Version:         version.Get(),
 		}
 
 		// Send the result as a JSON response with HTTP status 200.
