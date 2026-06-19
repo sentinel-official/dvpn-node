@@ -25,8 +25,9 @@ RUN apk add --no-cache \
 # External dependencies are provisioned before the application source is copied
 # so that changes to the source do not invalidate these expensive layers.
 
-# Build hnsd
-RUN git clone --branch=master --depth=1 https://github.com/handshake-org/hnsd.git && \
+# Build hnsd (pinned for reproducibility).
+ARG HNSD_VERSION=v2.0.0
+RUN git clone --branch="${HNSD_VERSION}" --depth=1 https://github.com/handshake-org/hnsd.git && \
     cd ./hnsd && \
     ./autogen.sh && \
     ./configure && \

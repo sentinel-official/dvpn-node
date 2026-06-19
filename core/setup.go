@@ -182,6 +182,7 @@ func (c *Context) Setup(ctx context.Context, cfg *config.Config) error {
 	c.WithAPIAddrs(cfg.Node.APIAddrs())
 	c.WithAPIListenAddr(cfg.Node.APIListenAddr())
 	c.WithGigabytePrices(cfg.Node.GetGigabytePrices())
+	c.WithHandshakeDNS(cfg.HandshakeDNS.GetEnable())
 	c.WithHourlyPrices(cfg.Node.GetHourlyPrices())
 	c.WithMaxPeers(cfg.QoS.GetMaxPeers())
 	c.WithMoniker(cfg.Node.GetMoniker())

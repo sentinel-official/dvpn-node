@@ -2,20 +2,27 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/gin/middlewares"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/types"
+	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
 
 	"github.com/sentinel-official/sentinel-dvpnx/api"
 	"github.com/sentinel-official/sentinel-dvpnx/config"
 	"github.com/sentinel-official/sentinel-dvpnx/core"
+	"github.com/sentinel-official/sentinel-dvpnx/hnsd"
 	"github.com/sentinel-official/sentinel-dvpnx/workers"
 )
 
@@ -99,6 +106,73 @@ func (n *Node) SetupServer(ctx context.Context, _ *config.Config) error {
 	return nil
 }
 
+// SetupHandshakeDNS constructs and attaches the hnsd daemon when Handshake DNS is enabled.
+func (n *Node) SetupHandshakeDNS(ctx context.Context, cfg *config.Config) error {
+	if !cfg.HandshakeDNS.GetEnable() {
+		return nil
+	}
+
+	gateway, err := serviceGatewayAddr(cfg)
+	if err != nil {
+		return fmt.Errorf("resolving service gateway addr: %w", err)
+	}
+
+	rsHost := net.JoinHostPort(gateway, "53")
+
+	log.Info("Initializing Handshake DNS",
+		"rs_host", rsHost,
+		"pool_size", cfg.HandshakeDNS.GetPeers(),
+		"max_restarts", cfg.HandshakeDNS.GetMaxRestarts(),
+	)
+
+	d := hnsd.New("hnsd", rsHost, cfg.HandshakeDNS.GetPeers(), cfg.HandshakeDNS.GetMaxRestarts())
+	if err := d.Setup(ctx); err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	n.WithHandshakeDNS(d)
+
+	return nil
+}
+
+// serviceGatewayAddr returns the tunnel gateway IP of the configured WireGuard or
+// AmneziaWG service, preferring IPv4 and falling back to IPv6.
+func serviceGatewayAddr(cfg *config.Config) (string, error) {
+	var ipv4Addr, ipv6Addr string
+
+	switch cfg.Node.GetServiceType() {
+	case types.ServiceTypeWireGuard:
+		v := cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)
+		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
+	case types.ServiceTypeAmneziaWG:
+		v := cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)
+		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
+	default:
+		return "", fmt.Errorf("unsupported service type %q", cfg.Node.GetServiceType())
+	}
+
+	return gatewayHost(ipv4Addr, ipv6Addr)
+}
+
+// gatewayHost extracts the gateway host from CIDR-notation addresses, preferring IPv4.
+func gatewayHost(ipv4Addr, ipv6Addr string) (string, error) {
+	addr := ipv4Addr
+	if addr == "" {
+		addr = ipv6Addr
+	}
+
+	if addr == "" {
+		return "", errors.New("service has no ipv4 or ipv6 addr configured")
+	}
+
+	prefix, err := netip.ParsePrefix(addr)
+	if err != nil {
+		return "", fmt.Errorf("parsing addr %q: %w", addr, err)
+	}
+
+	return prefix.Addr().String(), nil
+}
+
 // SetupContext sets up the core context.
 func (n *Node) SetupContext(ctx context.Context, homeDir string, input io.Reader, cfg *config.Config) error {
 	log.Info("Initializing context")
@@ -138,6 +212,12 @@ func (n *Node) Setup(ctx context.Context, homeDir string, input io.Reader, cfg *
 
 		if err := n.SetupServer(ctx, cfg); err != nil {
 			return fmt.Errorf("setting up API server: %w", err)
+		}
+
+		log.Info("Setting up Handshake DNS")
+
+		if err := n.SetupHandshakeDNS(ctx, cfg); err != nil {
+			return fmt.Errorf("setting up Handshake DNS: %w", err)
 		}
 
 		return nil

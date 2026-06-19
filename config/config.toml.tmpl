@@ -139,6 +139,10 @@ enable = {{ .HandshakeDNS.Enable }}
 # Example: 12
 peers = {{ .HandshakeDNS.Peers }}
 
+# Maximum number of times hnsd is restarted after an unexpected exit before the
+# node itself is stopped. Set to 0 to disable restarts, or -1 for unlimited.
+max_restarts = {{ .HandshakeDNS.MaxRestarts }}
+
 # Node Configuration
 [node]
 

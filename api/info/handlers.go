@@ -136,7 +136,7 @@ func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 		res := &node.GetInfoResult{
 			Addr:         c.NodeAddr().String(),
 			Downlink:     ulSpeed.String(),
-			HandshakeDNS: false,
+			HandshakeDNS: c.HandshakeDNS(),
 			Location: &geoip.Location{
 				City:        loc.City,
 				Country:     loc.Country,
