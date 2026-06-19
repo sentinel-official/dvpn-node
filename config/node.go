@@ -276,9 +276,12 @@ func (c *NodeConfig) Validate() error {
 		types.ServiceTypeV2Ray.String():     true,
 		types.ServiceTypeWireGuard.String(): true,
 		types.ServiceTypeOpenVPN.String():   true,
+		types.ServiceTypeAmneziaWG.String(): true,
+		types.ServiceTypeHysteria2.String(): true,
+		types.ServiceTypeXray.String():      true,
 	}
 	if !validServiceTypes[c.ServiceType] {
-		return fmt.Errorf("unsupported service_type %q (allowed: v2ray, wireguard, openvpn)", c.ServiceType)
+		return fmt.Errorf("unsupported service_type %q (allowed: v2ray, wireguard, openvpn, amneziawg, hysteria2, xray)", c.ServiceType)
 	}
 
 	return nil
@@ -300,7 +303,7 @@ func (c *NodeConfig) SetForFlags(f *pflag.FlagSet) {
 	f.StringVar(&c.IntervalStatusUpdate, "node.interval-status-update", c.IntervalStatusUpdate, "interval for updating node status")
 	f.StringVar(&c.Moniker, "node.moniker", c.Moniker, "moniker (identifier) for the node")
 	f.StringSliceVar(&c.RemoteAddrs, "node.remote-addrs", c.RemoteAddrs, "list of remote addresses for the node")
-	f.StringVar(&c.ServiceType, "node.service-type", c.ServiceType, "service type of the node (e.g., v2ray, wireguard, openvpn)")
+	f.StringVar(&c.ServiceType, "node.service-type", c.ServiceType, "service type of the node (e.g., v2ray, wireguard, openvpn, amneziawg, hysteria2, xray)")
 }
 
 // DefaultNodeConfig returns a NodeConfig instance with default values.
@@ -329,7 +332,10 @@ func randServiceType() types.ServiceType {
 		types.ServiceTypeWireGuard,
 		types.ServiceTypeV2Ray,
 		types.ServiceTypeOpenVPN,
-	}[rand.IntN(3)]
+		types.ServiceTypeAmneziaWG,
+		types.ServiceTypeHysteria2,
+		types.ServiceTypeXray,
+	}[rand.IntN(6)]
 }
 
 func randMoniker() string {
