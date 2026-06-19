@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
 	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
@@ -13,6 +15,7 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/version"
 	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/xray"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 )
@@ -58,6 +61,55 @@ func getMetadata(c *core.Context) (any, error) {
 		var md []*wireguard.ServerMetadata
 		for range items {
 			md = append(md, &wireguard.ServerMetadata{})
+		}
+
+		return md, nil
+	case types.ServiceTypeAmneziaWG:
+		items, ok := c.Service().Metadata().([]*amneziawg.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement amneziawg.ServerMetadata")
+		}
+
+		var md []*amneziawg.ServerMetadata
+		for range items {
+			md = append(md, &amneziawg.ServerMetadata{})
+		}
+
+		return md, nil
+	case types.ServiceTypeHysteria2:
+		items, ok := c.Service().Metadata().([]*hysteria2.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement hysteria2.ServerMetadata")
+		}
+
+		var md []*hysteria2.ServerMetadata
+		for _, v := range items {
+			obfsPassword := v.ObfsPassword
+			if obfsPassword != "" {
+				obfsPassword = "<redacted>"
+			}
+
+			md = append(md, &hysteria2.ServerMetadata{
+				ObfsPassword: obfsPassword,
+			})
+		}
+
+		return md, nil
+	case types.ServiceTypeXray:
+		items, ok := c.Service().Metadata().([]*xray.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement xray.ServerMetadata")
+		}
+
+		var md []*xray.ServerMetadata
+		for _, v := range items {
+			md = append(md, &xray.ServerMetadata{
+				ProxyProtocol:     v.ProxyProtocol,
+				TransportProtocol: v.TransportProtocol,
+				TransportSecurity: v.TransportSecurity,
+				Flow:              v.Flow,
+				Method:            v.Method,
+			})
 		}
 
 		return md, nil
