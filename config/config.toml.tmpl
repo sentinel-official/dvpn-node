@@ -230,7 +230,7 @@ remote_addrs = [{{ range $i, $addr := .Node.RemoteAddrs }}{{ if $i }}, {{ end }}
 
 # Type of VPN or proxy service protocol this node provides.
 # Each type has different capabilities, security features, and client compatibility.
-# Allowed: openvpn, v2ray, wireguard
+# Allowed: amneziawg, hysteria2, openvpn, v2ray, wireguard, xray
 # Example: "wireguard"
 service_type = "{{ .Node.ServiceType }}"
 
