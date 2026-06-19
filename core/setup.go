@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/core"
+	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/oracle"
@@ -13,6 +15,7 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/xray"
 
 	"github.com/sentinel-official/sentinel-dvpnx/config"
 	"github.com/sentinel-official/sentinel-dvpnx/database"
@@ -140,6 +143,12 @@ func (c *Context) SetupService(ctx context.Context, cfg *config.Config) error {
 		service = wireguard.NewServer("wireguard", c.HomeDir(), cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig))
 	case types.ServiceTypeOpenVPN:
 		service = openvpn.NewServer("openvpn", c.HomeDir(), cfg.Services[types.ServiceTypeOpenVPN].(*openvpn.ServerConfig))
+	case types.ServiceTypeAmneziaWG:
+		service = amneziawg.NewServer("amneziawg", c.HomeDir(), cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig))
+	case types.ServiceTypeHysteria2:
+		service = hysteria2.NewServer("hysteria2", c.HomeDir(), cfg.Services[types.ServiceTypeHysteria2].(*hysteria2.ServerConfig))
+	case types.ServiceTypeXray:
+		service = xray.NewServer("xray", c.HomeDir(), cfg.Services[types.ServiceTypeXray].(*xray.ServerConfig))
 	case types.ServiceTypeUnspecified:
 		return errors.New("unspecified service type")
 	default:
