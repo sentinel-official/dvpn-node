@@ -13,8 +13,8 @@ import (
 // New initializes a new database connection with the specified file path and configuration.
 // It also performs migrations to ensure the database schema is up to date with the models.
 func New(file string, cfg *gorm.Config) (*gorm.DB, error) {
-	// Build the SQLite DSN
-	dsn := file + "?_busy_timeout=5000&_journal_mode=WAL"
+	// Build the SQLite DSN; _foreign_keys=on enables FK enforcement so OnDelete:CASCADE works.
+	dsn := file + "?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on"
 
 	// Open a database connection using the provided filepath and configuration.
 	db, err := gorm.Open(sqlite.Open(dsn), cfg)
@@ -22,9 +22,23 @@ func New(file string, cfg *gorm.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("opening database file %q: %w", file, err)
 	}
 
-	// List of models to be migrated.
+	// Detect legacy schema: sessions exists but session_peers does not yet exist.
+	// Drop both tables so AutoMigrate recreates them fresh (destructive recreate).
+	// Session data is ephemeral — the session-validate worker re-syncs from chain.
+	if db.Migrator().HasTable(&models.Session{}) && !db.Migrator().HasTable(&models.SessionPeer{}) {
+		for _, name := range []string{"session_peers", "sessions"} {
+			if db.Migrator().HasTable(name) {
+				if err := db.Migrator().DropTable(name); err != nil {
+					return nil, fmt.Errorf("dropping legacy table %q: %w", name, err)
+				}
+			}
+		}
+	}
+
+	// List of models to be migrated; Session must come before SessionPeer (FK dependency).
 	items := []any{
 		&models.Session{},
+		&models.SessionPeer{},
 	}
 
 	// Run migrations to apply the schema of the models to the database.
