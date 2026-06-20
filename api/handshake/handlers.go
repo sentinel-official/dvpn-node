@@ -12,85 +12,76 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/node"
 	"github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
+	"gorm.io/gorm"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 	"github.com/sentinel-official/sentinel-dvpnx/database/models"
 	"github.com/sentinel-official/sentinel-dvpnx/database/operations"
 )
 
+// accountAdmitted reports whether a handshake for addr may be admitted under the
+// node-wide distinct-account peer limit. An account that already holds a session
+// consumes no new slot; a new account is admitted only while the distinct-account
+// count is below maxPeers. Callers MUST hold the admission lock so the
+// count-then-insert sequence cannot over-admit past maxPeers.
+func accountAdmitted(db *gorm.DB, addr string, maxPeers uint) (bool, error) {
+	exists, err := operations.SessionAccAddrExists(db, addr)
+	if err != nil {
+		return false, err
+	}
+
+	if exists {
+		return true, nil
+	}
+
+	count, err := operations.SessionAccAddrCount(db)
+	if err != nil {
+		return false, err
+	}
+
+	return uint(count) < maxPeers, nil
+}
+
 // handlerInitHandshake returns a handler function to process the request for performing a handshake.
 func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// Reject handshake if maximum peer limit is reached
-		if n := c.Service().PeersLen(); uint(n) >= c.MaxPeers() {
-			err := fmt.Errorf("maximum peer limit %d reached", n)
-			ctx.JSON(http.StatusConflict, types.NewResponseError(1, err))
-
-			return
-		}
-
-		// Parse and verify the request.
+		// Parse, validate, and verify the request (shape + signature).
 		req, err := NewInitHandshakeRequest(ctx)
 		if err != nil {
 			err = fmt.Errorf("parsing request from context: %w", err)
-			ctx.JSON(http.StatusBadRequest, types.NewResponseError(2, err))
+			ctx.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
 
 			return
 		}
 
 		// Check if a session already exists by ID.
-		query := map[string]any{
-			"id": req.Body.ID,
-		}
-
-		record, err := operations.SessionFindOne(c.Database(), query)
+		record, err := operations.SessionFindOne(c.Database(), map[string]any{"id": req.Body.ID})
 		if err != nil {
 			err = fmt.Errorf("retrieving session %d from database: %w", req.Body.ID, err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(3, err))
+			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(2, err))
 
 			return
 		}
 
 		if record != nil {
 			err = fmt.Errorf("session %d already exists in database", req.Body.ID)
-			ctx.JSON(http.StatusConflict, types.NewResponseError(3, err))
+			ctx.JSON(http.StatusConflict, types.NewResponseError(2, err))
 
 			return
 		}
 
-		// Check if a session already exists by peer request data.
-		peerReqStr := base64.StdEncoding.EncodeToString(req.PeerRequest())
-		query = map[string]any{
-			"peer_request": peerReqStr,
-		}
-
-		record, err = operations.SessionFindOne(c.Database(), query)
-		if err != nil {
-			err = fmt.Errorf("retrieving session for peer request %q from database: %w", peerReqStr, err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(4, err))
-
-			return
-		}
-
-		if record != nil {
-			err = fmt.Errorf("session already exists for peer request %q", peerReqStr)
-			ctx.JSON(http.StatusConflict, types.NewResponseError(4, err))
-
-			return
-		}
-
-		// Fetch session details from blockchain.
+		// Fetch session details from blockchain (slow; kept outside the admission lock).
 		session, err := c.Client().Session(ctx, req.Body.ID)
 		if err != nil {
 			err = fmt.Errorf("querying session %d from blockchain: %w", req.Body.ID, err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(5, err))
+			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(3, err))
 
 			return
 		}
 
 		if session == nil {
 			err = fmt.Errorf("session %d does not exist on blockchain", req.Body.ID)
-			ctx.JSON(http.StatusNotFound, types.NewResponseError(5, err))
+			ctx.JSON(http.StatusNotFound, types.NewResponseError(3, err))
 
 			return
 		}
@@ -98,7 +89,7 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 		// Validate session status.
 		if !session.GetStatus().Equal(v1.StatusActive) {
 			err = fmt.Errorf("invalid session status %q, expected %q", session.GetStatus(), v1.StatusActive)
-			ctx.JSON(http.StatusBadRequest, types.NewResponseError(5, err))
+			ctx.JSON(http.StatusBadRequest, types.NewResponseError(3, err))
 
 			return
 		}
@@ -106,7 +97,7 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 		// Validate node address.
 		if session.GetNodeAddress() != c.NodeAddr().String() {
 			err = fmt.Errorf("node address mismatch: got %q, expected %q", session.GetNodeAddress(), c.NodeAddr())
-			ctx.JSON(http.StatusBadRequest, types.NewResponseError(6, err))
+			ctx.JSON(http.StatusBadRequest, types.NewResponseError(4, err))
 
 			return
 		}
@@ -115,60 +106,148 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 		accAddr, err := cosmossdk.AccAddressFromBech32(session.GetAccAddress())
 		if err != nil {
 			err = fmt.Errorf("decoding Bech32 account addr %q: %w", session.GetAccAddress(), err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(6, err))
+			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(4, err))
 
 			return
 		}
 
 		if got := req.AccAddr(); !got.Equals(accAddr) {
 			err = fmt.Errorf("account addr mismatch; got %q, expected %q", got, accAddr)
-			ctx.JSON(http.StatusUnauthorized, types.NewResponseError(6, err))
+			ctx.JSON(http.StatusUnauthorized, types.NewResponseError(4, err))
 
 			return
 		}
 
-		// Add the peer to the active service.
-		id, data, err := c.Service().AddPeer(ctx, req.PeerRequest())
+		// Per-element duplicate guard: reject if any requested peer already exists.
+		for _, pr := range req.PeerRequests() {
+			query := map[string]any{
+				"service_type": pr.Type,
+				"peer_request": base64.StdEncoding.EncodeToString(pr.Data),
+			}
+
+			peer, err := operations.SessionPeerFindOne(c.Database(), query)
+			if err != nil {
+				err = fmt.Errorf("retrieving session peer for %q request from database: %w", pr.Type, err)
+				ctx.JSON(http.StatusInternalServerError, types.NewResponseError(5, err))
+
+				return
+			}
+
+			if peer != nil {
+				err = fmt.Errorf("session peer already exists for %q request", pr.Type)
+				ctx.JSON(http.StatusConflict, types.NewResponseError(5, err))
+
+				return
+			}
+		}
+
+		// Admission + per-element route + persist run under the admission lock so
+		// concurrent handshakes cannot both pass the account-limit check and
+		// over-admit past MaxPeers.
+		c.AdmissionLock()
+		defer c.AdmissionUnlock()
+
+		admitted, err := accountAdmitted(c.Database(), accAddr.String(), c.MaxPeers())
 		if err != nil {
-			err = fmt.Errorf("adding peer to service: %w", err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(7, err))
+			err = fmt.Errorf("checking account admission for %q: %w", accAddr, err)
+			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(6, err))
 
 			return
 		}
 
-		// Encode and prepare the handshake response.
-		res := &node.InitHandshakeResult{Addrs: c.RemoteAddrs()}
-		if res.Data, err = json.Marshal(data); err != nil {
-			err = fmt.Errorf("encoding add-peer service response: %w", err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(8, err))
+		if !admitted {
+			err = fmt.Errorf("maximum peer limit %d reached", c.MaxPeers())
+			ctx.JSON(http.StatusConflict, types.NewResponseError(6, err))
 
 			return
 		}
 
-		// Insert the session record into the database.
-		item := models.NewSession().
-			WithAccAddr(accAddr).
-			WithDuration(0).
-			WithID(session.GetID()).
-			WithMaxBytes(session.GetMaxBytes()).
-			WithMaxDuration(session.GetMaxDuration()).
-			WithNodeAddr(c.NodeAddr()).
-			WithPeerID(id).
-			WithPeerMetadata(res.Data).
-			WithPeerRequest(req.PeerRequest()).
-			WithRxBytes(math.ZeroInt()).
-			WithServiceType(c.Service().Type()).
-			WithSignature(nil).
-			WithTxBytes(math.ZeroInt())
+		// Route each requested protocol to its active service, best-effort per item.
+		responses := make([]node.AddPeerResponse, 0, len(req.PeerRequests()))
+		peers := make([]*models.SessionPeer, 0, len(req.PeerRequests()))
+		for _, pr := range req.PeerRequests() {
+			t := types.ServiceTypeFromString(pr.Type)
 
-		if err = operations.SessionInsertOne(c.Database(), item); err != nil {
-			err = fmt.Errorf("inserting session %d into database: %w", item.GetID(), err)
-			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(9, err))
+			svc, ok := c.ServiceFor(t)
+			if !ok {
+				responses = append(responses, node.AddPeerResponse{
+					Type: pr.Type,
+					Err:  "service not active",
+				})
 
-			return
+				continue
+			}
+
+			id, data, err := svc.AddPeer(ctx, pr.Data)
+			if err != nil {
+				responses = append(responses, node.AddPeerResponse{
+					Type: pr.Type,
+					Err:  err.Error(),
+				})
+
+				continue
+			}
+
+			metadata, err := json.Marshal(data)
+			if err != nil {
+				responses = append(responses, node.AddPeerResponse{
+					Type: pr.Type,
+					Err:  fmt.Sprintf("encoding add-peer response: %s", err),
+				})
+
+				continue
+			}
+
+			responses = append(responses, node.AddPeerResponse{
+				Type: pr.Type,
+				Data: metadata,
+			})
+
+			peers = append(peers, models.NewSessionPeer().
+				WithSessionID(req.Body.ID).
+				WithServiceType(t).
+				WithPeerID(id).
+				WithPeerRequest(pr.Data).
+				WithPeerMetadata(metadata).
+				WithRxBytes(math.ZeroInt()).
+				WithTxBytes(math.ZeroInt()).
+				WithDuration(0))
 		}
 
-		// Return a successful response.
+		// Persist the parent session and its successful child peers (parent first
+		// so the child foreign keys resolve).
+		if len(peers) > 0 {
+			item := models.NewSession().
+				WithID(session.GetID()).
+				WithNodeAddr(c.NodeAddr()).
+				WithAccAddr(accAddr).
+				WithMaxBytes(session.GetMaxBytes()).
+				WithMaxDuration(session.GetMaxDuration()).
+				WithSignature(nil)
+
+			if err = operations.SessionInsertOne(c.Database(), item); err != nil {
+				err = fmt.Errorf("inserting session %d into database: %w", item.GetID(), err)
+				ctx.JSON(http.StatusInternalServerError, types.NewResponseError(7, err))
+
+				return
+			}
+
+			for _, peer := range peers {
+				if err = operations.SessionPeerInsertOne(c.Database(), peer); err != nil {
+					err = fmt.Errorf("inserting session peer for session %d into database: %w", req.Body.ID, err)
+					ctx.JSON(http.StatusInternalServerError, types.NewResponseError(7, err))
+
+					return
+				}
+			}
+		}
+
+		// Return a successful response with per-item results.
+		res := &node.InitHandshakeResult{
+			Addrs:            c.RemoteAddrs(),
+			AddPeerResponses: responses,
+		}
+
 		ctx.JSON(http.StatusOK, types.NewResponseResult(res))
 	}
 }

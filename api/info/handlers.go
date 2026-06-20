@@ -20,10 +20,11 @@ import (
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 )
 
-func getMetadata(c *core.Context) (any, error) {
-	switch c.Service().Type() {
+// serviceMetadata builds the redacted, client-facing metadata for one service.
+func serviceMetadata(svc types.ServerService) (any, error) {
+	switch svc.Type() {
 	case types.ServiceTypeOpenVPN:
-		items, ok := c.Service().Metadata().([]*openvpn.ServerMetadata)
+		items, ok := svc.Metadata().([]*openvpn.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement openvpn.ServerMetadata")
 		}
@@ -37,7 +38,7 @@ func getMetadata(c *core.Context) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeV2Ray:
-		items, ok := c.Service().Metadata().([]*v2ray.ServerMetadata)
+		items, ok := svc.Metadata().([]*v2ray.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement v2ray.ServerMetadata")
 		}
@@ -53,7 +54,7 @@ func getMetadata(c *core.Context) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeWireGuard:
-		items, ok := c.Service().Metadata().([]*wireguard.ServerMetadata)
+		items, ok := svc.Metadata().([]*wireguard.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement wireguard.ServerMetadata")
 		}
@@ -65,7 +66,7 @@ func getMetadata(c *core.Context) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeAmneziaWG:
-		items, ok := c.Service().Metadata().([]*amneziawg.ServerMetadata)
+		items, ok := svc.Metadata().([]*amneziawg.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement amneziawg.ServerMetadata")
 		}
@@ -77,7 +78,7 @@ func getMetadata(c *core.Context) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeHysteria2:
-		items, ok := c.Service().Metadata().([]*hysteria2.ServerMetadata)
+		items, ok := svc.Metadata().([]*hysteria2.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement hysteria2.ServerMetadata")
 		}
@@ -96,7 +97,7 @@ func getMetadata(c *core.Context) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeXray:
-		items, ok := c.Service().Metadata().([]*xray.ServerMetadata)
+		items, ok := svc.Metadata().([]*xray.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement xray.ServerMetadata")
 		}
@@ -118,10 +119,41 @@ func getMetadata(c *core.Context) (any, error) {
 	}
 }
 
+// buildServiceInfos builds one ServiceInfo per active service, ordered by service
+// type, and returns the total peer count summed across all services.
+func buildServiceInfos(c *core.Context) ([]node.ServiceInfo, int, error) {
+	serviceTypes := c.ServiceTypes()
+
+	infos := make([]node.ServiceInfo, 0, len(serviceTypes))
+	total := 0
+	for _, t := range serviceTypes {
+		svc, ok := c.ServiceFor(t)
+		if !ok {
+			continue
+		}
+
+		md, err := serviceMetadata(svc)
+		if err != nil {
+			return nil, 0, fmt.Errorf("building metadata for service %q: %w", t, err)
+		}
+
+		peers := svc.PeersLen()
+		total += peers
+
+		infos = append(infos, node.ServiceInfo{
+			Type:     t.String(),
+			Metadata: md,
+			Peers:    peers,
+		})
+	}
+
+	return infos, total, nil
+}
+
 // handlerGetInfo returns a handler function to retrieve node information.
 func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		metadata, err := getMetadata(c)
+		infos, total, err := buildServiceInfos(c)
 		if err != nil {
 			err = fmt.Errorf("parsing metadata: %w", err)
 			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(1, err))
@@ -144,12 +176,11 @@ func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 				Latitude:    loc.Latitude,
 				Longitude:   loc.Longitude,
 			},
-			Moniker:         c.Moniker(),
-			Peers:           c.Service().PeersLen(),
-			ServiceType:     c.Service().Type().String(),
-			ServiceMetadata: metadata,
-			Uplink:          dlSpeed.String(),
-			Version:         version.Get(),
+			Moniker:  c.Moniker(),
+			Peers:    total,
+			Services: infos,
+			Uplink:   dlSpeed.String(),
+			Version:  version.Get(),
 		}
 
 		// Send the result as a JSON response with HTTP status 200.
