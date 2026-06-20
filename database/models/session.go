@@ -265,14 +265,18 @@ func (s *Session) BeforeUpdate(db *gorm.DB) (err error) {
 	return nil
 }
 
-// MsgUpdateSessionRequest creates a MsgUpdateSessionRequest for the session.
-func (s *Session) MsgUpdateSessionRequest() *v3.MsgUpdateSessionRequest {
+// MsgUpdateSessionRequest creates a MsgUpdateSessionRequest for the session from
+// the aggregated child-peer usage: tx and rx are the summed transmitted/received
+// bytes and duration is the MAX duration across the session's child peers.
+// The existing on-chain mapping is preserved: tx maps to downloadBytes and rx
+// maps to uploadBytes.
+func (s *Session) MsgUpdateSessionRequest(tx, rx math.Int, duration time.Duration) *v3.MsgUpdateSessionRequest {
 	return v3.NewMsgUpdateSessionRequest(
 		s.GetNodeAddr(),
 		s.GetID(),
-		s.GetTxBytes(),
-		s.GetRxBytes(),
-		s.GetDuration(),
+		tx,
+		rx,
+		duration,
 		s.GetSignature(),
 	)
 }
