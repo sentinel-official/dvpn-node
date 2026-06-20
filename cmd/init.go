@@ -113,29 +113,33 @@ func decollideSeeds(set []types.ServiceType, cfg *config.Config) {
 
 		case types.ServiceTypeHysteria2:
 			c := sc.(*hysteria2.ServerConfig)
-			// Re-roll Port until not colliding.
+			// Accept Port first, then check AuthPort and StatsPort against the
+			// already-accepted set — including the ports accepted within this block —
+			// so the three ports are mutually distinct as well as distinct from other
+			// services. Each port is registered into usedPorts immediately after
+			// acceptance, mirroring the WG/AWG port-before-subnet ordering.
 			for try := 0; try < decollideMaxRetries; try++ {
 				if !usedPorts[c.Port] {
 					break
 				}
 				c.Port = utils.RandomPort()
 			}
-			// Re-roll AuthPort until not colliding.
+			usedPorts[c.Port] = true
+
 			for try := 0; try < decollideMaxRetries; try++ {
 				if !usedPorts[c.AuthPort] {
 					break
 				}
 				c.AuthPort = utils.RandomPort()
 			}
-			// Re-roll StatsPort until not colliding.
+			usedPorts[c.AuthPort] = true
+
 			for try := 0; try < decollideMaxRetries; try++ {
 				if !usedPorts[c.StatsPort] {
 					break
 				}
 				c.StatsPort = utils.RandomPort()
 			}
-			usedPorts[c.Port] = true
-			usedPorts[c.AuthPort] = true
 			usedPorts[c.StatsPort] = true
 
 		case types.ServiceTypeV2Ray:
@@ -174,17 +178,41 @@ func decollideSeeds(set []types.ServiceType, cfg *config.Config) {
 func buildServerForInit(t types.ServiceType, homeDir string, cfg *config.Config) (types.ServerService, error) {
 	switch t {
 	case types.ServiceTypeV2Ray:
-		return v2ray.NewServer("v2ray", homeDir, cfg.Services[types.ServiceTypeV2Ray].(*v2ray.ServerConfig)), nil
+		sc, ok := cfg.Services[types.ServiceTypeV2Ray].(*v2ray.ServerConfig)
+		if !ok {
+			return nil, fmt.Errorf("missing or wrong config type for service %q", t)
+		}
+		return v2ray.NewServer("v2ray", homeDir, sc), nil
 	case types.ServiceTypeWireGuard:
-		return wireguard.NewServer("wireguard", homeDir, cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)), nil
+		sc, ok := cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)
+		if !ok {
+			return nil, fmt.Errorf("missing or wrong config type for service %q", t)
+		}
+		return wireguard.NewServer("wireguard", homeDir, sc), nil
 	case types.ServiceTypeOpenVPN:
-		return openvpn.NewServer("openvpn", homeDir, cfg.Services[types.ServiceTypeOpenVPN].(*openvpn.ServerConfig)), nil
+		sc, ok := cfg.Services[types.ServiceTypeOpenVPN].(*openvpn.ServerConfig)
+		if !ok {
+			return nil, fmt.Errorf("missing or wrong config type for service %q", t)
+		}
+		return openvpn.NewServer("openvpn", homeDir, sc), nil
 	case types.ServiceTypeAmneziaWG:
-		return amneziawg.NewServer("amneziawg", homeDir, cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)), nil
+		sc, ok := cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)
+		if !ok {
+			return nil, fmt.Errorf("missing or wrong config type for service %q", t)
+		}
+		return amneziawg.NewServer("amneziawg", homeDir, sc), nil
 	case types.ServiceTypeHysteria2:
-		return hysteria2.NewServer("hysteria2", homeDir, cfg.Services[types.ServiceTypeHysteria2].(*hysteria2.ServerConfig)), nil
+		sc, ok := cfg.Services[types.ServiceTypeHysteria2].(*hysteria2.ServerConfig)
+		if !ok {
+			return nil, fmt.Errorf("missing or wrong config type for service %q", t)
+		}
+		return hysteria2.NewServer("hysteria2", homeDir, sc), nil
 	case types.ServiceTypeXray:
-		return xray.NewServer("xray", homeDir, cfg.Services[types.ServiceTypeXray].(*xray.ServerConfig)), nil
+		sc, ok := cfg.Services[types.ServiceTypeXray].(*xray.ServerConfig)
+		if !ok {
+			return nil, fmt.Errorf("missing or wrong config type for service %q", t)
+		}
+		return xray.NewServer("xray", homeDir, sc), nil
 	case types.ServiceTypeUnspecified:
 		return nil, errors.New("unspecified service type")
 	default:
