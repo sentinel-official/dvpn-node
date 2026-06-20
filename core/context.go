@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
-	"sort"
+	"slices"
 	"sync"
 
 	"cosmossdk.io/math"
@@ -22,26 +23,27 @@ import (
 
 // Context defines the application context, holding configurations and shared components.
 type Context struct {
-	accAddr        cosmossdk.AccAddress
-	apiAddrs       []string
-	apiListenAddr  string
-	client         *core.Client
-	database       *gorm.DB
-	dlSpeed        math.Int
-	geoIPClient    geoip.Client
-	gigabytePrices v1.Prices
-	handshakeDNS   bool
-	homeDir        string
-	hourlyPrices   v1.Prices
-	input          io.Reader
-	location       *geoip.Location
-	maxPeers       uint
-	moniker        string
-	oracleClient   oracle.Client
-	remoteAddrs    []string
-	rpcAddrs       []string
-	services       map[sentinelsdk.ServiceType]sentinelsdk.ServerService
-	ulSpeed        math.Int
+	accAddr            cosmossdk.AccAddress
+	apiAddrs           []string
+	apiListenAddr      string
+	client             *core.Client
+	database           *gorm.DB
+	dlSpeed            math.Int
+	geoIPClient        geoip.Client
+	gigabytePrices     v1.Prices
+	handshakeDNS       bool
+	homeDir            string
+	hourlyPrices       v1.Prices
+	input              io.Reader
+	location           *geoip.Location
+	maxPeers           uint
+	moniker            string
+	oracleClient       oracle.Client
+	remoteAddrs        []string
+	rpcAddrs           []string
+	services           map[sentinelsdk.ServiceType]sentinelsdk.ServerService
+	skipFailedServices bool
+	ulSpeed            math.Int
 
 	sealed bool
 
@@ -241,8 +243,9 @@ func (c *Context) ServiceFor(t sentinelsdk.ServiceType) (sentinelsdk.ServerServi
 	c.fm.RLock()
 	defer c.fm.RUnlock()
 
-	svc, ok := c.services[t]
-	return svc, ok
+	service, ok := c.services[t]
+
+	return service, ok
 }
 
 // Services returns a shallow copy of the active service registry.
@@ -251,9 +254,8 @@ func (c *Context) Services() map[sentinelsdk.ServiceType]sentinelsdk.ServerServi
 	defer c.fm.RUnlock()
 
 	m := make(map[sentinelsdk.ServiceType]sentinelsdk.ServerService, len(c.services))
-	for t, svc := range c.services {
-		m[t] = svc
-	}
+	maps.Copy(m, c.services)
+
 	return m
 }
 
@@ -262,12 +264,14 @@ func (c *Context) ServiceTypes() []sentinelsdk.ServiceType {
 	c.fm.RLock()
 	defer c.fm.RUnlock()
 
-	typs := make([]sentinelsdk.ServiceType, 0, len(c.services))
+	types := make([]sentinelsdk.ServiceType, 0, len(c.services))
 	for t := range c.services {
-		typs = append(typs, t)
+		types = append(types, t)
 	}
-	sort.Slice(typs, func(i, j int) bool { return typs[i] < typs[j] })
-	return typs
+
+	slices.Sort(types)
+
+	return types
 }
 
 // AdmissionLock acquires the process-wide admission mutex that guards the
@@ -279,6 +283,14 @@ func (c *Context) AdmissionLock() {
 // AdmissionUnlock releases the admission mutex.
 func (c *Context) AdmissionUnlock() {
 	c.admissionMu.Unlock()
+}
+
+// SkipFailedServices reports whether services that fail to start are skipped.
+func (c *Context) SkipFailedServices() bool {
+	c.fm.RLock()
+	defer c.fm.RUnlock()
+
+	return c.skipFailedServices
 }
 
 // SpeedtestResults returns the download and upload speeds set in the context.
@@ -493,6 +505,14 @@ func (c *Context) WithRPCAddrs(addrs []string) *Context {
 func (c *Context) WithServices(m map[sentinelsdk.ServiceType]sentinelsdk.ServerService) *Context {
 	c.checkSealed()
 	c.services = m
+
+	return c
+}
+
+// WithSkipFailedServices sets the skip-failed-services flag and returns the context.
+func (c *Context) WithSkipFailedServices(v bool) *Context {
+	c.checkSealed()
+	c.skipFailedServices = v
 
 	return c
 }

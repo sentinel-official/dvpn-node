@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
@@ -126,94 +125,51 @@ func (c *Context) SetupOracleClient(cfg *config.Config) error {
 	return nil
 }
 
-// buildService constructs the server service for the given type using the
-// provided home directory and configuration.
-func buildService(t types.ServiceType, homeDir string, cfg *config.Config) (types.ServerService, error) {
-	switch t {
-	case types.ServiceTypeV2Ray:
-		return v2ray.NewServer("v2ray", homeDir, cfg.Services[types.ServiceTypeV2Ray].(*v2ray.ServerConfig)), nil
-	case types.ServiceTypeWireGuard:
-		return wireguard.NewServer("wireguard", homeDir, cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)), nil
-	case types.ServiceTypeOpenVPN:
-		return openvpn.NewServer("openvpn", homeDir, cfg.Services[types.ServiceTypeOpenVPN].(*openvpn.ServerConfig)), nil
-	case types.ServiceTypeAmneziaWG:
-		return amneziawg.NewServer("amneziawg", homeDir, cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)), nil
-	case types.ServiceTypeHysteria2:
-		return hysteria2.NewServer("hysteria2", homeDir, cfg.Services[types.ServiceTypeHysteria2].(*hysteria2.ServerConfig)), nil
-	case types.ServiceTypeXray:
-		return xray.NewServer("xray", homeDir, cfg.Services[types.ServiceTypeXray].(*xray.ServerConfig)), nil
-	case types.ServiceTypeUnspecified:
-		return nil, errors.New("unspecified service type")
-	default:
-		return nil, fmt.Errorf("unsupported service type %q", t)
-	}
-}
-
-// setupServicesLoop iterates set, skips colliders (pre-computed in conflicts)
-// with a WARN, and best-effort builds + sets up the rest.  Returns an error
-// only if zero services start successfully.
-func setupServicesLoop(
-	ctx context.Context,
-	set []types.ServiceType,
-	conflicts map[types.ServiceType]error,
-	build func(types.ServiceType) (types.ServerService, error),
-) (map[types.ServiceType]types.ServerService, error) {
-	result := make(map[types.ServiceType]types.ServerService, len(set))
-
-	for _, t := range set {
-		// Skip colliders before any build or Setup — they must not start.
-		if collErr, collides := conflicts[t]; collides {
-			log.Warn("Skipping service: collision detected", "type", t, "error", collErr)
-			continue
-		}
-
-		svc, err := build(t)
-		if err != nil {
-			log.Warn("Skipping service: build failed", "type", t, "error", err)
-			continue
-		}
-
-		ok, err := svc.IsRunning()
-		if err != nil {
-			log.Warn("Skipping service: status check failed", "type", t, "error", err)
-			continue
-		}
-
-		if ok {
-			log.Warn("Skipping service: already running", "type", t)
-			continue
-		}
-
-		if err := svc.Setup(ctx); err != nil {
-			log.Warn("Skipping service: setup failed", "type", t, "error", err)
-			continue
-		}
-
-		result[t] = svc
-	}
-
-	if len(result) == 0 {
-		return nil, errors.New("no services could be started")
-	}
-
-	return result, nil
-}
-
-// SetupServices detects port/subnet collisions up front from the persisted
-// per-service configs, then builds and sets up each non-colliding enabled
-// service best-effort, storing the survivors in the context.  Returns an error
-// only if zero services start successfully.
+// SetupServices builds and sets up each enabled service. A service that fails
+// is fatal unless skip-failed-services is set, in which case it is logged and skipped.
 func (c *Context) SetupServices(ctx context.Context, cfg *config.Config) error {
 	set := cfg.Node.GetServiceTypes()
+	services := make(map[types.ServiceType]types.ServerService, len(set))
 
-	// Compute collisions from config before any build or Setup call.
-	conflicts := conflictingServices(set, cfg)
+	builders := map[types.ServiceType]func() types.ServerService{
+		types.ServiceTypeV2Ray: func() types.ServerService {
+			return v2ray.NewServer("v2ray", c.HomeDir(), cfg.Services[types.ServiceTypeV2Ray].(*v2ray.ServerConfig))
+		},
+		types.ServiceTypeWireGuard: func() types.ServerService {
+			return wireguard.NewServer("wireguard", c.HomeDir(), cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig))
+		},
+		types.ServiceTypeOpenVPN: func() types.ServerService {
+			return openvpn.NewServer("openvpn", c.HomeDir(), cfg.Services[types.ServiceTypeOpenVPN].(*openvpn.ServerConfig))
+		},
+		types.ServiceTypeAmneziaWG: func() types.ServerService {
+			return amneziawg.NewServer("amneziawg", c.HomeDir(), cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig))
+		},
+		types.ServiceTypeHysteria2: func() types.ServerService {
+			return hysteria2.NewServer("hysteria2", c.HomeDir(), cfg.Services[types.ServiceTypeHysteria2].(*hysteria2.ServerConfig))
+		},
+		types.ServiceTypeXray: func() types.ServerService {
+			return xray.NewServer("xray", c.HomeDir(), cfg.Services[types.ServiceTypeXray].(*xray.ServerConfig))
+		},
+	}
 
-	services, err := setupServicesLoop(ctx, set, conflicts, func(t types.ServiceType) (types.ServerService, error) {
-		return buildService(t, c.HomeDir(), cfg)
-	})
-	if err != nil {
-		return err //nolint:wrapcheck
+	for _, t := range set {
+		build, ok := builders[t]
+		if !ok {
+			return fmt.Errorf("unsupported service type %q", t)
+		}
+
+		service := build()
+		if err := service.Setup(ctx); err != nil {
+			if c.SkipFailedServices() {
+				log.Warn("service did not start", "type", t, "error", err)
+
+				continue
+			}
+
+			return fmt.Errorf("setting up service %q: %w", t, err)
+		}
+
+		services[t] = service
 	}
 
 	c.WithServices(services)
@@ -233,6 +189,7 @@ func (c *Context) Setup(ctx context.Context, cfg *config.Config) error {
 	c.WithMoniker(cfg.Node.GetMoniker())
 	c.WithRemoteAddrs(cfg.Node.GetRemoteAddrs())
 	c.WithRPCAddrs(cfg.RPC.GetAddrs())
+	c.WithSkipFailedServices(cfg.Node.GetSkipFailedServices())
 
 	log.Info("Setting up blockchain client")
 
