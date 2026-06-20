@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"cosmossdk.io/math"
@@ -40,12 +41,14 @@ type Context struct {
 	remoteAddrs    []string
 	rpcAddrs       []string
 	service        sentinelsdk.ServerService
+	services       map[sentinelsdk.ServiceType]sentinelsdk.ServerService
 	ulSpeed        math.Int
 
 	sealed bool
 
-	fm  sync.RWMutex
-	txm sync.Mutex
+	admissionMu sync.Mutex
+	fm          sync.RWMutex
+	txm         sync.Mutex
 }
 
 // NewContext creates a new Context instance with default values.
@@ -239,6 +242,52 @@ func (c *Context) Service() sentinelsdk.ServerService {
 	defer c.fm.RUnlock()
 
 	return c.service
+}
+
+// ServiceFor returns the active server service for the given service type, and
+// reports whether it is registered.
+func (c *Context) ServiceFor(t sentinelsdk.ServiceType) (sentinelsdk.ServerService, bool) {
+	c.fm.RLock()
+	defer c.fm.RUnlock()
+
+	svc, ok := c.services[t]
+	return svc, ok
+}
+
+// Services returns a shallow copy of the active service registry.
+func (c *Context) Services() map[sentinelsdk.ServiceType]sentinelsdk.ServerService {
+	c.fm.RLock()
+	defer c.fm.RUnlock()
+
+	m := make(map[sentinelsdk.ServiceType]sentinelsdk.ServerService, len(c.services))
+	for t, svc := range c.services {
+		m[t] = svc
+	}
+	return m
+}
+
+// ServiceTypes returns a sorted slice of active service types (sorted by byte value).
+func (c *Context) ServiceTypes() []sentinelsdk.ServiceType {
+	c.fm.RLock()
+	defer c.fm.RUnlock()
+
+	typs := make([]sentinelsdk.ServiceType, 0, len(c.services))
+	for t := range c.services {
+		typs = append(typs, t)
+	}
+	sort.Slice(typs, func(i, j int) bool { return typs[i] < typs[j] })
+	return typs
+}
+
+// AdmissionLock acquires the process-wide admission mutex that guards the
+// account-limit check during handshake (count → AddPeer → persist).
+func (c *Context) AdmissionLock() {
+	c.admissionMu.Lock()
+}
+
+// AdmissionUnlock releases the admission mutex.
+func (c *Context) AdmissionUnlock() {
+	c.admissionMu.Unlock()
 }
 
 // SpeedtestResults returns the download and upload speeds set in the context.
@@ -452,6 +501,15 @@ func (c *Context) WithRPCAddrs(addrs []string) *Context {
 func (c *Context) WithService(service sentinelsdk.ServerService) *Context {
 	c.checkSealed()
 	c.service = service
+
+	return c
+}
+
+// WithServices sets the active service registry in the context and returns the
+// updated context.
+func (c *Context) WithServices(m map[sentinelsdk.ServiceType]sentinelsdk.ServerService) *Context {
+	c.checkSealed()
+	c.services = m
 
 	return c
 }
