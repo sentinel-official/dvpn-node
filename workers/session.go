@@ -165,20 +165,26 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 		jobGroup.SetLimit(2)
 
 		// Fan out over each active service; process each service's statistics under its own type.
+		// PeerStatistics() is fetched inside the group closure so that a stats error propagates
+		// through the group (and Wait always runs), never abandoning sibling goroutines.
 		for serviceType, svc := range c.Services() {
 			t, service := serviceType, svc
 
-			// Fetch peer usage statistics from this service.
-			stats, err := service.PeerStatistics()
-			if err != nil {
-				return fmt.Errorf("retrieving peer statistics from service %q: %w", t, err)
-			}
+			jobGroup.Go(func() error {
+				select {
+				case <-jobCtx.Done():
+					return nil
+				default:
+				}
 
-			// Update the database with the fetched statistics for this service only.
-			for key, val := range stats {
-				peerID, item := key, val
+				// Fetch peer usage statistics from this service.
+				stats, err := service.PeerStatistics()
+				if err != nil {
+					return fmt.Errorf("retrieving peer statistics from service %q: %w", t, err)
+				}
 
-				jobGroup.Go(func() error {
+				// Update the database with the fetched statistics for this service only.
+				for peerID, item := range stats {
 					select {
 					case <-jobCtx.Done():
 						return nil
@@ -191,7 +197,7 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 							"updated_at", item.UpdatedAt,
 						)
 
-						return nil
+						continue
 					}
 
 					// Convert usage statistics to strings for database storage.
@@ -217,10 +223,10 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 					if _, err := operations.SessionPeerFindOneAndUpdate(c.Database(), query, updates); err != nil {
 						return fmt.Errorf("updating session_peer for service %q peer %q: %w", t, peerID, err)
 					}
+				}
 
-					return nil
-				})
-			}
+				return nil
+			})
 		}
 
 		// Wait until all routines complete.
