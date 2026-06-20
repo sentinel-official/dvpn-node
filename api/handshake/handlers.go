@@ -119,9 +119,11 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 		}
 
 		// Per-element duplicate guard: reject if any requested peer already exists.
+		// Use the canonical service-type string (same form stored by the writer) for
+		// symmetry and robustness against future validation-reordering.
 		for _, pr := range req.PeerRequests() {
 			query := map[string]any{
-				"service_type": pr.Type,
+				"service_type": types.ServiceTypeFromString(pr.Type).String(),
 				"peer_request": base64.StdEncoding.EncodeToString(pr.Data),
 			}
 
