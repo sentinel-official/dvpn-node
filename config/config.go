@@ -2,6 +2,7 @@ package config
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 
@@ -50,26 +51,27 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("validating QoS config: %w", err)
 	}
 
-	if err := validateHandshakeServiceType(c.HandshakeDNS.GetEnable(), c.Node.GetServiceType()); err != nil {
+	if err := validateHandshakeServiceTypes(c.HandshakeDNS.GetEnable(), c.Node.GetServiceTypes()); err != nil {
 		return fmt.Errorf("validating handshake_dns config: %w", err)
 	}
 
 	return nil
 }
 
-// validateHandshakeServiceType ensures Handshake DNS is only enabled for service
-// types that push a resolver to clients (WireGuard and AmneziaWG).
-func validateHandshakeServiceType(enable bool, serviceType types.ServiceType) error {
+// validateHandshakeServiceTypes ensures Handshake DNS is only enabled when at least
+// one service type that pushes a resolver to clients (WireGuard or AmneziaWG) is present.
+func validateHandshakeServiceTypes(enable bool, set []types.ServiceType) error {
 	if !enable {
 		return nil
 	}
 
-	switch serviceType {
-	case types.ServiceTypeWireGuard, types.ServiceTypeAmneziaWG:
-		return nil
-	default:
-		return fmt.Errorf("handshake_dns requires service_type wireguard or amneziawg, got %q", serviceType)
+	for _, t := range set {
+		if t == types.ServiceTypeWireGuard || t == types.ServiceTypeAmneziaWG {
+			return nil
+		}
 	}
+
+	return errors.New("handshake_dns requires at least one of wireguard or amneziawg in service_types")
 }
 
 // SetForFlags adds configuration flags to the specified FlagSet.
