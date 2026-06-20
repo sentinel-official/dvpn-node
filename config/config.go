@@ -4,11 +4,14 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"net/netip"
 	"os"
 
+	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
 	"github.com/spf13/pflag"
 )
 
@@ -68,6 +71,44 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// ServiceGatewayAddr returns the WireGuard/AmneziaWG tunnel gateway IP,
+// preferring WireGuard when both are enabled.
+func (c *Config) ServiceGatewayAddr() (string, error) {
+	enabled := make(map[types.ServiceType]bool)
+	for _, t := range c.Node.GetServiceTypes() {
+		enabled[t] = true
+	}
+
+	var ipv4Addr, ipv6Addr string
+
+	switch {
+	case enabled[types.ServiceTypeWireGuard]:
+		v := c.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)
+		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
+	case enabled[types.ServiceTypeAmneziaWG]:
+		v := c.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)
+		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
+	default:
+		return "", errors.New("handshake_dns requires wireguard or amneziawg in service_types")
+	}
+
+	addr := ipv4Addr
+	if addr == "" {
+		addr = ipv6Addr
+	}
+
+	if addr == "" {
+		return "", errors.New("service has no ipv4 or ipv6 addr configured")
+	}
+
+	prefix, err := netip.ParsePrefix(addr)
+	if err != nil {
+		return "", fmt.Errorf("parsing addr %q: %w", addr, err)
+	}
+
+	return prefix.Addr().String(), nil
 }
 
 // SetForFlags adds configuration flags to the specified FlagSet.

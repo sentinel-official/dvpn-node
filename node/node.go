@@ -2,8 +2,8 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
@@ -182,9 +182,7 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 			serverCtx    context.Context
 		)
 
-		// serviceMu guards writes to svcCtxs from concurrent errgroup goroutines.
-		var serviceMu sync.Mutex
-		svcCtxs := make(map[sentinelsdk.ServiceType]context.Context)
+		serviceCtxs := make(map[sentinelsdk.ServiceType]context.Context)
 
 		sg := &errgroup.Group{}
 
@@ -208,25 +206,42 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 			return nil
 		})
 
-		for t, svc := range n.Context().Services() {
-			sg.Go(func() (err error) {
-				log.Info("Starting service", "type", t)
+		if err := sg.Wait(); err != nil {
+			return fmt.Errorf("starting group: %w", err)
+		}
 
-				svcCtx, err := svc.Start(ctx)
-				if err != nil {
-					return fmt.Errorf("starting service %q: %w", t, err)
+		services := n.Context().Services()
+		for t, service := range services {
+			log.Info("Starting service", "type", t)
+
+			serviceCtx, err := service.Start(ctx)
+			if err != nil {
+				if n.Context().SkipFailedServices() {
+					log.Warn("service did not start", "type", t, "error", err)
+
+					continue
 				}
 
-				serviceMu.Lock()
-				svcCtxs[t] = svcCtx
-				serviceMu.Unlock()
+				return fmt.Errorf("starting service %q: %w", t, err)
+			}
+
+			serviceCtxs[t] = serviceCtx //nolint:fatcontext // each service.Start returns its own context; stored for the paired Wait call
+		}
+
+		if len(serviceCtxs) == 0 {
+			return errors.New("no services started")
+		}
+
+		for t, serviceCtx := range serviceCtxs {
+			service := services[t]
+
+			n.Go(ctx, func() error {
+				if err := service.Wait(serviceCtx); err != nil {
+					return fmt.Errorf("waiting service %q: %w", t, err)
+				}
 
 				return nil
 			})
-		}
-
-		if err := sg.Wait(); err != nil {
-			return fmt.Errorf("starting group: %w", err)
 		}
 
 		if n.HandshakeDNS() != nil {
@@ -262,19 +277,6 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 			return nil
 		})
 
-		activeSvcs := n.Context().Services()
-		for t, svcCtx := range svcCtxs {
-			svc := activeSvcs[t]
-
-			n.Go(ctx, func() error {
-				if err := svc.Wait(svcCtx); err != nil {
-					return fmt.Errorf("waiting service %q: %w", t, err)
-				}
-
-				return nil
-			})
-		}
-
 		return nil
 	})
 }
@@ -309,11 +311,11 @@ func (n *Node) Stop() error {
 			return nil
 		})
 
-		for t, svc := range n.Context().Services() {
+		for t, service := range n.Context().Services() {
 			sg.Go(func() error {
 				log.Info("Stopping service", "type", t)
 
-				if err := svc.Stop(); err != nil {
+				if err := service.Stop(); err != nil {
 					return fmt.Errorf("stopping service %q: %w", t, err)
 				}
 

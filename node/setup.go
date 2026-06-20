@@ -2,22 +2,17 @@ package node
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"net/netip"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/gin/middlewares"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
 
 	"github.com/sentinel-official/sentinel-dvpnx/api"
 	"github.com/sentinel-official/sentinel-dvpnx/config"
@@ -112,7 +107,7 @@ func (n *Node) SetupHandshakeDNS(ctx context.Context, cfg *config.Config) error 
 		return nil
 	}
 
-	gateway, err := serviceGatewayAddr(cfg)
+	gateway, err := cfg.ServiceGatewayAddr()
 	if err != nil {
 		return fmt.Errorf("resolving service gateway addr: %w", err)
 	}
@@ -133,48 +128,6 @@ func (n *Node) SetupHandshakeDNS(ctx context.Context, cfg *config.Config) error 
 	n.WithHandshakeDNS(d)
 
 	return nil
-}
-
-// serviceGatewayAddr returns the tunnel gateway IP of the WireGuard or AmneziaWG
-// service in the enabled set, preferring WireGuard when both are present.
-func serviceGatewayAddr(cfg *config.Config) (string, error) {
-	enabled := make(map[types.ServiceType]bool)
-	for _, t := range cfg.Node.GetServiceTypes() {
-		enabled[t] = true
-	}
-
-	var ipv4Addr, ipv6Addr string
-
-	if enabled[types.ServiceTypeWireGuard] {
-		v := cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)
-		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
-	} else if enabled[types.ServiceTypeAmneziaWG] {
-		v := cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)
-		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
-	} else {
-		return "", errors.New("handshake_dns requires wireguard or amneziawg in service_types")
-	}
-
-	return gatewayHost(ipv4Addr, ipv6Addr)
-}
-
-// gatewayHost extracts the gateway host from CIDR-notation addresses, preferring IPv4.
-func gatewayHost(ipv4Addr, ipv6Addr string) (string, error) {
-	addr := ipv4Addr
-	if addr == "" {
-		addr = ipv6Addr
-	}
-
-	if addr == "" {
-		return "", errors.New("service has no ipv4 or ipv6 addr configured")
-	}
-
-	prefix, err := netip.ParsePrefix(addr)
-	if err != nil {
-		return "", fmt.Errorf("parsing addr %q: %w", addr, err)
-	}
-
-	return prefix.Addr().String(), nil
 }
 
 // SetupContext sets up the core context.
