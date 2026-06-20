@@ -32,11 +32,7 @@ func NewBestRPCAddrWorker(c *core.Context, interval time.Duration) cron.Worker {
 
 		// Measure latency for each address concurrently.
 		for _, addr := range addrs {
-			wg.Add(1)
-
-			go func(addr string) {
-				defer wg.Done()
-
+			wg.Go(func() {
 				endpoint, err := url.JoinPath(addr, "/status")
 				if err != nil {
 					return
@@ -72,7 +68,7 @@ func NewBestRPCAddrWorker(c *core.Context, interval time.Duration) cron.Worker {
 				defer mu.Unlock()
 
 				latencies[addr] = latency
-			}(addr)
+			})
 		}
 
 		// Wait for all goroutines to complete.

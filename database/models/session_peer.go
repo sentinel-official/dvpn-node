@@ -37,48 +37,56 @@ func NewSessionPeer() *SessionPeer {
 // WithSessionID sets the SessionID field and returns the updated SessionPeer.
 func (s *SessionPeer) WithSessionID(v uint64) *SessionPeer {
 	s.SessionID = v
+
 	return s
 }
 
 // WithServiceType sets the ServiceType field from a sentinelsdk.ServiceType and returns the updated SessionPeer.
 func (s *SessionPeer) WithServiceType(v sentinelsdk.ServiceType) *SessionPeer {
 	s.ServiceType = v.String()
+
 	return s
 }
 
 // WithPeerID sets the PeerID field and returns the updated SessionPeer.
 func (s *SessionPeer) WithPeerID(v string) *SessionPeer {
 	s.PeerID = v
+
 	return s
 }
 
 // WithPeerRequest sets the PeerRequest field from a raw byte slice (base64-encoded) and returns the updated SessionPeer.
 func (s *SessionPeer) WithPeerRequest(v []byte) *SessionPeer {
 	s.PeerRequest = base64.StdEncoding.EncodeToString(v)
+
 	return s
 }
 
 // WithPeerMetadata sets the PeerMetadata field from a raw byte slice (base64-encoded) and returns the updated SessionPeer.
 func (s *SessionPeer) WithPeerMetadata(v []byte) *SessionPeer {
 	s.PeerMetadata = base64.StdEncoding.EncodeToString(v)
+
 	return s
 }
 
 // WithRxBytes sets the RxBytes field from math.Int and returns the updated SessionPeer.
 func (s *SessionPeer) WithRxBytes(v math.Int) *SessionPeer {
 	s.RxBytes = v.String()
+
 	return s
 }
 
 // WithTxBytes sets the TxBytes field from math.Int and returns the updated SessionPeer.
 func (s *SessionPeer) WithTxBytes(v math.Int) *SessionPeer {
 	s.TxBytes = v.String()
+
 	return s
 }
 
 // WithDuration sets the Duration field and returns the updated SessionPeer.
 func (s *SessionPeer) WithDuration(v time.Duration) *SessionPeer {
 	s.Duration = v
+
 	return s
 }
 
@@ -103,6 +111,7 @@ func (s *SessionPeer) GetPeerRequest() []byte {
 	if err != nil {
 		panic(fmt.Errorf("decoding Base64 peer request %q: %w", s.PeerRequest, err))
 	}
+
 	return buf
 }
 
@@ -112,6 +121,7 @@ func (s *SessionPeer) GetPeerMetadata() []byte {
 	if err != nil {
 		panic(fmt.Errorf("decoding Base64 peer metadata %q: %w", s.PeerMetadata, err))
 	}
+
 	return buf
 }
 
@@ -121,6 +131,7 @@ func (s *SessionPeer) GetRxBytes() math.Int {
 	if !ok {
 		panic(fmt.Errorf("parsing rx_bytes %q", s.RxBytes))
 	}
+
 	return v
 }
 
@@ -130,6 +141,7 @@ func (s *SessionPeer) GetTxBytes() math.Int {
 	if !ok {
 		panic(fmt.Errorf("parsing tx_bytes %q", s.TxBytes))
 	}
+
 	return v
 }
 

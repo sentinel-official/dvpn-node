@@ -129,17 +129,14 @@ func (s *Session) GetSignature() []byte {
 	return buf
 }
 
-// MsgUpdateSessionRequest creates a MsgUpdateSessionRequest for the session from
-// the aggregated child-peer usage: tx and rx are the summed transmitted/received
-// bytes and duration is the MAX duration across the session's child peers.
-// The existing on-chain mapping is preserved: tx maps to downloadBytes and rx
-// maps to uploadBytes.
-func (s *Session) MsgUpdateSessionRequest(tx, rx math.Int, duration time.Duration) *v3.MsgUpdateSessionRequest {
+// MsgUpdateSessionRequest builds an update message from aggregated peer usage:
+// downloadBytes/uploadBytes are summed bytes, duration is MAX across peers.
+func (s *Session) MsgUpdateSessionRequest(downloadBytes, uploadBytes math.Int, duration time.Duration) *v3.MsgUpdateSessionRequest {
 	return v3.NewMsgUpdateSessionRequest(
 		s.GetNodeAddr(),
 		s.GetID(),
-		tx,
-		rx,
+		downloadBytes,
+		uploadBytes,
 		duration,
 		s.GetSignature(),
 	)

@@ -25,11 +25,8 @@ const (
 	NameSessionValidate                = "session_validate"
 )
 
-// aggregateSessionUsage aggregates a session's child-peer usage: it sums rx and
-// tx across the peers and takes the MAX duration. Summing duration would
-// double-count overlapping protocols and a single peer would miss protocols
-// active at different times, so the session duration is the maximum elapsed
-// across its peers. An empty slice yields zero values.
+// aggregateSessionUsage sums rx/tx bytes and takes MAX duration across peers.
+// Duration is MAX not SUM because summing would double-count overlapping protocols.
 func aggregateSessionUsage(peers []models.SessionPeer) (rx, tx math.Int, duration time.Duration) {
 	rx = math.ZeroInt()
 	tx = math.ZeroInt()
@@ -46,9 +43,8 @@ func aggregateSessionUsage(peers []models.SessionPeer) (rx, tx math.Int, duratio
 	return rx, tx, duration
 }
 
-// NewSessionUsageSyncWithBlockchainWorker creates a worker that synchronizes session usage with the blockchain.
-// This worker retrieves session data from the database, aggregates each session's child peers,
-// and broadcasts any updates as transactions.
+// NewSessionUsageSyncWithBlockchainWorker creates a worker that aggregates each
+// session's child peers and broadcasts usage updates to the blockchain.
 func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Duration) cron.Worker {
 	log := logger.With("module", "workers", "name", NameSessionUsageSyncWithBlockchain)
 
@@ -73,9 +69,7 @@ func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Dura
 		jobGroup.SetLimit(2)
 
 		// Iterate over sessions and prepare messages for updates.
-		for _, val := range items {
-			item := val
-
+		for _, item := range items {
 			jobGroup.Go(func() error {
 				select {
 				case <-jobCtx.Done():
@@ -84,9 +78,11 @@ func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Dura
 				}
 
 				// Load the session's child peers and aggregate their usage.
-				peers, err := operations.SessionPeerFind(c.Database(), map[string]any{
+				query := map[string]any{
 					"session_id": item.GetID(),
-				})
+				}
+
+				peers, err := operations.SessionPeerFind(c.Database(), query)
 				if err != nil {
 					return fmt.Errorf("retrieving session_peers for session %d: %w", item.GetID(), err)
 				}
@@ -94,6 +90,7 @@ func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Dura
 				// Skip sessions without any peers.
 				if len(peers) == 0 {
 					log.Debug("Skipping session", "id", item.GetID(), "cause", "no peers")
+
 					return nil
 				}
 
@@ -107,17 +104,22 @@ func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Dura
 				// Skip session if it is nil
 				if session == nil {
 					log.Debug("Skipping session", "id", item.GetID(), "cause", "nil session")
+
 					return nil
 				}
 
+				// Node Tx = client download; node Rx = client upload.
+				downloadBytes, uploadBytes := tx, rx
+
 				// Skip session if it is already up-to-date (rx maps to upload bytes on chain).
-				if session.GetUploadBytes().Equal(rx) {
+				if session.GetUploadBytes().Equal(uploadBytes) {
 					log.Debug("Skipping session", "id", item.GetID(), "cause", "already up-to-date")
+
 					return nil
 				}
 
 				// Generate an update message for the session from the aggregated usage.
-				msg := item.MsgUpdateSessionRequest(tx, rx, duration)
+				msg := item.MsgUpdateSessionRequest(downloadBytes, uploadBytes, duration)
 				log.Debug("Adding session to update list",
 					"id", item.GetID(), "download_bytes", msg.DownloadBytes,
 					"duration", msg.Duration, "upload_bytes", msg.UploadBytes,
@@ -152,11 +154,8 @@ func NewSessionUsageSyncWithBlockchainWorker(c *core.Context, interval time.Dura
 		WithRetryDelay(5 * time.Second)
 }
 
-// NewSessionUsageSyncWithDatabaseWorker creates a worker that updates session usage in the database.
-// This worker fetches usage data from each active service and updates the matching SessionPeer
-// record by (service_type, peer_id). The per-service maps are never merged: WG and AWG peer IDs
-// are the client public key, so the same key can appear under both protocols and merging would
-// cross-attribute usage.
+// NewSessionUsageSyncWithDatabaseWorker updates session usage in the database per service.
+// Per-service maps are never merged: WG and AWG share key space so merging would cross-attribute usage.
 func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Duration) cron.Worker {
 	log := logger.With("module", "workers", "name", NameSessionUsageSyncWithDatabase)
 
@@ -167,9 +166,7 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 		// Fan out over each active service; process each service's statistics under its own type.
 		// PeerStatistics() is fetched inside the group closure so that a stats error propagates
 		// through the group (and Wait always runs), never abandoning sibling goroutines.
-		for serviceType, svc := range c.Services() {
-			t, service := serviceType, svc
-
+		for serviceType, service := range c.Services() {
 			jobGroup.Go(func() error {
 				select {
 				case <-jobCtx.Done():
@@ -180,7 +177,7 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 				// Fetch peer usage statistics from this service.
 				stats, err := service.PeerStatistics()
 				if err != nil {
-					return fmt.Errorf("retrieving peer statistics from service %q: %w", t, err)
+					return fmt.Errorf("retrieving peer statistics from service %q: %w", serviceType, err)
 				}
 
 				// Update the database with the fetched statistics for this service only.
@@ -193,7 +190,7 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 
 					if time.Since(item.UpdatedAt) > interval {
 						log.Debug("Skipping peer",
-							"service_type", t, "peer_id", peerID, "cause", "already up-to-date",
+							"service_type", serviceType, "peer_id", peerID, "cause", "already up-to-date",
 							"updated_at", item.UpdatedAt,
 						)
 
@@ -206,7 +203,7 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 
 					// Locate the session_peer by (service_type, peer_id).
 					query := map[string]any{
-						"service_type": t.String(),
+						"service_type": serviceType.String(),
 						"peer_id":      peerID,
 					}
 
@@ -217,11 +214,12 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 					}
 
 					log.Debug("Updating session_peer in database",
-						"service_type", t, "peer_id", peerID, "rx_bytes", rxBytes, "tx_bytes", txBytes,
+						"service_type", serviceType, "peer_id", peerID,
+						"rx_bytes", rxBytes, "tx_bytes", txBytes,
 					)
 
 					if _, err := operations.SessionPeerFindOneAndUpdate(c.Database(), query, updates); err != nil {
-						return fmt.Errorf("updating session_peer for service %q peer %q: %w", t, peerID, err)
+						return fmt.Errorf("updating session_peer %q from service %q: %w", peerID, serviceType, err)
 					}
 				}
 
@@ -243,10 +241,8 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 		WithInterval(interval)
 }
 
-// NewSessionUsageValidateWorker creates a worker that validates session usage limits and removes peers if necessary.
-// Budgets (max_bytes/max_duration) are per-session and shared across the session's protocols: max_bytes is checked
-// against SUM(rx+tx) over the child peers and max_duration against MAX(duration). On exceed, all peers of the
-// session are removed across services.
+// NewSessionUsageValidateWorker validates per-session budgets shared across protocols:
+// max_bytes vs SUM(rx+tx) and max_duration vs MAX(duration); on exceed, all peers are removed.
 func NewSessionUsageValidateWorker(c *core.Context, interval time.Duration) cron.Worker {
 	log := logger.With("module", "workers", "name", NameSessionUsageValidate)
 
@@ -265,9 +261,7 @@ func NewSessionUsageValidateWorker(c *core.Context, interval time.Duration) cron
 		jobGroup.SetLimit(2)
 
 		// Validate session limits and remove peers if needed.
-		for _, val := range items {
-			item := val
-
+		for _, item := range items {
 			jobGroup.Go(func() error {
 				select {
 				case <-jobCtx.Done():
@@ -276,9 +270,11 @@ func NewSessionUsageValidateWorker(c *core.Context, interval time.Duration) cron
 				}
 
 				// Load the session's child peers and aggregate their usage.
-				peers, err := operations.SessionPeerFind(c.Database(), map[string]any{
+				query := map[string]any{
 					"session_id": item.GetID(),
-				})
+				}
+
+				peers, err := operations.SessionPeerFind(c.Database(), query)
 				if err != nil {
 					return fmt.Errorf("retrieving session_peers for session %d: %w", item.GetID(), err)
 				}
@@ -317,15 +313,14 @@ func NewSessionUsageValidateWorker(c *core.Context, interval time.Duration) cron
 				// If the session exceeded any limits, remove every peer across services.
 				if removePeers {
 					for i := range peers {
-						p := peers[i]
-
 						log.Debug("Removing peer from service",
-							"id", item.GetID(), "service_type", p.GetServiceType(), "peer_id", p.GetPeerID(),
+							"id", item.GetID(), "service_type", peers[i].GetServiceType(),
+							"peer_id", peers[i].GetPeerID(),
 						)
 
-						if err := c.RemovePeerIfExists(jobCtx, p.GetServiceType(), p.GetPeerID()); err != nil {
-							return fmt.Errorf("removing peer %q (%s) for session %d from service: %w",
-								p.GetPeerID(), p.GetServiceType(), item.GetID(), err)
+						if err := c.RemovePeerIfExists(jobCtx, peers[i].GetServiceType(), peers[i].GetPeerID()); err != nil {
+							return fmt.Errorf("removing peer %q from service %q for session %d: %w",
+								peers[i].GetPeerID(), peers[i].GetServiceType(), item.GetID(), err)
 						}
 					}
 				}
@@ -348,10 +343,8 @@ func NewSessionUsageValidateWorker(c *core.Context, interval time.Duration) cron
 		WithInterval(interval)
 }
 
-// NewSessionValidateWorker creates a worker that validates session status and removes peers if necessary.
-// This worker ensures sessions are active and consistent between the database and blockchain. When a session
-// is missing or inactive on chain, every child peer is removed (routed by its service_type) and the session
-// row plus its session_peers are deleted.
+// NewSessionValidateWorker validates session status against the chain; when a session is
+// missing or inactive, all child peers are removed and the session and its peers deleted.
 func NewSessionValidateWorker(c *core.Context, interval time.Duration) cron.Worker {
 	log := logger.With("module", "workers", "name", NameSessionValidate)
 
@@ -370,9 +363,7 @@ func NewSessionValidateWorker(c *core.Context, interval time.Duration) cron.Work
 		jobGroup.SetLimit(2)
 
 		// Validate session status and consistency.
-		for _, val := range items {
-			item := val
-
+		for _, item := range items {
 			jobGroup.Go(func() error {
 				select {
 				case <-jobCtx.Done():
@@ -410,42 +401,47 @@ func NewSessionValidateWorker(c *core.Context, interval time.Duration) cron.Work
 				}
 
 				// Load the session's child peers.
-				peers, err := operations.SessionPeerFind(c.Database(), map[string]any{
+				query := map[string]any{
 					"session_id": item.GetID(),
-				})
+				}
+
+				peers, err := operations.SessionPeerFind(c.Database(), query)
 				if err != nil {
 					return fmt.Errorf("retrieving session_peers for session %d: %w", item.GetID(), err)
 				}
 
 				// Remove every peer (routed by its service_type) and delete the child row.
 				for i := range peers {
-					p := peers[i]
-
 					log.Debug("Removing peer from service",
-						"id", item.GetID(), "service_type", p.GetServiceType(), "peer_id", p.GetPeerID(),
+						"id", item.GetID(), "service_type", peers[i].GetServiceType(),
+						"peer_id", peers[i].GetPeerID(),
 					)
 
-					if err := c.RemovePeerIfExists(jobCtx, p.GetServiceType(), p.GetPeerID()); err != nil {
-						return fmt.Errorf("removing peer %q (%s) for session %d from service: %w",
-							p.GetPeerID(), p.GetServiceType(), item.GetID(), err)
+					if err := c.RemovePeerIfExists(jobCtx, peers[i].GetServiceType(), peers[i].GetPeerID()); err != nil {
+						return fmt.Errorf("removing peer %q from service %q for session %d: %w",
+							peers[i].GetPeerID(), peers[i].GetServiceType(), item.GetID(), err)
 					}
 
 					// Delete the child row explicitly (belt-and-suspenders alongside the FK cascade).
-					if _, err := operations.SessionPeerFindOneAndDelete(c.Database(), map[string]any{
+					peerQuery := map[string]any{
 						"session_id":   item.GetID(),
-						"service_type": p.GetServiceType().String(),
-					}); err != nil {
-						return fmt.Errorf("deleting session_peer %q (%s) for session %d: %w",
-							p.GetPeerID(), p.GetServiceType(), item.GetID(), err)
+						"service_type": peers[i].GetServiceType().String(),
+					}
+
+					if _, err := operations.SessionPeerFindOneAndDelete(c.Database(), peerQuery); err != nil {
+						return fmt.Errorf("deleting session_peer %q from service %q for session %d: %w",
+							peers[i].GetPeerID(), peers[i].GetServiceType(), item.GetID(), err)
 					}
 				}
 
 				// Delete the parent session record (children cascade via FK).
 				log.Info("Deleting session from database", "id", item.GetID())
 
-				if _, err := operations.SessionFindOneAndDelete(c.Database(), map[string]any{
+				sessionQuery := map[string]any{
 					"id": item.GetID(),
-				}); err != nil {
+				}
+
+				if _, err := operations.SessionFindOneAndDelete(c.Database(), sessionQuery); err != nil {
 					return fmt.Errorf("deleting session %d from database: %w", item.GetID(), err)
 				}
 
