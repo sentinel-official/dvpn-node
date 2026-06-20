@@ -149,10 +149,10 @@ func buildService(t types.ServiceType, homeDir string, cfg *config.Config) (type
 	}
 }
 
-// assembleServices builds and sets up each service in set best-effort, applies
-// collision filtering from the conflicts map, and returns the surviving services.
-// Returns an error only if zero services could be started.
-func assembleServices(
+// setupServicesLoop iterates set, skips colliders (pre-computed in conflicts)
+// with a WARN, and best-effort builds + sets up the rest.  Returns an error
+// only if zero services start successfully.
+func setupServicesLoop(
 	ctx context.Context,
 	set []types.ServiceType,
 	conflicts map[types.ServiceType]error,
@@ -161,6 +161,12 @@ func assembleServices(
 	result := make(map[types.ServiceType]types.ServerService, len(set))
 
 	for _, t := range set {
+		// Skip colliders before any build or Setup — they must not start.
+		if collErr, collides := conflicts[t]; collides {
+			log.Warn("Skipping service: collision detected", "type", t, "error", collErr)
+			continue
+		}
+
 		svc, err := build(t)
 		if err != nil {
 			log.Warn("Skipping service: build failed", "type", t, "error", err)
@@ -186,14 +192,6 @@ func assembleServices(
 		result[t] = svc
 	}
 
-	// Apply collision filtering over the successfully-set-up services.
-	for t, collErr := range conflicts {
-		if _, present := result[t]; present {
-			log.Warn("Skipping service: collision detected", "type", t, "error", collErr)
-			delete(result, t)
-		}
-	}
-
 	if len(result) == 0 {
 		return nil, errors.New("no services could be started")
 	}
@@ -201,36 +199,21 @@ func assembleServices(
 	return result, nil
 }
 
-// SetupServices builds and sets up each enabled service from the configuration
-// best-effort, detects port/subnet collisions among successfully-set-up services,
-// and stores the surviving services in the context.  Returns an error only if
-// zero services start successfully.
+// SetupServices detects port/subnet collisions up front from the persisted
+// per-service configs, then builds and sets up each non-colliding enabled
+// service best-effort, storing the survivors in the context.  Returns an error
+// only if zero services start successfully.
 func (c *Context) SetupServices(ctx context.Context, cfg *config.Config) error {
 	set := cfg.Node.GetServiceTypes()
 
-	services, err := assembleServices(ctx, set, nil, func(t types.ServiceType) (types.ServerService, error) {
+	// Compute collisions from config before any build or Setup call.
+	conflicts := conflictingServices(set, cfg)
+
+	services, err := setupServicesLoop(ctx, set, conflicts, func(t types.ServiceType) (types.ServerService, error) {
 		return buildService(t, c.HomeDir(), cfg)
 	})
 	if err != nil {
 		return err //nolint:wrapcheck
-	}
-
-	// Compute collision map from the post-setup survivors and re-assemble.
-	setOK := make([]types.ServiceType, 0, len(services))
-	for t := range services {
-		setOK = append(setOK, t)
-	}
-
-	collisions := conflictingServices(setOK, cfg)
-	if len(collisions) > 0 {
-		for t, collErr := range collisions {
-			log.Warn("Removing service after post-setup collision check", "type", t, "error", collErr)
-			delete(services, t)
-		}
-
-		if len(services) == 0 {
-			return errors.New("no services could be started after collision check")
-		}
 	}
 
 	c.WithServices(services)

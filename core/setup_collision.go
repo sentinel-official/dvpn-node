@@ -48,7 +48,14 @@ func servicePorts(t types.ServiceType, cfg *config.Config) ([]uint16, error) {
 
 	case types.ServiceTypeHysteria2:
 		sc := cfg.Services[t].(*hysteria2.ServerConfig)
-		return []uint16{sc.Port, sc.AuthPort, sc.StatsPort}, nil
+		var ports []uint16
+		for _, p := range []uint16{sc.Port, sc.AuthPort, sc.StatsPort} {
+			if p == 0 {
+				continue
+			}
+			ports = append(ports, p)
+		}
+		return ports, nil
 
 	case types.ServiceTypeV2Ray:
 		sc := cfg.Services[t].(*v2ray.ServerConfig)
