@@ -232,11 +232,11 @@ moniker = "{{ .Node.Moniker }}"
 # Example: ["192.168.1.100:8080", "node.example.com:9090"]
 remote_addrs = [{{ range $i, $addr := .Node.RemoteAddrs }}{{ if $i }}, {{ end }}"{{ $addr }}"{{ end }}]
 
-# Type of VPN or proxy service protocol this node provides.
+# Enabled service protocols this node provides (one or more).
 # Each type has different capabilities, security features, and client compatibility.
 # Allowed: amneziawg, hysteria2, openvpn, v2ray, wireguard, xray
-# Example: "wireguard"
-service_type = "{{ .Node.ServiceType }}"
+# Example: ["wireguard", "amneziawg"]
+service_types = [{{ range $i, $t := .Node.ServiceTypes }}{{ if $i }}, {{ end }}"{{ $t }}"{{ end }}]
 
 # Oracle Configuration
 [oracle]

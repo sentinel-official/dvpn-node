@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/netip"
 	"github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/utils"
@@ -18,6 +19,16 @@ import (
 )
 
 const MaxRemoteAddrLen = (1 << 6) - 1 // Maximum allowable length for a remote address.
+
+// allowedServiceTypes is the set of service type strings accepted in service_types.
+var allowedServiceTypes = map[string]bool{
+	types.ServiceTypeV2Ray.String():     true,
+	types.ServiceTypeWireGuard.String(): true,
+	types.ServiceTypeOpenVPN.String():   true,
+	types.ServiceTypeAmneziaWG.String(): true,
+	types.ServiceTypeHysteria2.String(): true,
+	types.ServiceTypeXray.String():      true,
+}
 
 type NodeConfig struct {
 	APIPort                                string   `mapstructure:"api_port"`                                    // APIPort is the port for API access.
@@ -34,7 +45,8 @@ type NodeConfig struct {
 	IntervalStatusUpdate                   string   `mapstructure:"interval_status_update"`                      // IntervalStatusUpdate is the duration between updating the status of the node.
 	Moniker                                string   `mapstructure:"moniker"`                                     // Moniker is the name or identifier for the node.
 	RemoteAddrs                            []string `mapstructure:"remote_addrs"`                                // RemoteAddrs is a list of remote addresses for operations.
-	ServiceType                            string   `mapstructure:"service_type"`                                // ServiceType is the type of the service.
+	ServiceType                            string   `mapstructure:"service_type"`                                // ServiceType is deprecated; use ServiceTypes instead.
+	ServiceTypes                           []string `mapstructure:"service_types"`                               // ServiceTypes is the list of enabled service protocols.
 }
 
 // APIAddrs generates the API addresses for the node.
@@ -189,9 +201,31 @@ func (c *NodeConfig) GetRemoteAddrs() []string {
 	return c.RemoteAddrs
 }
 
-// GetServiceType returns the ServiceType field.
+// GetServiceType returns the first element of ServiceTypes for backward compatibility.
+// Deprecated: use GetServiceTypes instead.
 func (c *NodeConfig) GetServiceType() types.ServiceType {
+	if len(c.ServiceTypes) > 0 {
+		return types.ServiceTypeFromString(c.ServiceTypes[0])
+	}
 	return types.ServiceTypeFromString(c.ServiceType)
+}
+
+// GetServiceTypes returns the enabled service types.
+func (c *NodeConfig) GetServiceTypes() []types.ServiceType {
+	out := make([]types.ServiceType, len(c.ServiceTypes))
+	for i, s := range c.ServiceTypes {
+		out[i] = types.ServiceTypeFromString(s)
+	}
+	return out
+}
+
+// NormalizeServiceTypes coerces a legacy scalar service_type into the service_types list
+// and logs a deprecation notice. If service_types is already set, it wins.
+func (c *NodeConfig) NormalizeServiceTypes() {
+	if len(c.ServiceTypes) == 0 && c.ServiceType != "" {
+		c.ServiceTypes = []string{c.ServiceType}
+		log.Info("service_type is deprecated; use service_types", "service_type", c.ServiceType)
+	}
 }
 
 // Validate validates the node configuration.
@@ -271,17 +305,20 @@ func (c *NodeConfig) Validate() error {
 		}
 	}
 
-	// Validate the node type.
-	validServiceTypes := map[string]bool{
-		types.ServiceTypeV2Ray.String():     true,
-		types.ServiceTypeWireGuard.String(): true,
-		types.ServiceTypeOpenVPN.String():   true,
-		types.ServiceTypeAmneziaWG.String(): true,
-		types.ServiceTypeHysteria2.String(): true,
-		types.ServiceTypeXray.String():      true,
+	// Validate the service_types list.
+	if len(c.ServiceTypes) == 0 {
+		return errors.New("service_types cannot be empty")
 	}
-	if !validServiceTypes[c.ServiceType] {
-		return fmt.Errorf("unsupported service_type %q (allowed: v2ray, wireguard, openvpn, amneziawg, hysteria2, xray)", c.ServiceType)
+
+	seen := make(map[string]bool, len(c.ServiceTypes))
+	for _, s := range c.ServiceTypes {
+		if !allowedServiceTypes[s] {
+			return fmt.Errorf("unsupported service_types entry %q (allowed: amneziawg, hysteria2, openvpn, v2ray, wireguard, xray)", s)
+		}
+		if seen[s] {
+			return fmt.Errorf("duplicate entry %q in service_types", s)
+		}
+		seen[s] = true
 	}
 
 	return nil
@@ -303,7 +340,7 @@ func (c *NodeConfig) SetForFlags(f *pflag.FlagSet) {
 	f.StringVar(&c.IntervalStatusUpdate, "node.interval-status-update", c.IntervalStatusUpdate, "interval for updating node status")
 	f.StringVar(&c.Moniker, "node.moniker", c.Moniker, "moniker (identifier) for the node")
 	f.StringSliceVar(&c.RemoteAddrs, "node.remote-addrs", c.RemoteAddrs, "list of remote addresses for the node")
-	f.StringVar(&c.ServiceType, "node.service-type", c.ServiceType, "service type of the node (e.g., v2ray, wireguard, openvpn, amneziawg, hysteria2, xray)")
+	f.StringSliceVar(&c.ServiceTypes, "node.service-types", c.ServiceTypes, "enabled service protocols (e.g. wireguard,amneziawg,hysteria2)")
 }
 
 // DefaultNodeConfig returns a NodeConfig instance with default values.
@@ -323,19 +360,13 @@ func DefaultNodeConfig() *NodeConfig {
 		IntervalStatusUpdate:                   (1*time.Hour - 5*time.Minute).String(),
 		Moniker:                                randMoniker(),
 		RemoteAddrs:                            []string{"127.0.0.1"},
-		ServiceType:                            randServiceType().String(),
+		ServiceTypes:                           randServiceTypes(),
 	}
 }
 
-func randServiceType() types.ServiceType {
-	return [...]types.ServiceType{
-		types.ServiceTypeWireGuard,
-		types.ServiceTypeV2Ray,
-		types.ServiceTypeOpenVPN,
-		types.ServiceTypeAmneziaWG,
-		types.ServiceTypeHysteria2,
-		types.ServiceTypeXray,
-	}[rand.IntN(6)]
+// randServiceTypes returns the default service_types seed (WireGuard).
+func randServiceTypes() []string {
+	return []string{types.ServiceTypeWireGuard.String()}
 }
 
 func randMoniker() string {
