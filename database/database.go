@@ -22,12 +22,8 @@ func New(file string, cfg *gorm.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("opening database file %q: %w", file, err)
 	}
 
-	// Detect legacy schema: the existing sessions table still carries the legacy
-	// per-peer peer_id column (removed from the slim Session model). Drop the
-	// session tables so AutoMigrate recreates them fresh (destructive recreate);
-	// children are dropped before the parent for FK safety. Session data is
-	// ephemeral — the session-validate worker re-syncs from chain. This is
-	// idempotent: a fresh/slim DB has no peer_id column, so nothing is dropped.
+	// Detect legacy schema: if the sessions table still has peer_id, drop both tables
+	// (children first for FK safety) so AutoMigrate recreates them clean.
 	if db.Migrator().HasTable(&models.Session{}) && db.Migrator().HasColumn(&models.Session{}, "peer_id") {
 		for _, name := range []string{"session_peers", "sessions"} {
 			if db.Migrator().HasTable(name) {

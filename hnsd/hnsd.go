@@ -59,9 +59,20 @@ func (d *Daemon) Start(parent context.Context) (context.Context, error) {
 	})
 }
 
+// Wait blocks until the hnsd supervisor exits or the context is cancelled.
+func (d *Daemon) Wait(ctx context.Context) error {
+	return d.Manager.Wait(ctx, nil) //nolint:wrapcheck
+}
+
+// Stop cancels the supervisor context, gracefully terminating hnsd.
+func (d *Daemon) Stop() error {
+	return d.Manager.Stop(nil) //nolint:wrapcheck
+}
+
 // supervise runs hnsd and restarts it on unexpected exit, bounded by maxRestarts.
 func (d *Daemon) supervise(ctx context.Context) error {
 	restarts := 0
+
 	for {
 		log.Info("Starting hnsd", "rs_host", d.rsHost, "pool_size", d.poolSize)
 
@@ -69,7 +80,7 @@ func (d *Daemon) supervise(ctx context.Context) error {
 
 		// A cancelled context is a normal shutdown, not a crash.
 		if ctx.Err() != nil {
-			return nil
+			return nil //nolint:nilerr // cancelled context is a normal shutdown; the Run error is expected
 		}
 
 		if !d.shouldRestart(restarts) {
@@ -115,14 +126,4 @@ func (d *Daemon) command(ctx context.Context) *exec.Cmd {
 	cmd.WaitDelay = 5 * time.Second
 
 	return cmd
-}
-
-// Wait blocks until the hnsd supervisor exits or the context is cancelled.
-func (d *Daemon) Wait(ctx context.Context) error {
-	return d.Manager.Wait(ctx, nil) //nolint:wrapcheck
-}
-
-// Stop cancels the supervisor context, gracefully terminating hnsd.
-func (d *Daemon) Stop() error {
-	return d.Manager.Stop(nil) //nolint:wrapcheck
 }

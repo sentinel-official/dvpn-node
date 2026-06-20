@@ -116,7 +116,6 @@ func (c *OracleConfig) Validate() error {
 }
 
 // SetForFlags adds oracle configuration flags to the specified FlagSet.
-// SetForFlags adds oracle configuration flags to the specified FlagSet.
 func (c *OracleConfig) SetForFlags(f *pflag.FlagSet) {
 	f.StringVar(&c.Name, "oracle.name", c.Name, "specify which oracle provider to use (e.g., coingecko or osmosis)")
 	f.StringVar(&c.CoinGecko.APIKey, "oracle.coingecko.api-key", c.CoinGecko.APIKey, "set the API key used to authenticate requests to the CoinGecko oracle")

@@ -1,6 +1,7 @@
 package handshake
 
 import (
+	"errors"
 	"fmt"
 
 	cosmossdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,12 +15,11 @@ type InitHandshakeRequest struct {
 	Body node.InitHandshakeRequestBody
 }
 
-// validatePeerRequests checks the multi-element peer requests payload: the slice
-// must be non-empty, each element must carry non-empty inner Data and a known
-// service Type, and no Type may repeat across the slice.
+// validatePeerRequests checks that peer requests are non-empty, each element has
+// non-empty Data and a known service Type, and no Type repeats across the slice.
 func validatePeerRequests(reqs []node.PeerRequest) error {
 	if len(reqs) == 0 {
-		return fmt.Errorf("peer_requests cannot be empty")
+		return errors.New("peer_requests cannot be empty")
 	}
 
 	seen := make(map[string]bool, len(reqs))

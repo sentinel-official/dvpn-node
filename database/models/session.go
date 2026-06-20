@@ -79,7 +79,7 @@ func (s *Session) WithSignature(v []byte) *Session {
 func (s *Session) GetAccAddr() cosmossdk.AccAddress {
 	addr, err := cosmossdk.AccAddressFromBech32(s.AccAddr)
 	if err != nil {
-		panic(fmt.Errorf("decosing Bech32 account addr %q: %w", s.AccAddr, err))
+		panic(fmt.Errorf("decoding Bech32 account addr %q: %w", s.AccAddr, err))
 	}
 
 	return addr
@@ -109,7 +109,7 @@ func (s *Session) GetMaxDuration() time.Duration {
 func (s *Session) GetNodeAddr() sentinelhub.NodeAddress {
 	addr, err := sentinelhub.NodeAddressFromBech32(s.NodeAddr)
 	if err != nil {
-		panic(fmt.Errorf("decosing Bech32 node addr %q: %w", s.NodeAddr, err))
+		panic(fmt.Errorf("decoding Bech32 node addr %q: %w", s.NodeAddr, err))
 	}
 
 	return addr

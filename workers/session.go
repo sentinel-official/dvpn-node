@@ -163,9 +163,8 @@ func NewSessionUsageSyncWithDatabaseWorker(c *core.Context, interval time.Durati
 		jobGroup, jobCtx := errgroup.WithContext(ctx)
 		jobGroup.SetLimit(2)
 
-		// Fan out over each active service; process each service's statistics under its own type.
-		// PeerStatistics() is fetched inside the group closure so that a stats error propagates
-		// through the group (and Wait always runs), never abandoning sibling goroutines.
+		// Fan out over each active service; PeerStatistics() is fetched inside the closure
+		// so errors propagate through the group without abandoning sibling goroutines.
 		for serviceType, service := range c.Services() {
 			jobGroup.Go(func() error {
 				select {

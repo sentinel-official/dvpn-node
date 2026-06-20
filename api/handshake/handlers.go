@@ -21,10 +21,7 @@ import (
 )
 
 // accountAdmitted reports whether a handshake for addr may be admitted under the
-// node-wide distinct-account peer limit. An account that already holds a session
-// consumes no new slot; a new account is admitted only while the distinct-account
-// count is below maxPeers. Callers MUST hold the admission lock so the
-// count-then-insert sequence cannot over-admit past maxPeers.
+// node-wide peer limit. Callers MUST hold the admission lock to prevent over-admission.
 func accountAdmitted(db *gorm.DB, addr string, maxPeers uint) (bool, error) {
 	exists, err := operations.SessionAccAddrExists(db, addr)
 	if err != nil {
@@ -124,8 +121,7 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc { //nolint:maintidx /
 		}
 
 		// Per-element duplicate guard: reject if any requested peer already exists.
-		// Use the canonical service-type string (same form stored by the writer) for
-		// symmetry and robustness against future validation-reordering.
+		// Uses the canonical service-type string for symmetry with the writer path.
 		for _, pr := range req.PeerRequests() {
 			query := map[string]any{
 				"service_type": types.ServiceTypeFromString(pr.Type).String(),

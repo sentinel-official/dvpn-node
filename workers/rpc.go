@@ -16,9 +16,8 @@ import (
 
 const NameBestRPCAddr = "best_rpc_addr"
 
-// NewBestRPCAddrWorker creates a worker that determines the best RPC address based on latency.
-// This worker periodically measures the latency of available RPC addresses,
-// sorts them in ascending order of latency, and updates the context.
+// NewBestRPCAddrWorker creates a worker that periodically measures RPC address
+// latencies, sorts them ascending, and updates the context with the ordered list.
 func NewBestRPCAddrWorker(c *core.Context, interval time.Duration) cron.Worker {
 	client := &http.Client{Timeout: 5 * time.Second}
 	log := logger.With("module", "workers", "name", NameBestRPCAddr)

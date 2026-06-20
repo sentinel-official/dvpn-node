@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// Embed the template files for configuration.
+// Embed template files for configuration.
 //
 //go:embed *.tmpl
 var fs embed.FS
