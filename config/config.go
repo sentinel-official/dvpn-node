@@ -39,6 +39,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("validating handshake_dns config: %w", err)
 	}
 
+	c.Node.NormalizeServiceTypes()
+
 	if err := c.Node.Validate(); err != nil {
 		return fmt.Errorf("validating node config: %w", err)
 	}
