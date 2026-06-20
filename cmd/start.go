@@ -39,6 +39,9 @@ func NewStartCmd(cfg *config.Config) *cobra.Command {
 		Long: `Starts the Sentinel dVPN node. Initializes the logger, sets up the context and node,
 explicitly starts the node, and handles SIGINT/SIGTERM for graceful shutdown.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Coerce legacy service_type scalar to service_types list before setup reads the enabled set.
+			cfg.Node.NormalizeServiceTypes()
+
 			ctx, cancel := context.WithCancel(cmd.Context())
 			defer cancel()
 
