@@ -40,7 +40,6 @@ type Context struct {
 	oracleClient   oracle.Client
 	remoteAddrs    []string
 	rpcAddrs       []string
-	service        sentinelsdk.ServerService
 	services       map[sentinelsdk.ServiceType]sentinelsdk.ServerService
 	ulSpeed        math.Int
 
@@ -234,14 +233,6 @@ func (c *Context) RPCAddrs() []string {
 	defer c.fm.RUnlock()
 
 	return c.rpcAddrs
-}
-
-// Service returns the server service instance set in the context.
-func (c *Context) Service() sentinelsdk.ServerService {
-	c.fm.RLock()
-	defer c.fm.RUnlock()
-
-	return c.service
 }
 
 // ServiceFor returns the active server service for the given service type, and
@@ -493,14 +484,6 @@ func (c *Context) WithRemoteAddrs(addrs []string) *Context {
 func (c *Context) WithRPCAddrs(addrs []string) *Context {
 	c.checkSealed()
 	c.rpcAddrs = addrs
-
-	return c
-}
-
-// WithService sets the server service in the context and returns the updated context.
-func (c *Context) WithService(service sentinelsdk.ServerService) *Context {
-	c.checkSealed()
-	c.service = service
 
 	return c
 }

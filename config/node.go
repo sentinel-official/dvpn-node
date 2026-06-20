@@ -201,15 +201,6 @@ func (c *NodeConfig) GetRemoteAddrs() []string {
 	return c.RemoteAddrs
 }
 
-// GetServiceType returns the first element of ServiceTypes for backward compatibility.
-// Deprecated: use GetServiceTypes instead.
-func (c *NodeConfig) GetServiceType() types.ServiceType {
-	if len(c.ServiceTypes) > 0 {
-		return types.ServiceTypeFromString(c.ServiceTypes[0])
-	}
-	return types.ServiceTypeFromString(c.ServiceType)
-}
-
 // GetServiceTypes returns the enabled service types.
 func (c *NodeConfig) GetServiceTypes() []types.ServiceType {
 	out := make([]types.ServiceType, len(c.ServiceTypes))
