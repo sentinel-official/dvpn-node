@@ -3,11 +3,13 @@ package node
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/process"
+	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinelhub/v12/x/node/types/v3"
 	"golang.org/x/sync/errgroup"
 
@@ -178,8 +180,11 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 		var (
 			schedulerCtx context.Context
 			serverCtx    context.Context
-			serviceCtx   context.Context
 		)
+
+		// serviceMu guards writes to svcCtxs from concurrent errgroup goroutines.
+		var serviceMu sync.Mutex
+		svcCtxs := make(map[sentinelsdk.ServiceType]context.Context)
 
 		sg := &errgroup.Group{}
 
@@ -203,15 +208,24 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 			return nil
 		})
 
-		sg.Go(func() (err error) {
-			log.Info("Starting service")
+		for t, svc := range n.Context().Services() {
+			t, svc := t, svc
 
-			if serviceCtx, err = n.Context().Service().Start(ctx); err != nil {
-				return fmt.Errorf("starting service: %w", err)
-			}
+			sg.Go(func() (err error) {
+				log.Info("Starting service", "type", t)
 
-			return nil
-		})
+				svcCtx, err := svc.Start(ctx)
+				if err != nil {
+					return fmt.Errorf("starting service %q: %w", t, err)
+				}
+
+				serviceMu.Lock()
+				svcCtxs[t] = svcCtx
+				serviceMu.Unlock()
+
+				return nil
+			})
+		}
 
 		if err := sg.Wait(); err != nil {
 			return fmt.Errorf("starting group: %w", err)
@@ -250,13 +264,19 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 			return nil
 		})
 
-		n.Go(ctx, func() error {
-			if err := n.Context().Service().Wait(serviceCtx); err != nil {
-				return fmt.Errorf("waiting service: %w", err)
-			}
+		activeSvcs := n.Context().Services()
+		for t, svcCtx := range svcCtxs {
+			t, svcCtx := t, svcCtx
+			svc := activeSvcs[t]
 
-			return nil
-		})
+			n.Go(ctx, func() error {
+				if err := svc.Wait(svcCtx); err != nil {
+					return fmt.Errorf("waiting service %q: %w", t, err)
+				}
+
+				return nil
+			})
+		}
 
 		return nil
 	})
@@ -292,15 +312,19 @@ func (n *Node) Stop() error {
 			return nil
 		})
 
-		sg.Go(func() error {
-			log.Info("Stopping service")
+		for t, svc := range n.Context().Services() {
+			t, svc := t, svc
 
-			if err := n.Context().Service().Stop(); err != nil {
-				return fmt.Errorf("stopping service: %w", err)
-			}
+			sg.Go(func() error {
+				log.Info("Stopping service", "type", t)
 
-			return nil
-		})
+				if err := svc.Stop(); err != nil {
+					return fmt.Errorf("stopping service %q: %w", t, err)
+				}
+
+				return nil
+			})
+		}
 
 		if n.HandshakeDNS() != nil {
 			sg.Go(func() error {
