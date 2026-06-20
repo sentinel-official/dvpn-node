@@ -209,8 +209,6 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 		})
 
 		for t, svc := range n.Context().Services() {
-			t, svc := t, svc
-
 			sg.Go(func() (err error) {
 				log.Info("Starting service", "type", t)
 
@@ -266,7 +264,6 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 
 		activeSvcs := n.Context().Services()
 		for t, svcCtx := range svcCtxs {
-			t, svcCtx := t, svcCtx
 			svc := activeSvcs[t]
 
 			n.Go(ctx, func() error {
@@ -313,8 +310,6 @@ func (n *Node) Stop() error {
 		})
 
 		for t, svc := range n.Context().Services() {
-			t, svc := t, svc
-
 			sg.Go(func() error {
 				log.Info("Stopping service", "type", t)
 
