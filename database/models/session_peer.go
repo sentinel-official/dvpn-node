@@ -145,9 +145,14 @@ func (s *SessionPeer) GetDuration() time.Duration {
 
 // BeforeUpdate is a GORM hook that snapshots the elapsed duration when rx_bytes or tx_bytes change.
 func (s *SessionPeer) BeforeUpdate(db *gorm.DB) error {
+	if s.SessionID == 0 {
+		return nil
+	}
+
 	if db.Statement.Changed("rx_bytes", "tx_bytes") {
 		duration := time.Since(s.CreatedAt).Nanoseconds()
 		db.Statement.SetColumn("duration", duration)
 	}
+
 	return nil
 }

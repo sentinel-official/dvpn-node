@@ -23,15 +23,11 @@ func New(file string, cfg *gorm.Config) (*gorm.DB, error) {
 	}
 
 	// Detect legacy schema: sessions exists but session_peers does not yet exist.
-	// Drop both tables so AutoMigrate recreates them fresh (destructive recreate).
+	// Drop sessions so AutoMigrate recreates both tables fresh (destructive recreate).
 	// Session data is ephemeral — the session-validate worker re-syncs from chain.
 	if db.Migrator().HasTable(&models.Session{}) && !db.Migrator().HasTable(&models.SessionPeer{}) {
-		for _, name := range []string{"session_peers", "sessions"} {
-			if db.Migrator().HasTable(name) {
-				if err := db.Migrator().DropTable(name); err != nil {
-					return nil, fmt.Errorf("dropping legacy table %q: %w", name, err)
-				}
-			}
+		if err := db.Migrator().DropTable(&models.Session{}); err != nil {
+			return nil, fmt.Errorf("dropping legacy sessions table: %w", err)
 		}
 	}
 

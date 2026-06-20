@@ -15,12 +15,14 @@ func SessionPeerInsertOne(db *gorm.DB, peer *models.SessionPeer) error {
 		if err := db.Create(peer).Error; err != nil {
 			return fmt.Errorf("inserting session_peer: %w", err)
 		}
+
 		return nil
 	}
 
 	if err := db.Transaction(fn); err != nil {
 		return fmt.Errorf("running tx: %w", err)
 	}
+
 	return nil
 }
 
@@ -32,6 +34,7 @@ func SessionPeerFind(db *gorm.DB, query map[string]any) ([]models.SessionPeer, e
 	if err := db.Find(&peers).Error; err != nil {
 		return nil, fmt.Errorf("finding session_peers with query %v: %w", query, err)
 	}
+
 	return peers, nil
 }
 
@@ -44,8 +47,10 @@ func SessionPeerFindOne(db *gorm.DB, query map[string]any) (*models.SessionPeer,
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
+
 		return nil, fmt.Errorf("finding session_peer with query %v: %w", query, err)
 	}
+
 	return &peer, nil
 }
 
@@ -59,18 +64,22 @@ func SessionPeerFindOneAndUpdate(db *gorm.DB, query, updates map[string]any) (*m
 		if err != nil {
 			return fmt.Errorf("finding session_peer with query %v for update: %w", query, err)
 		}
+
 		if peer == nil {
 			return nil
 		}
+
 		if err := db.Model(peer).Updates(updates).Error; err != nil {
 			return fmt.Errorf("updating session_peer with query %v: %w", query, err)
 		}
+
 		return nil
 	}
 
 	if err := db.Transaction(fn); err != nil {
 		return nil, fmt.Errorf("running tx: %w", err)
 	}
+
 	return peer, nil
 }
 
@@ -84,18 +93,22 @@ func SessionPeerFindOneAndDelete(db *gorm.DB, query map[string]any) (*models.Ses
 		if err != nil {
 			return fmt.Errorf("finding session_peer with query %v for deletion: %w", query, err)
 		}
+
 		if peer == nil {
 			return nil
 		}
+
 		if err := db.Model(peer).Delete(nil).Error; err != nil {
 			return fmt.Errorf("deleting session_peer with query %v: %w", query, err)
 		}
+
 		return nil
 	}
 
 	if err := db.Transaction(fn); err != nil {
 		return nil, fmt.Errorf("running tx: %w", err)
 	}
+
 	return peer, nil
 }
 
@@ -105,6 +118,7 @@ func SessionAccAddrExists(db *gorm.DB, addr string) (bool, error) {
 	if err := db.Model(&models.Session{}).Where("acc_addr = ?", addr).Limit(1).Count(&count).Error; err != nil {
 		return false, fmt.Errorf("checking session acc_addr %q existence: %w", addr, err)
 	}
+
 	return count > 0, nil
 }
 
@@ -114,5 +128,6 @@ func SessionAccAddrCount(db *gorm.DB) (int, error) {
 	if err := db.Model(&models.Session{}).Distinct("acc_addr").Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("counting distinct acc_addrs: %w", err)
 	}
+
 	return int(count), nil
 }
