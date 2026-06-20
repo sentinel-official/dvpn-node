@@ -238,6 +238,9 @@ remote_addrs = [{{ range $i, $addr := .Node.RemoteAddrs }}{{ if $i }}, {{ end }}
 # Example: ["wireguard", "amneziawg"]
 service_types = [{{ range $i, $t := .Node.ServiceTypes }}{{ if $i }}, {{ end }}"{{ $t }}"{{ end }}]
 
+# Skip services that fail to start instead of stopping the node.
+skip_failed_services = {{ .Node.SkipFailedServices }}
+
 # Oracle Configuration
 [oracle]
 

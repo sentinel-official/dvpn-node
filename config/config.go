@@ -39,8 +39,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("validating handshake_dns config: %w", err)
 	}
 
-	c.Node.NormalizeServiceTypes()
-
 	if err := c.Node.Validate(); err != nil {
 		return fmt.Errorf("validating node config: %w", err)
 	}
@@ -53,27 +51,23 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("validating QoS config: %w", err)
 	}
 
-	if err := validateHandshakeServiceTypes(c.HandshakeDNS.GetEnable(), c.Node.GetServiceTypes()); err != nil {
-		return fmt.Errorf("validating handshake_dns config: %w", err)
-	}
+	if c.HandshakeDNS.GetEnable() {
+		hasWireGuard := false
 
-	return nil
-}
+		for _, t := range c.Node.GetServiceTypes() {
+			if t == types.ServiceTypeWireGuard || t == types.ServiceTypeAmneziaWG {
+				hasWireGuard = true
 
-// validateHandshakeServiceTypes ensures Handshake DNS is only enabled when at least
-// one service type that pushes a resolver to clients (WireGuard or AmneziaWG) is present.
-func validateHandshakeServiceTypes(enable bool, set []types.ServiceType) error {
-	if !enable {
-		return nil
-	}
+				break
+			}
+		}
 
-	for _, t := range set {
-		if t == types.ServiceTypeWireGuard || t == types.ServiceTypeAmneziaWG {
-			return nil
+		if !hasWireGuard {
+			return errors.New("handshake_dns requires at least one of wireguard or amneziawg in service_types")
 		}
 	}
 
-	return errors.New("handshake_dns requires at least one of wireguard or amneziawg in service_types")
+	return nil
 }
 
 // SetForFlags adds configuration flags to the specified FlagSet.
