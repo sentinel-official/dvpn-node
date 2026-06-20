@@ -20,6 +20,10 @@ linters:
     - varnamelen
     - wsl
   settings:
+    goconst:
+      min-occurrences: 5
+    gomoddirectives:
+      replace-local: true
     gosec:
       excludes:
         - G115
