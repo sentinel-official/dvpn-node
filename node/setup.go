@@ -135,20 +135,24 @@ func (n *Node) SetupHandshakeDNS(ctx context.Context, cfg *config.Config) error 
 	return nil
 }
 
-// serviceGatewayAddr returns the tunnel gateway IP of the configured WireGuard or
-// AmneziaWG service, preferring IPv4 and falling back to IPv6.
+// serviceGatewayAddr returns the tunnel gateway IP of the WireGuard or AmneziaWG
+// service in the enabled set, preferring WireGuard when both are present.
 func serviceGatewayAddr(cfg *config.Config) (string, error) {
+	enabled := make(map[types.ServiceType]bool)
+	for _, t := range cfg.Node.GetServiceTypes() {
+		enabled[t] = true
+	}
+
 	var ipv4Addr, ipv6Addr string
 
-	switch cfg.Node.GetServiceType() {
-	case types.ServiceTypeWireGuard:
+	if enabled[types.ServiceTypeWireGuard] {
 		v := cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)
 		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
-	case types.ServiceTypeAmneziaWG:
+	} else if enabled[types.ServiceTypeAmneziaWG] {
 		v := cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig)
 		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr
-	default:
-		return "", fmt.Errorf("unsupported service type %q", cfg.Node.GetServiceType())
+	} else {
+		return "", errors.New("handshake_dns requires wireguard or amneziawg in service_types")
 	}
 
 	return gatewayHost(ipv4Addr, ipv6Addr)
