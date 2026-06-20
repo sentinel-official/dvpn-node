@@ -34,6 +34,8 @@ type Session struct {
 	RxBytes   string        `gorm:"column:rx_bytes;not null"`  // Rx bytes represented as a string
 	Signature string        `gorm:"column:signature;not null"` // Signature associated with the session
 	TxBytes   string        `gorm:"column:tx_bytes;not null"`  // Tx bytes represented as a string
+
+	Peers []SessionPeer `gorm:"foreignKey:SessionID;references:ID;constraint:OnDelete:CASCADE"` // Child peers, one per protocol
 }
 
 // NewSession creates and returns a new instance of the Session struct with default values.
