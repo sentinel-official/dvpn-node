@@ -21,10 +21,10 @@ import (
 )
 
 // serviceMetadata builds the redacted, client-facing metadata for one service.
-func serviceMetadata(svc types.ServerService) (any, error) {
-	switch svc.Type() {
+func serviceMetadata(service types.ServerService) (any, error) {
+	switch service.Type() { //nolint:exhaustive // default branch errors on unlisted service types
 	case types.ServiceTypeOpenVPN:
-		items, ok := svc.Metadata().([]*openvpn.ServerMetadata)
+		items, ok := service.Metadata().([]*openvpn.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement openvpn.ServerMetadata")
 		}
@@ -38,7 +38,7 @@ func serviceMetadata(svc types.ServerService) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeV2Ray:
-		items, ok := svc.Metadata().([]*v2ray.ServerMetadata)
+		items, ok := service.Metadata().([]*v2ray.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement v2ray.ServerMetadata")
 		}
@@ -54,7 +54,7 @@ func serviceMetadata(svc types.ServerService) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeWireGuard:
-		items, ok := svc.Metadata().([]*wireguard.ServerMetadata)
+		items, ok := service.Metadata().([]*wireguard.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement wireguard.ServerMetadata")
 		}
@@ -66,7 +66,7 @@ func serviceMetadata(svc types.ServerService) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeAmneziaWG:
-		items, ok := svc.Metadata().([]*amneziawg.ServerMetadata)
+		items, ok := service.Metadata().([]*amneziawg.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement amneziawg.ServerMetadata")
 		}
@@ -78,12 +78,13 @@ func serviceMetadata(svc types.ServerService) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeHysteria2:
-		items, ok := svc.Metadata().([]*hysteria2.ServerMetadata)
+		items, ok := service.Metadata().([]*hysteria2.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement hysteria2.ServerMetadata")
 		}
 
 		var md []*hysteria2.ServerMetadata
+
 		for _, v := range items {
 			obfsPassword := v.ObfsPassword
 			if obfsPassword != "" {
@@ -97,7 +98,7 @@ func serviceMetadata(svc types.ServerService) (any, error) {
 
 		return md, nil
 	case types.ServiceTypeXray:
-		items, ok := svc.Metadata().([]*xray.ServerMetadata)
+		items, ok := service.Metadata().([]*xray.ServerMetadata)
 		if !ok {
 			return nil, errors.New("metadata does not implement xray.ServerMetadata")
 		}
@@ -126,18 +127,19 @@ func buildServiceInfos(c *core.Context) ([]node.ServiceInfo, int, error) {
 
 	infos := make([]node.ServiceInfo, 0, len(serviceTypes))
 	total := 0
+
 	for _, t := range serviceTypes {
-		svc, ok := c.ServiceFor(t)
+		service, ok := c.Service(t)
 		if !ok {
 			continue
 		}
 
-		md, err := serviceMetadata(svc)
+		md, err := serviceMetadata(service)
 		if err != nil {
 			return nil, 0, fmt.Errorf("building metadata for service %q: %w", t, err)
 		}
 
-		peers := svc.PeersLen()
+		peers := service.PeersLen()
 		total += peers
 
 		infos = append(infos, node.ServiceInfo{

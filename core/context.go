@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -47,9 +46,8 @@ type Context struct {
 
 	sealed bool
 
-	admissionMu sync.Mutex
-	fm          sync.RWMutex
-	txm         sync.Mutex
+	fm  sync.RWMutex
+	txm sync.Mutex
 }
 
 // NewContext creates a new Context instance with default values.
@@ -237,9 +235,9 @@ func (c *Context) RPCAddrs() []string {
 	return c.rpcAddrs
 }
 
-// ServiceFor returns the active server service for the given service type, and
+// Service returns the active server service for the given service type, and
 // reports whether it is registered.
-func (c *Context) ServiceFor(t sentinelsdk.ServiceType) (sentinelsdk.ServerService, bool) {
+func (c *Context) Service(t sentinelsdk.ServiceType) (sentinelsdk.ServerService, bool) {
 	c.fm.RLock()
 	defer c.fm.RUnlock()
 
@@ -248,15 +246,10 @@ func (c *Context) ServiceFor(t sentinelsdk.ServiceType) (sentinelsdk.ServerServi
 	return service, ok
 }
 
-// Services returns a shallow copy of the active service registry.
+// Services returns the active service registry. The registry is set once before
+// Seal and read-only afterward, so no copy or lock is needed.
 func (c *Context) Services() map[sentinelsdk.ServiceType]sentinelsdk.ServerService {
-	c.fm.RLock()
-	defer c.fm.RUnlock()
-
-	m := make(map[sentinelsdk.ServiceType]sentinelsdk.ServerService, len(c.services))
-	maps.Copy(m, c.services)
-
-	return m
+	return c.services
 }
 
 // ServiceTypes returns a sorted slice of active service types (sorted by byte value).
@@ -272,17 +265,6 @@ func (c *Context) ServiceTypes() []sentinelsdk.ServiceType {
 	slices.Sort(types)
 
 	return types
-}
-
-// AdmissionLock acquires the process-wide admission mutex that guards the
-// account-limit check during handshake (count → AddPeer → persist).
-func (c *Context) AdmissionLock() {
-	c.admissionMu.Lock()
-}
-
-// AdmissionUnlock releases the admission mutex.
-func (c *Context) AdmissionUnlock() {
-	c.admissionMu.Unlock()
 }
 
 // SkipFailedServices reports whether services that fail to start are skipped.

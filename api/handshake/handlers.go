@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"cosmossdk.io/math"
 	cosmossdk "github.com/cosmos/cosmos-sdk/types"
@@ -27,7 +28,7 @@ import (
 func accountAdmitted(db *gorm.DB, addr string, maxPeers uint) (bool, error) {
 	exists, err := operations.SessionAccAddrExists(db, addr)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("checking account %q existence: %w", addr, err)
 	}
 
 	if exists {
@@ -36,14 +37,16 @@ func accountAdmitted(db *gorm.DB, addr string, maxPeers uint) (bool, error) {
 
 	count, err := operations.SessionAccAddrCount(db)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("counting accounts: %w", err)
 	}
 
 	return uint(count) < maxPeers, nil
 }
 
 // handlerInitHandshake returns a handler function to process the request for performing a handshake.
-func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
+func handlerInitHandshake(c *core.Context) gin.HandlerFunc { //nolint:maintidx // handler complexity is inherent in the protocol
+	var mu sync.Mutex
+
 	return func(ctx *gin.Context) {
 		// Parse, validate, and verify the request (shape + signature).
 		req, err := NewInitHandshakeRequest(ctx)
@@ -55,7 +58,9 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 		}
 
 		// Check if a session already exists by ID.
-		record, err := operations.SessionFindOne(c.Database(), map[string]any{"id": req.Body.ID})
+		query := map[string]any{"id": req.Body.ID}
+
+		record, err := operations.SessionFindOne(c.Database(), query)
 		if err != nil {
 			err = fmt.Errorf("retrieving session %d from database: %w", req.Body.ID, err)
 			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(2, err))
@@ -143,11 +148,10 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 			}
 		}
 
-		// Admission + per-element route + persist run under the admission lock so
-		// concurrent handshakes cannot both pass the account-limit check and
-		// over-admit past MaxPeers.
-		c.AdmissionLock()
-		defer c.AdmissionUnlock()
+		// Admission, routing, and persist run under the lock so concurrent
+		// handshakes cannot both pass the account-limit check and over-admit.
+		mu.Lock()
+		defer mu.Unlock()
 
 		admitted, err := accountAdmitted(c.Database(), accAddr.String(), c.MaxPeers())
 		if err != nil {
@@ -166,11 +170,12 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 
 		// Route each requested protocol to its active service, best-effort per item.
 		responses := make([]node.AddPeerResponse, 0, len(req.PeerRequests()))
+
 		peers := make([]*models.SessionPeer, 0, len(req.PeerRequests()))
 		for _, pr := range req.PeerRequests() {
 			t := types.ServiceTypeFromString(pr.Type)
 
-			svc, ok := c.ServiceFor(t)
+			service, ok := c.Service(t)
 			if !ok {
 				responses = append(responses, node.AddPeerResponse{
 					Type: pr.Type,
@@ -180,7 +185,7 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc {
 				continue
 			}
 
-			id, data, err := svc.AddPeer(ctx, pr.Data)
+			id, data, err := service.AddPeer(ctx, pr.Data)
 			if err != nil {
 				responses = append(responses, node.AddPeerResponse{
 					Type: pr.Type,
