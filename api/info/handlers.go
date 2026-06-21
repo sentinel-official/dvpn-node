@@ -18,6 +18,7 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/xray"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
+	"github.com/sentinel-official/sentinel-dvpnx/database/operations"
 )
 
 // serviceMetadata builds the redacted, client-facing metadata for one service.
@@ -120,13 +121,11 @@ func serviceMetadata(service types.ServerService) (any, error) {
 	}
 }
 
-// buildServiceInfos builds one ServiceInfo per active service, ordered by service
-// type, and returns the total peer count summed across all services.
-func buildServiceInfos(c *core.Context) ([]node.ServiceInfo, int, error) {
+// buildServiceInfos builds one ServiceInfo per active service, ordered by service type.
+func buildServiceInfos(c *core.Context) ([]node.ServiceInfo, error) {
 	serviceTypes := c.ServiceTypes()
 
 	infos := make([]node.ServiceInfo, 0, len(serviceTypes))
-	total := 0
 
 	for _, t := range serviceTypes {
 		service, ok := c.Service(t)
@@ -136,29 +135,34 @@ func buildServiceInfos(c *core.Context) ([]node.ServiceInfo, int, error) {
 
 		md, err := serviceMetadata(service)
 		if err != nil {
-			return nil, 0, fmt.Errorf("building metadata for service %q: %w", t, err)
+			return nil, fmt.Errorf("building metadata for service %q: %w", t, err)
 		}
-
-		peers := service.PeersLen()
-		total += peers
 
 		infos = append(infos, node.ServiceInfo{
 			Type:     t.String(),
 			Metadata: md,
-			Peers:    peers,
+			Peers:    service.PeersLen(),
 		})
 	}
 
-	return infos, total, nil
+	return infos, nil
 }
 
 // handlerGetInfo returns a handler function to retrieve node information.
 func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		infos, total, err := buildServiceInfos(c)
+		infos, err := buildServiceInfos(c)
 		if err != nil {
 			err = fmt.Errorf("parsing metadata: %w", err)
 			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(1, err))
+
+			return
+		}
+
+		total, err := operations.SessionCount(c.Database())
+		if err != nil {
+			err = fmt.Errorf("counting sessions: %w", err)
+			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(2, err))
 
 			return
 		}
@@ -169,7 +173,6 @@ func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 		// Construct the result structure with node information.
 		res := &node.GetInfoResult{
 			Addr:         c.NodeAddr().String(),
-			Downlink:     ulSpeed.String(),
 			HandshakeDNS: c.HandshakeDNS(),
 			Location: &geoip.Location{
 				City:        loc.City,
@@ -181,7 +184,9 @@ func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 			Moniker:  c.Moniker(),
 			Peers:    total,
 			Services: infos,
-			Uplink:   dlSpeed.String(),
+			// Speeds are the node's measured link; the client inherits them.
+			Downlink: dlSpeed.String(),
+			Uplink:   ulSpeed.String(),
 			Version:  version.Get(),
 		}
 

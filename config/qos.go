@@ -7,35 +7,35 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const MaxQoSMaxPeers = 250 // Maximum allowed value for MaxPeers.
+const MaxQoSMaxSessions = 250 // Maximum allowed value for MaxSessions.
 
 // QoSConfig represents the Quality of Service (QoS) configuration.
 type QoSConfig struct {
-	MaxPeers uint `mapstructure:"max_peers"` // MaxPeers specifies the maximum number of peers.
+	MaxSessions uint `mapstructure:"max_sessions"` // MaxSessions specifies the maximum number of sessions.
 }
 
-// WithMaxPeers sets the MaxPeers field and returns the updated QoSConfig.
-func (c *QoSConfig) WithMaxPeers(maxPeers uint) *QoSConfig {
-	c.MaxPeers = maxPeers
+// WithMaxSessions sets the MaxSessions field and returns the updated QoSConfig.
+func (c *QoSConfig) WithMaxSessions(maxSessions uint) *QoSConfig {
+	c.MaxSessions = maxSessions
 
 	return c
 }
 
-// GetMaxPeers returns the MaxPeers field.
-func (c *QoSConfig) GetMaxPeers() uint {
-	return c.MaxPeers
+// GetMaxSessions returns the MaxSessions field.
+func (c *QoSConfig) GetMaxSessions() uint {
+	return c.MaxSessions
 }
 
 // Validate checks the validity of the QoS configuration.
 func (c *QoSConfig) Validate() error {
-	// Ensure MaxPeers is not zero.
-	if c.MaxPeers == 0 {
-		return errors.New("max_peers cannot be zero")
+	// Ensure MaxSessions is not zero.
+	if c.MaxSessions == 0 {
+		return errors.New("max_sessions cannot be zero")
 	}
 
-	// Ensure MaxPeers does not exceed the maximum allowed value.
-	if c.MaxPeers > MaxQoSMaxPeers {
-		return fmt.Errorf("max_peers cannot be greater than %d", MaxQoSMaxPeers)
+	// Ensure MaxSessions does not exceed the maximum allowed value.
+	if c.MaxSessions > MaxQoSMaxSessions {
+		return fmt.Errorf("max_sessions cannot be greater than %d", MaxQoSMaxSessions)
 	}
 
 	return nil
@@ -43,12 +43,12 @@ func (c *QoSConfig) Validate() error {
 
 // SetForFlags adds qos configuration flags to the specified FlagSet.
 func (c *QoSConfig) SetForFlags(f *pflag.FlagSet) {
-	f.UintVar(&c.MaxPeers, "qos.max-peers", c.MaxPeers, "maximum number of peers for service")
+	f.UintVar(&c.MaxSessions, "qos.max-sessions", c.MaxSessions, "maximum number of sessions for service")
 }
 
 // DefaultQoSConfig returns a QoSConfig instance with default values.
 func DefaultQoSConfig() *QoSConfig {
 	return &QoSConfig{
-		MaxPeers: MaxQoSMaxPeers,
+		MaxSessions: MaxQoSMaxSessions,
 	}
 }

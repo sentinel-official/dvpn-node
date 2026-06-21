@@ -137,21 +137,11 @@ func SessionFindOneAndDelete(db *gorm.DB, query map[string]any) (session *models
 	return session, nil
 }
 
-// SessionAccAddrExists reports whether any session row exists for the given account address.
-func SessionAccAddrExists(db *gorm.DB, addr string) (bool, error) {
+// SessionCount returns the number of active sessions stored.
+func SessionCount(db *gorm.DB) (int, error) {
 	var count int64
-	if err := db.Model(&models.Session{}).Where("acc_addr = ?", addr).Limit(1).Count(&count).Error; err != nil {
-		return false, fmt.Errorf("checking session acc_addr %q existence: %w", addr, err)
-	}
-
-	return count > 0, nil
-}
-
-// SessionAccAddrCount returns the number of distinct account addresses across all session rows.
-func SessionAccAddrCount(db *gorm.DB) (int, error) {
-	var count int64
-	if err := db.Model(&models.Session{}).Distinct("acc_addr").Count(&count).Error; err != nil {
-		return 0, fmt.Errorf("counting distinct acc_addrs: %w", err)
+	if err := db.Model(&models.Session{}).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("counting sessions: %w", err)
 	}
 
 	return int(count), nil

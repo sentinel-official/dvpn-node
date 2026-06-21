@@ -271,8 +271,8 @@ api_addr = "{{ .Oracle.Osmosis.APIAddr }}"
 # QoS Configuration
 [qos]
 
-# Maximum number of simultaneous peer connections the node will accept.
+# Maximum number of simultaneous sessions the node will accept.
 # Helps prevent resource exhaustion and ensures stable performance under high load.
 # Allowed: Any positive integer
 # Example: 50
-max_peers = {{ .QoS.MaxPeers }}
+max_sessions = {{ .QoS.MaxSessions }}

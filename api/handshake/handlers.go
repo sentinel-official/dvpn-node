@@ -13,32 +13,11 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/node"
 	"github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
-	"gorm.io/gorm"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 	"github.com/sentinel-official/sentinel-dvpnx/database/models"
 	"github.com/sentinel-official/sentinel-dvpnx/database/operations"
 )
-
-// accountAdmitted reports whether a handshake for addr may be admitted under the
-// node-wide peer limit. Callers MUST hold the admission lock to prevent over-admission.
-func accountAdmitted(db *gorm.DB, addr string, maxPeers uint) (bool, error) {
-	exists, err := operations.SessionAccAddrExists(db, addr)
-	if err != nil {
-		return false, fmt.Errorf("checking account %q existence: %w", addr, err)
-	}
-
-	if exists {
-		return true, nil
-	}
-
-	count, err := operations.SessionAccAddrCount(db)
-	if err != nil {
-		return false, fmt.Errorf("counting accounts: %w", err)
-	}
-
-	return uint(count) < maxPeers, nil
-}
 
 // handlerInitHandshake returns a handler function to process the request for performing a handshake.
 func handlerInitHandshake(c *core.Context) gin.HandlerFunc { //nolint:maintidx // handler complexity is inherent in the protocol
@@ -144,21 +123,21 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc { //nolint:maintidx /
 			}
 		}
 
-		// Admission, routing, and persist run under the lock so concurrent
-		// handshakes cannot both pass the account-limit check and over-admit.
+		// Session-limit check, routing, and persist run under the lock so concurrent
+		// handshakes cannot both pass the session-limit check and over-admit.
 		mu.Lock()
 		defer mu.Unlock()
 
-		admitted, err := accountAdmitted(c.Database(), accAddr.String(), c.MaxPeers())
+		count, err := operations.SessionCount(c.Database())
 		if err != nil {
-			err = fmt.Errorf("checking account admission for %q: %w", accAddr, err)
+			err = fmt.Errorf("counting sessions: %w", err)
 			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(6, err))
 
 			return
 		}
 
-		if !admitted {
-			err = fmt.Errorf("maximum peer limit %d reached", c.MaxPeers())
+		if uint(count) >= c.MaxSessions() {
+			err = fmt.Errorf("maximum session limit %d reached", c.MaxSessions())
 			ctx.JSON(http.StatusConflict, types.NewResponseError(6, err))
 
 			return

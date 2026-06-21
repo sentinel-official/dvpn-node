@@ -35,7 +35,7 @@ type Context struct {
 	hourlyPrices       v1.Prices
 	input              io.Reader
 	location           *geoip.Location
-	maxPeers           uint
+	maxSessions        uint
 	moniker            string
 	oracleClient       oracle.Client
 	remoteAddrs        []string
@@ -175,12 +175,12 @@ func (c *Context) Location() *geoip.Location {
 	return c.location
 }
 
-// MaxPeers returns the maximum peers for the service.
-func (c *Context) MaxPeers() uint {
+// MaxSessions returns the maximum sessions for the service.
+func (c *Context) MaxSessions() uint {
 	c.fm.RLock()
 	defer c.fm.RUnlock()
 
-	return c.maxPeers
+	return c.maxSessions
 }
 
 // Moniker returns the name or identifier for the node.
@@ -442,10 +442,10 @@ func (c *Context) WithInput(input io.Reader) *Context {
 	return c
 }
 
-// WithMaxPeers sets maximum peers for the service and returns the updated context.
-func (c *Context) WithMaxPeers(maxPeers uint) *Context {
+// WithMaxSessions sets maximum sessions for the service and returns the updated context.
+func (c *Context) WithMaxSessions(maxSessions uint) *Context {
 	c.checkSealed()
-	c.maxPeers = maxPeers
+	c.maxSessions = maxSessions
 
 	return c
 }

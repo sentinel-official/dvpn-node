@@ -185,7 +185,7 @@ func (c *Context) Setup(ctx context.Context, cfg *config.Config) error {
 	c.WithGigabytePrices(cfg.Node.GetGigabytePrices())
 	c.WithHandshakeDNS(cfg.HandshakeDNS.GetEnable())
 	c.WithHourlyPrices(cfg.Node.GetHourlyPrices())
-	c.WithMaxPeers(cfg.QoS.GetMaxPeers())
+	c.WithMaxSessions(cfg.QoS.GetMaxSessions())
 	c.WithMoniker(cfg.Node.GetMoniker())
 	c.WithRemoteAddrs(cfg.Node.GetRemoteAddrs())
 	c.WithRPCAddrs(cfg.RPC.GetAddrs())
