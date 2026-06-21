@@ -51,6 +51,30 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc { //nolint:maintidx /
 			return
 		}
 
+		// Per-element duplicate guard: reject if any requested peer already exists.
+		// Uses the canonical service-type string for symmetry with the writer path.
+		for _, pr := range req.PeerRequests() {
+			query := map[string]any{
+				"service_type": types.ServiceTypeFromString(pr.Type).String(),
+				"peer_request": base64.StdEncoding.EncodeToString(pr.Data),
+			}
+
+			peer, err := operations.SessionPeerFindOne(c.Database(), query)
+			if err != nil {
+				err = fmt.Errorf("retrieving session peer for %q request from database: %w", pr.Type, err)
+				ctx.JSON(http.StatusInternalServerError, types.NewResponseError(5, err))
+
+				return
+			}
+
+			if peer != nil {
+				err = fmt.Errorf("session peer already exists for %q request", pr.Type)
+				ctx.JSON(http.StatusConflict, types.NewResponseError(5, err))
+
+				return
+			}
+		}
+
 		// Fetch session details from blockchain (slow; kept outside the admission lock).
 		session, err := c.Client().Session(ctx, req.Body.ID)
 		if err != nil {
@@ -97,30 +121,6 @@ func handlerInitHandshake(c *core.Context) gin.HandlerFunc { //nolint:maintidx /
 			ctx.JSON(http.StatusUnauthorized, types.NewResponseError(4, err))
 
 			return
-		}
-
-		// Per-element duplicate guard: reject if any requested peer already exists.
-		// Uses the canonical service-type string for symmetry with the writer path.
-		for _, pr := range req.PeerRequests() {
-			query := map[string]any{
-				"service_type": types.ServiceTypeFromString(pr.Type).String(),
-				"peer_request": base64.StdEncoding.EncodeToString(pr.Data),
-			}
-
-			peer, err := operations.SessionPeerFindOne(c.Database(), query)
-			if err != nil {
-				err = fmt.Errorf("retrieving session peer for %q request from database: %w", pr.Type, err)
-				ctx.JSON(http.StatusInternalServerError, types.NewResponseError(5, err))
-
-				return
-			}
-
-			if peer != nil {
-				err = fmt.Errorf("session peer already exists for %q request", pr.Type)
-				ctx.JSON(http.StatusConflict, types.NewResponseError(5, err))
-
-				return
-			}
 		}
 
 		// Session-limit check, routing, and persist run under the lock so concurrent
