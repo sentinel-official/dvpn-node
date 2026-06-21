@@ -37,7 +37,7 @@ func (c *Context) SetupAccAddr(ctx context.Context, cfg *config.Config) error {
 	}
 
 	if acc == nil {
-		return fmt.Errorf("account %s does not exist", addr)
+		return fmt.Errorf("account %q does not exist", addr)
 	}
 
 	// Assign the account address to the context.
@@ -161,7 +161,7 @@ func (c *Context) SetupServices(ctx context.Context, cfg *config.Config) error {
 		service := build()
 		if err := service.Setup(ctx); err != nil {
 			if c.SkipFailedServices() {
-				log.Warn("service did not start", "type", t, "error", err)
+				log.Warn("Service did not start", "service_type", t, "error", err)
 
 				continue
 			}

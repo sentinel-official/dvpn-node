@@ -212,12 +212,12 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 
 		services := n.Context().Services()
 		for t, service := range services {
-			log.Info("Starting service", "type", t)
+			log.Info("Starting service", "service_type", t)
 
 			serviceCtx, err := service.Start(ctx)
 			if err != nil {
 				if n.Context().SkipFailedServices() {
-					log.Warn("service did not start", "type", t, "error", err)
+					log.Warn("Service did not start", "service_type", t, "error", err)
 
 					continue
 				}
@@ -313,7 +313,7 @@ func (n *Node) Stop() error {
 
 		for t, service := range n.Context().Services() {
 			sg.Go(func() error {
-				log.Info("Stopping service", "type", t)
+				log.Info("Stopping service", "service_type", t)
 
 				if err := service.Stop(); err != nil {
 					return fmt.Errorf("stopping service %q: %w", t, err)

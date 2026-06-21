@@ -155,7 +155,7 @@ is set to overwrite the existing configuration.`,
 					types.ServiceTypeWireGuard,
 					types.ServiceTypeXray,
 				} {
-					log.Info("Initializing service", "type", t, "force", force)
+					log.Info("Initializing service", "service_type", t, "force", force)
 
 					service, err := buildServerForInit(t, homeDir, cfg)
 					if err != nil {

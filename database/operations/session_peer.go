@@ -63,7 +63,7 @@ func SessionPeerFindOneAndUpdate(db *gorm.DB, query, updates map[string]any) (*m
 	fn := func(db *gorm.DB) error {
 		peer, err = SessionPeerFindOne(db, query)
 		if err != nil {
-			return fmt.Errorf("finding session_peer with query %v for update: %w", query, err)
+			return fmt.Errorf("finding session_peer for update: %w", err)
 		}
 
 		if peer == nil {
@@ -93,7 +93,7 @@ func SessionPeerFindOneAndDelete(db *gorm.DB, query map[string]any) (*models.Ses
 	fn := func(db *gorm.DB) error {
 		peer, err = SessionPeerFindOne(db, query)
 		if err != nil {
-			return fmt.Errorf("finding session_peer with query %v for deletion: %w", query, err)
+			return fmt.Errorf("finding session_peer for deletion: %w", err)
 		}
 
 		if peer == nil {

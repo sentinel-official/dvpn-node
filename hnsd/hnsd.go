@@ -74,7 +74,7 @@ func (d *Daemon) supervise(ctx context.Context) error {
 	restarts := 0
 
 	for {
-		log.Info("Starting hnsd", "rs_host", d.rsHost, "pool_size", d.poolSize)
+		log.Info("Starting Handshake DNS", "rs_host", d.rsHost, "pool_size", d.poolSize)
 
 		err := d.command(ctx).Run()
 
@@ -89,7 +89,7 @@ func (d *Daemon) supervise(ctx context.Context) error {
 
 		restarts++
 
-		log.Error("hnsd exited, restarting",
+		log.Error("Handshake DNS exited, restarting",
 			"restart", restarts, "max_restarts", d.maxRestarts, "error", err,
 		)
 
