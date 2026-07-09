@@ -11,13 +11,13 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/gin/middlewares"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cmux"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cron"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/gin/middlewares"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
 
 	"github.com/sentinel-official/sentinel-dvpnx/api"
 	"github.com/sentinel-official/sentinel-dvpnx/config"
@@ -140,7 +140,7 @@ func (n *Node) SetupHandshakeDNS(ctx context.Context, cfg *config.Config) error 
 func serviceGatewayAddr(cfg *config.Config) (string, error) {
 	var ipv4Addr, ipv6Addr string
 
-	switch cfg.Node.GetServiceType() {
+	switch cfg.Node.GetServiceType() { //nolint:exhaustive
 	case types.ServiceTypeWireGuard:
 		v := cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig)
 		ipv4Addr, ipv6Addr = v.IPv4Addr, v.IPv6Addr

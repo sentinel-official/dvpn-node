@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/process"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cmux"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cron"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/process"
 	"github.com/sentinel-official/sentinelhub/v12/x/node/types/v3"
 	"golang.org/x/sync/errgroup"
 

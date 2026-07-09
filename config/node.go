@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/netip"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/netip"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/utils"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"github.com/spf13/pflag"
 )

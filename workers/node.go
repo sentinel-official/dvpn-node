@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cron"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"github.com/sentinel-official/sentinelhub/v12/x/node/types/v3"
 

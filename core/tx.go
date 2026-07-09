@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
 )
 
 // BroadcastTx safely broadcasts a transaction with the provided messages.

@@ -6,16 +6,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
-	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
-	"github.com/sentinel-official/sentinel-go-sdk/node"
-	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
-	"github.com/sentinel-official/sentinel-go-sdk/version"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
-	"github.com/sentinel-official/sentinel-go-sdk/xray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/geoip"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/node"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/version"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 )
@@ -83,6 +83,7 @@ func getMetadata(c *core.Context) (any, error) {
 		}
 
 		var md []*hysteria2.ServerMetadata
+
 		for _, v := range items {
 			obfsPassword := v.ObfsPassword
 			if obfsPassword != "" {
@@ -113,6 +114,8 @@ func getMetadata(c *core.Context) (any, error) {
 		}
 
 		return md, nil
+	case types.ServiceTypeUnspecified:
+		return nil, errors.New("unspecified service type")
 	default:
 		return nil, errors.New("unknown service type")
 	}

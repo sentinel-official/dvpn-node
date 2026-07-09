@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
 )
 
 // RemovePeerIfExists checks if a peer exists, and removes it if found.

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sentinel-official/sentinel-go-sdk/core/config"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/utils"
 	"github.com/spf13/pflag"
 )
 
@@ -64,7 +64,7 @@ func validateHandshakeServiceType(enable bool, serviceType types.ServiceType) er
 		return nil
 	}
 
-	switch serviceType {
+	switch serviceType { //nolint:exhaustive
 	case types.ServiceTypeWireGuard, types.ServiceTypeAmneziaWG:
 		return nil
 	default:

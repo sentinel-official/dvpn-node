@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-official/sentinel-go-sdk/node"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/node"
 )
 
 // InitHandshakeRequest represents the request for performing a handshake.
