@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/app"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/app"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
@@ -22,9 +25,12 @@ import (
 func NewStartCmd(cfg *config.Config) *cobra.Command {
 	// Initialize default server configs for all supported services
 	cfg.Services = map[types.ServiceType]types.ServiceConfig{
+		types.ServiceTypeAmneziaWG: amneziawg.DefaultServerConfig(),
+		types.ServiceTypeHysteria2: hysteria2.DefaultServerConfig(),
 		types.ServiceTypeOpenVPN:   openvpn.DefaultServerConfig(),
 		types.ServiceTypeV2Ray:     v2ray.DefaultServerConfig(),
 		types.ServiceTypeWireGuard: wireguard.DefaultServerConfig(),
+		types.ServiceTypeXray:      xray.DefaultServerConfig(),
 	}
 
 	cmd := &cobra.Command{
@@ -95,9 +101,12 @@ explicitly starts the node, and handles SIGINT/SIGTERM for graceful shutdown.`,
 
 	// Set CLI flags for application and service configuration
 	cfg.SetForFlags(cmd.Flags())
+	cfg.Services[types.ServiceTypeAmneziaWG].SetForFlags(cmd.Flags(), "amneziawg")
+	cfg.Services[types.ServiceTypeHysteria2].SetForFlags(cmd.Flags(), "hysteria2")
 	cfg.Services[types.ServiceTypeOpenVPN].SetForFlags(cmd.Flags(), "openvpn")
 	cfg.Services[types.ServiceTypeV2Ray].SetForFlags(cmd.Flags(), "v2ray")
 	cfg.Services[types.ServiceTypeWireGuard].SetForFlags(cmd.Flags(), "wireguard")
+	cfg.Services[types.ServiceTypeXray].SetForFlags(cmd.Flags(), "xray")
 
 	return cmd
 }

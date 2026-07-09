@@ -6,13 +6,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
-	"github.com/sentinel-official/sentinel-go-sdk/node"
-	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
-	"github.com/sentinel-official/sentinel-go-sdk/version"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/geoip"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/node"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/version"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
 )
@@ -61,6 +64,58 @@ func getMetadata(c *core.Context) (any, error) {
 		}
 
 		return md, nil
+	case types.ServiceTypeAmneziaWG:
+		items, ok := c.Service().Metadata().([]*amneziawg.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement amneziawg.ServerMetadata")
+		}
+
+		var md []*amneziawg.ServerMetadata
+		for range items {
+			md = append(md, &amneziawg.ServerMetadata{})
+		}
+
+		return md, nil
+	case types.ServiceTypeHysteria2:
+		items, ok := c.Service().Metadata().([]*hysteria2.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement hysteria2.ServerMetadata")
+		}
+
+		var md []*hysteria2.ServerMetadata
+
+		for _, v := range items {
+			obfsPassword := v.ObfsPassword
+			if obfsPassword != "" {
+				obfsPassword = "<redacted>"
+			}
+
+			md = append(md, &hysteria2.ServerMetadata{
+				ObfsPassword: obfsPassword,
+			})
+		}
+
+		return md, nil
+	case types.ServiceTypeXray:
+		items, ok := c.Service().Metadata().([]*xray.ServerMetadata)
+		if !ok {
+			return nil, errors.New("metadata does not implement xray.ServerMetadata")
+		}
+
+		var md []*xray.ServerMetadata
+		for _, v := range items {
+			md = append(md, &xray.ServerMetadata{
+				ProxyProtocol:     v.ProxyProtocol,
+				TransportProtocol: v.TransportProtocol,
+				TransportSecurity: v.TransportSecurity,
+				Flow:              v.Flow,
+				Method:            v.Method,
+			})
+		}
+
+		return md, nil
+	case types.ServiceTypeUnspecified:
+		return nil, errors.New("unspecified service type")
 	default:
 		return nil, errors.New("unknown service type")
 	}
@@ -84,7 +139,7 @@ func handlerGetInfo(c *core.Context) gin.HandlerFunc {
 		res := &node.GetInfoResult{
 			Addr:         c.NodeAddr().String(),
 			Downlink:     ulSpeed.String(),
-			HandshakeDNS: false,
+			HandshakeDNS: c.HandshakeDNS(),
 			Location: &geoip.Location{
 				City:        loc.City,
 				Country:     loc.Country,

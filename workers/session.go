@@ -8,8 +8,8 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
-	logger "github.com/sentinel-official/sentinel-go-sdk/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cron"
+	logger "github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"golang.org/x/sync/errgroup"
 

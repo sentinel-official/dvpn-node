@@ -20,6 +20,8 @@ linters:
     - varnamelen
     - wsl
   settings:
+    goconst:
+      min-occurrences: 12
     gosec:
       excludes:
         - G115

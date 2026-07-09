@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sentinel-official/sentinel-go-sdk/core/config"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/utils"
 	"github.com/spf13/pflag"
 )
 
@@ -50,7 +50,26 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("validating QoS config: %w", err)
 	}
 
+	if err := validateHandshakeServiceType(c.HandshakeDNS.GetEnable(), c.Node.GetServiceType()); err != nil {
+		return fmt.Errorf("validating handshake_dns config: %w", err)
+	}
+
 	return nil
+}
+
+// validateHandshakeServiceType ensures Handshake DNS is only enabled for service
+// types that push a resolver to clients (WireGuard and AmneziaWG).
+func validateHandshakeServiceType(enable bool, serviceType types.ServiceType) error {
+	if !enable {
+		return nil
+	}
+
+	switch serviceType { //nolint:exhaustive
+	case types.ServiceTypeWireGuard, types.ServiceTypeAmneziaWG:
+		return nil
+	default:
+		return fmt.Errorf("handshake_dns requires service_type wireguard or amneziawg, got %q", serviceType)
+	}
 }
 
 // SetForFlags adds configuration flags to the specified FlagSet.
