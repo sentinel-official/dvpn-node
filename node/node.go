@@ -279,6 +279,8 @@ func (n *Node) Stop() error {
 				return fmt.Errorf("stopping scheduler: %w", err)
 			}
 
+			log.Info("Scheduler stopped")
+
 			return nil
 		})
 
@@ -288,6 +290,8 @@ func (n *Node) Stop() error {
 			if err := n.Server().Stop(); err != nil {
 				return fmt.Errorf("stopping API server: %w", err)
 			}
+
+			log.Info("API server stopped")
 
 			return nil
 		})
@@ -299,6 +303,8 @@ func (n *Node) Stop() error {
 				return fmt.Errorf("stopping service: %w", err)
 			}
 
+			log.Info("Service stopped")
+
 			return nil
 		})
 
@@ -309,6 +315,8 @@ func (n *Node) Stop() error {
 				if err := n.HandshakeDNS().Stop(); err != nil {
 					return fmt.Errorf("stopping Handshake DNS: %w", err)
 				}
+
+				log.Info("Handshake DNS stopped")
 
 				return nil
 			})
