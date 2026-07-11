@@ -24,16 +24,6 @@ import (
 
 // NewInitCmd creates and returns a new Cobra command for initializing the application configuration.
 func NewInitCmd(cfg *config.Config) *cobra.Command {
-	// Initialize default server configs for all supported services
-	cfg.Services = map[types.ServiceType]types.ServiceConfig{
-		types.ServiceTypeAmneziaWG: amneziawg.DefaultServerConfig(),
-		types.ServiceTypeHysteria2: hysteria2.DefaultServerConfig(),
-		types.ServiceTypeOpenVPN:   openvpn.DefaultServerConfig(),
-		types.ServiceTypeV2Ray:     v2ray.DefaultServerConfig(),
-		types.ServiceTypeWireGuard: wireguard.DefaultServerConfig(),
-		types.ServiceTypeXray:      xray.DefaultServerConfig(),
-	}
-
 	// Declare variables for CLI flags
 	var (
 		force       bool

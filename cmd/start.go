@@ -4,15 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/app"
-	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
-	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
-	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
-	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
@@ -23,16 +17,6 @@ import (
 
 // NewStartCmd creates and returns a new Cobra command to start the node application.
 func NewStartCmd(cfg *config.Config) *cobra.Command {
-	// Initialize default server configs for all supported services
-	cfg.Services = map[types.ServiceType]types.ServiceConfig{
-		types.ServiceTypeAmneziaWG: amneziawg.DefaultServerConfig(),
-		types.ServiceTypeHysteria2: hysteria2.DefaultServerConfig(),
-		types.ServiceTypeOpenVPN:   openvpn.DefaultServerConfig(),
-		types.ServiceTypeV2Ray:     v2ray.DefaultServerConfig(),
-		types.ServiceTypeWireGuard: wireguard.DefaultServerConfig(),
-		types.ServiceTypeXray:      xray.DefaultServerConfig(),
-	}
-
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start the Sentinel dVPN node",
