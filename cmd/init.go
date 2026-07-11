@@ -6,13 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sentinel-official/sentinel-go-sdk/libs/crypto"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/utils"
-	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/crypto"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -21,13 +24,6 @@ import (
 
 // NewInitCmd creates and returns a new Cobra command for initializing the application configuration.
 func NewInitCmd(cfg *config.Config) *cobra.Command {
-	// Initialize default server configs for all supported services
-	cfg.Services = map[types.ServiceType]types.ServiceConfig{
-		types.ServiceTypeOpenVPN:   openvpn.DefaultServerConfig(),
-		types.ServiceTypeV2Ray:     v2ray.DefaultServerConfig(),
-		types.ServiceTypeWireGuard: wireguard.DefaultServerConfig(),
-	}
-
 	// Declare variables for CLI flags
 	var (
 		force       bool
@@ -103,6 +99,12 @@ is set to overwrite the existing configuration.`,
 					service = wireguard.NewServer("wireguard", homeDir, cfg.Services[types.ServiceTypeWireGuard].(*wireguard.ServerConfig))
 				case types.ServiceTypeOpenVPN:
 					service = openvpn.NewServer("openvpn", homeDir, cfg.Services[types.ServiceTypeOpenVPN].(*openvpn.ServerConfig))
+				case types.ServiceTypeAmneziaWG:
+					service = amneziawg.NewServer("amneziawg", homeDir, cfg.Services[types.ServiceTypeAmneziaWG].(*amneziawg.ServerConfig))
+				case types.ServiceTypeHysteria2:
+					service = hysteria2.NewServer("hysteria2", homeDir, cfg.Services[types.ServiceTypeHysteria2].(*hysteria2.ServerConfig))
+				case types.ServiceTypeXray:
+					service = xray.NewServer("xray", homeDir, cfg.Services[types.ServiceTypeXray].(*xray.ServerConfig))
 				case types.ServiceTypeUnspecified:
 					return errors.New("unspecified service type")
 				default:
@@ -122,9 +124,12 @@ is set to overwrite the existing configuration.`,
 
 	// Set CLI flags for application and service configuration
 	cfg.SetForFlags(cmd.Flags())
+	cfg.Services[types.ServiceTypeAmneziaWG].SetForFlags(cmd.Flags(), "amneziawg")
+	cfg.Services[types.ServiceTypeHysteria2].SetForFlags(cmd.Flags(), "hysteria2")
 	cfg.Services[types.ServiceTypeOpenVPN].SetForFlags(cmd.Flags(), "openvpn")
 	cfg.Services[types.ServiceTypeV2Ray].SetForFlags(cmd.Flags(), "v2ray")
 	cfg.Services[types.ServiceTypeWireGuard].SetForFlags(cmd.Flags(), "wireguard")
+	cfg.Services[types.ServiceTypeXray].SetForFlags(cmd.Flags(), "xray")
 
 	// Bind command-line flags to local variables
 	cmd.Flags().BoolVar(&force, "force", force, "overwrite the existing configuration file if it exists")

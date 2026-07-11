@@ -9,6 +9,7 @@ linters:
     - forcetypeassert
     - funlen
     - gocognit
+    - gomodguard
     - ireturn
     - lll
     - mnd
@@ -19,6 +20,8 @@ linters:
     - varnamelen
     - wsl
   settings:
+    goconst:
+      min-occurrences: 12
     gosec:
       excludes:
         - G115

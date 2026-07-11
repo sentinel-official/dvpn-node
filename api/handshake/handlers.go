@@ -9,8 +9,8 @@ import (
 	"cosmossdk.io/math"
 	cosmossdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gin-gonic/gin"
-	"github.com/sentinel-official/sentinel-go-sdk/node"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/node"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"

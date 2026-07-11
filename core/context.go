@@ -10,10 +10,10 @@ import (
 
 	"cosmossdk.io/math"
 	cosmossdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/core"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/oracle"
-	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/geoip"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/oracle"
+	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/v2/types"
 	sentinelhub "github.com/sentinel-official/sentinelhub/v12/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"gorm.io/gorm"
@@ -29,6 +29,7 @@ type Context struct {
 	dlSpeed        math.Int
 	geoIPClient    geoip.Client
 	gigabytePrices v1.Prices
+	handshakeDNS   bool
 	homeDir        string
 	hourlyPrices   v1.Prices
 	input          io.Reader
@@ -126,6 +127,14 @@ func (c *Context) GigabytePrices() v1.Prices {
 	defer c.fm.RUnlock()
 
 	return c.gigabytePrices
+}
+
+// HandshakeDNS reports whether the node advertises Handshake (HNS) DNS resolution.
+func (c *Context) HandshakeDNS() bool {
+	c.fm.RLock()
+	defer c.fm.RUnlock()
+
+	return c.handshakeDNS
 }
 
 // HomeDir returns the home directory set in the context.
@@ -363,6 +372,14 @@ func (c *Context) WithGeoIPClient(client geoip.Client) *Context {
 func (c *Context) WithGigabytePrices(prices v1.Prices) *Context {
 	c.checkSealed()
 	c.gigabytePrices = prices
+
+	return c
+}
+
+// WithHandshakeDNS sets the Handshake DNS availability flag and returns the updated context.
+func (c *Context) WithHandshakeDNS(v bool) *Context {
+	c.checkSealed()
+	c.handshakeDNS = v
 
 	return c
 }

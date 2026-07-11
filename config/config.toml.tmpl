@@ -139,6 +139,10 @@ enable = {{ .HandshakeDNS.Enable }}
 # Example: 12
 peers = {{ .HandshakeDNS.Peers }}
 
+# Maximum number of times hnsd is restarted after an unexpected exit before the
+# node itself is stopped. Set to 0 to disable restarts, or -1 for unlimited.
+max_restarts = {{ .HandshakeDNS.MaxRestarts }}
+
 # Node Configuration
 [node]
 
@@ -230,7 +234,7 @@ remote_addrs = [{{ range $i, $addr := .Node.RemoteAddrs }}{{ if $i }}, {{ end }}
 
 # Type of VPN or proxy service protocol this node provides.
 # Each type has different capabilities, security features, and client compatibility.
-# Allowed: openvpn, v2ray, wireguard
+# Allowed: amneziawg, hysteria2, openvpn, v2ray, wireguard, xray
 # Example: "wireguard"
 service_type = "{{ .Node.ServiceType }}"
 

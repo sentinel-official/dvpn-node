@@ -4,23 +4,25 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cmux"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/cron"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/process"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cmux"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/cron"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/process"
 	"github.com/sentinel-official/sentinelhub/v12/x/node/types/v3"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sentinel-official/sentinel-dvpnx/core"
+	"github.com/sentinel-official/sentinel-dvpnx/hnsd"
 )
 
 // Node represents the application node, holding its context, scheduler, and server.
 type Node struct {
 	*process.Manager // Embedded process manager for handling lifecycle.
 
-	ctx       *core.Context   // Application code context.
-	scheduler *cron.Scheduler // Scheduler for managing periodic tasks.
-	server    *cmux.Server    // HTTP server for handling API requests.
+	ctx          *core.Context   // Application code context.
+	handshakeDNS *hnsd.Daemon    // Daemon supervising the hnsd Handshake DNS resolver.
+	scheduler    *cron.Scheduler // Scheduler for managing periodic tasks.
+	server       *cmux.Server    // HTTP server for handling API requests.
 }
 
 // New creates a new Node with the provided context.
@@ -33,6 +35,18 @@ func New(name string) *Node {
 // WithContext sets the core context for the Node and returns the updated Node.
 func (n *Node) WithContext(ctx *core.Context) *Node {
 	n.ctx = ctx
+
+	return n
+}
+
+// HandshakeDNS returns the hnsd daemon configured for the Node, or nil when disabled.
+func (n *Node) HandshakeDNS() *hnsd.Daemon {
+	return n.handshakeDNS
+}
+
+// WithHandshakeDNS sets the hnsd daemon for the Node and returns the updated Node.
+func (n *Node) WithHandshakeDNS(v *hnsd.Daemon) *Node {
+	n.handshakeDNS = v
 
 	return n
 }
@@ -203,6 +217,23 @@ func (n *Node) Start(ctx context.Context) (context.Context, error) {
 			return fmt.Errorf("starting group: %w", err)
 		}
 
+		if n.HandshakeDNS() != nil {
+			log.Info("Starting Handshake DNS")
+
+			hnsdCtx, err := n.HandshakeDNS().Start(ctx)
+			if err != nil {
+				return fmt.Errorf("starting Handshake DNS: %w", err)
+			}
+
+			n.Go(ctx, func() error {
+				if err := n.HandshakeDNS().Wait(hnsdCtx); err != nil {
+					return fmt.Errorf("waiting Handshake DNS: %w", err)
+				}
+
+				return nil
+			})
+		}
+
 		n.Go(ctx, func() error {
 			if err := n.Scheduler().Wait(schedulerCtx); err != nil {
 				return fmt.Errorf("waiting scheduler: %w", err)
@@ -248,6 +279,8 @@ func (n *Node) Stop() error {
 				return fmt.Errorf("stopping scheduler: %w", err)
 			}
 
+			log.Info("Scheduler stopped")
+
 			return nil
 		})
 
@@ -257,6 +290,8 @@ func (n *Node) Stop() error {
 			if err := n.Server().Stop(); err != nil {
 				return fmt.Errorf("stopping API server: %w", err)
 			}
+
+			log.Info("API server stopped")
 
 			return nil
 		})
@@ -268,8 +303,24 @@ func (n *Node) Stop() error {
 				return fmt.Errorf("stopping service: %w", err)
 			}
 
+			log.Info("Service stopped")
+
 			return nil
 		})
+
+		if n.HandshakeDNS() != nil {
+			sg.Go(func() error {
+				log.Info("Stopping Handshake DNS")
+
+				if err := n.HandshakeDNS().Stop(); err != nil {
+					return fmt.Errorf("stopping Handshake DNS: %w", err)
+				}
+
+				log.Info("Handshake DNS stopped")
+
+				return nil
+			})
+		}
 
 		if err := sg.Wait(); err != nil {
 			return fmt.Errorf("stopping group: %w", err)

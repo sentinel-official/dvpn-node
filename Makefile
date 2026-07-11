@@ -8,8 +8,8 @@ whitespace := $(empty) $(empty)
 
 build_tags := netgo
 ld_flags   := -s -w \
-	-X github.com/sentinel-official/sentinel-go-sdk/version.Commit=$(GIT_COMMIT) \
-	-X github.com/sentinel-official/sentinel-go-sdk/version.Tag=$(GIT_TAG)
+	-X github.com/sentinel-official/sentinel-go-sdk/v2/version.Commit=$(GIT_COMMIT) \
+	-X github.com/sentinel-official/sentinel-go-sdk/v2/version.Tag=$(GIT_TAG)
 
 ifeq ($(STATIC),true)
 	build_tags += muslc

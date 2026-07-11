@@ -7,7 +7,7 @@ import (
 
 	"cosmossdk.io/math"
 	cosmossdk "github.com/cosmos/cosmos-sdk/types"
-	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
+	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/v2/types"
 	sentinelhub "github.com/sentinel-official/sentinelhub/v12/types"
 	"github.com/sentinel-official/sentinelhub/v12/x/session/types/v3"
 	"gorm.io/gorm"

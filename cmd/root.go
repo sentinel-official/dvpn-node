@@ -3,12 +3,20 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
-	"github.com/sentinel-official/sentinel-go-sdk/cmd"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/utils"
-	"github.com/sentinel-official/sentinel-go-sdk/version"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/cmd"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/version"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -30,6 +38,28 @@ func NewRootCmd(userDir string) *cobra.Command {
 	cfg.RPC.Headers = map[string]string{
 		"User-Agent": fmt.Sprintf("Sentinel (dVPN X/%s)", version.Tag),
 	}
+
+	// Initialize default server configs for all supported services
+	cfg.Services = map[types.ServiceType]types.ServiceConfig{
+		types.ServiceTypeAmneziaWG: amneziawg.DefaultServerConfig(),
+		types.ServiceTypeHysteria2: hysteria2.DefaultServerConfig(),
+		types.ServiceTypeOpenVPN:   openvpn.DefaultServerConfig(),
+		types.ServiceTypeV2Ray:     v2ray.DefaultServerConfig(),
+		types.ServiceTypeWireGuard: wireguard.DefaultServerConfig(),
+		types.ServiceTypeXray:      xray.DefaultServerConfig(),
+	}
+
+	// Prepend a VMess over gRPC inbound (no transport security) as the first
+	// V2Ray inbound for broad client compatibility.
+	v2RayCfg := cfg.Services[types.ServiceTypeV2Ray].(*v2ray.ServerConfig)
+	v2RayCfg.Inbounds = append([]*v2ray.InboundServerConfig{
+		{
+			Port:              strconv.FormatUint(uint64(utils.RandomPort()), 10),
+			ProxyProtocol:     v2ray.ProxyProtocolVMess.String(),
+			TransportProtocol: v2ray.TransportProtocolGRPC.String(),
+			TransportSecurity: v2ray.TransportSecurityNone.String(),
+		},
+	}, v2RayCfg.Inbounds...)
 
 	// Create the root command
 	rootCmd := &cobra.Command{
