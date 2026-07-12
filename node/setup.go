@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"path/filepath"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -118,14 +119,16 @@ func (n *Node) SetupHandshakeDNS(ctx context.Context, cfg *config.Config) error 
 	}
 
 	rsHost := net.JoinHostPort(gateway, "53")
+	prefixDir := filepath.Join(n.Context().HomeDir(), "hnsd")
 
 	log.Info("Initializing Handshake DNS",
 		"rs_host", rsHost,
 		"pool_size", cfg.HandshakeDNS.GetPeers(),
 		"max_restarts", cfg.HandshakeDNS.GetMaxRestarts(),
+		"prefix_dir", prefixDir,
 	)
 
-	d := hnsd.New("hnsd", rsHost, cfg.HandshakeDNS.GetPeers(), cfg.HandshakeDNS.GetMaxRestarts())
+	d := hnsd.New("hnsd", rsHost, cfg.HandshakeDNS.GetPeers(), cfg.HandshakeDNS.GetMaxRestarts(), prefixDir)
 	if err := d.Setup(ctx); err != nil {
 		return err //nolint:wrapcheck
 	}

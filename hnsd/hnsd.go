@@ -24,24 +24,32 @@ type Daemon struct {
 	rsHost      string // rsHost is the recursive resolver bind address (host:port).
 	poolSize    uint   // poolSize is the number of Handshake DNS peers.
 	maxRestarts int    // maxRestarts bounds restarts (0 disables, -1 unlimited).
+	prefixDir   string // prefixDir is the directory where hnsd persists chain state.
 }
 
 // New creates a new hnsd Daemon bound to the given recursive resolver host.
-func New(name, rsHost string, poolSize uint, maxRestarts int) *Daemon {
+func New(name, rsHost string, poolSize uint, maxRestarts int, prefixDir string) *Daemon {
 	return &Daemon{
 		Manager:     process.NewManager(name),
 		execFile:    "hnsd",
 		rsHost:      rsHost,
 		poolSize:    poolSize,
 		maxRestarts: maxRestarts,
+		prefixDir:   prefixDir,
 	}
 }
 
-// Setup verifies the hnsd binary is available before the Daemon is started.
+// Setup verifies the hnsd binary is available and creates the prefix directory
+// before the Daemon is started. hnsd refuses to start if the prefix directory
+// does not exist.
 func (d *Daemon) Setup(ctx context.Context) error {
 	return d.Manager.Setup(ctx, func() error { //nolint:wrapcheck
 		if _, err := exec.LookPath(d.execFile); err != nil {
 			return fmt.Errorf("looking up %q binary: %w", d.execFile, err)
+		}
+
+		if err := os.MkdirAll(d.prefixDir, 0o700); err != nil {
+			return fmt.Errorf("creating prefix directory %q: %w", d.prefixDir, err)
 		}
 
 		return nil
@@ -113,12 +121,17 @@ func (d *Daemon) shouldRestart(restarts int) bool {
 
 // command builds the hnsd process bound to the configured resolver host.
 // Only --rs-host is pinned; the authoritative root nameserver keeps its loopback default.
+// --checkpoint starts the initial sync from the hard-coded checkpoint instead of
+// genesis, and --prefix persists chain state across restarts so subsequent syncs
+// resume from the stored tip.
 func (d *Daemon) command(ctx context.Context) *exec.Cmd {
 	cmd := exec.CommandContext(
 		ctx,
 		d.execFile,
 		"--rs-host", d.rsHost,
 		"--pool-size", strconv.FormatUint(uint64(d.poolSize), 10),
+		"--checkpoint",
+		"--prefix", d.prefixDir,
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
