@@ -1,6 +1,6 @@
 module github.com/sentinel-official/sentinel-dvpnx
 
-go 1.25.5
+go 1.26.0
 
 require (
 	cosmossdk.io/math v1.5.3
@@ -13,7 +13,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
 )
