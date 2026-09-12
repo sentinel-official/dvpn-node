@@ -49,7 +49,7 @@ function cmd_init {
       --interactive \
       --rm \
       --tty \
-      --volume "${NODE_DIR}:/root/.sentinelnode" \
+      --volume "${NODE_DIR}:/root/.sentinel-dvpnx" \
       "${NODE_IMAGE}" process "${@}"
   }
 
@@ -387,7 +387,7 @@ function cmd_start {
       --name="${CONTAINER_NAME}" \
       --rm="${rm}" \
       --tty \
-      --volume "${NODE_DIR}:/root/.sentinelnode" \
+      --volume "${NODE_DIR}:/root/.sentinel-dvpnx" \
       --publish "${node_api_port}:${node_api_port}/tcp" \
       --publish "${vmess_port}:${vmess_port}/tcp" \
       "${NODE_IMAGE}" process start
@@ -401,7 +401,7 @@ function cmd_start {
       --rm="${rm}" \
       --tty \
       --volume /lib/modules:/lib/modules \
-      --volume "${NODE_DIR}:/root/.sentinelnode" \
+      --volume "${NODE_DIR}:/root/.sentinel-dvpnx" \
       --cap-drop ALL \
       --cap-add NET_ADMIN \
       --cap-add NET_BIND_SERVICE \

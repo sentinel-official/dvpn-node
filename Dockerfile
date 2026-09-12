@@ -25,9 +25,14 @@ RUN apk add --no-cache \
 # External dependencies are provisioned before the application source is copied
 # so that changes to the source do not invalidate these expensive layers.
 
-# Build hnsd (pinned for reproducibility).
-ARG HNSD_VERSION=v2.0.0
-RUN git clone --branch="${HNSD_VERSION}" --depth=1 https://github.com/handshake-org/hnsd.git && \
+# Build hnsd from a pinned commit. The v2.0.0 tag (2023) ships a stale ICANN
+# root-zone snapshot (src/tld.h) whose DS records predate the .com/.net DNSSEC
+# algorithm rollover, so DNSSEC validation fails (SERVFAIL) for those TLDs.
+# The fix is only on master; no release tag contains it.
+ARG HNSD_COMMIT=3c2cd7a2b744558ac159efced3898e7d5adbb4a6
+RUN git init --quiet ./hnsd && \
+    git -C ./hnsd fetch --depth=1 https://github.com/handshake-org/hnsd.git "${HNSD_COMMIT}" && \
+    git -C ./hnsd checkout --quiet FETCH_HEAD && \
     cd ./hnsd && \
     ./autogen.sh && \
     ./configure && \
